@@ -7,15 +7,20 @@ export interface AuditAnswer {
   timestamp: Date
 }
 
+interface Phone {
+  countryCode: string
+  national: string
+}
+
 export interface RegistrationData {
-  firstName?: string
-  lastName?: string
-  email?: string
-  phone?: string
-  businessName?: string
-  role?: string
-  city?: string
-  country?: string
+  firstName: string
+  lastName: string
+  email: string
+  phone: Phone
+  businessName: string
+  role: string
+  city: string
+  country: string
 }
 
 export interface Question {
@@ -35,6 +40,7 @@ export interface AuditProgressState {
   answers: AuditAnswer[]
   industry: 'dental' | 'hvac' | null
   registrationData: RegistrationData
+  registrationIndex: number
   
   // Audit-specific state
   currentQuestionIndex: number
@@ -47,8 +53,12 @@ export interface AuditProgressState {
   setCurrentStep: (step: string | number) => void
   addAnswer: (answer: AuditAnswer) => void
   setIndustry: (industry: 'dental' | 'hvac') => void
-  updateRegistrationField: (field: keyof RegistrationData, value: string) => void
-  getRegistrationField: (field: keyof RegistrationData) => string | undefined
+  updateRegistrationField: (field: keyof RegistrationData, value: any) => void
+  setRegistrationIndex: (index: number) => void
+  nextRegistrationStep: () => void
+  backRegistrationStep: () => void
+  resetRegistration: () => void
+  getRegistrationField: (field: keyof RegistrationData) => string | Phone | undefined
   clearRegistrationData: () => void
   resetProgress: () => void
   
@@ -68,7 +78,17 @@ export const useAuditProgressStore = create<AuditProgressState>()(
       currentStep: 'welcome',
       answers: [],
       industry: null,
-      registrationData: {},
+      registrationData: {
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: { countryCode: 'US', national: '' },
+        businessName: '',
+        role: '',
+        city: '',
+        country: 'US'
+      },
+      registrationIndex: 0,
       
       // Audit state
       currentQuestionIndex: 0,
@@ -94,16 +114,61 @@ export const useAuditProgressStore = create<AuditProgressState>()(
           }
         })),
 
+      setRegistrationIndex: (index) => set({ registrationIndex: index }),
+      
+      nextRegistrationStep: () => set((state) => ({
+        registrationIndex: Math.min(state.registrationIndex + 1, 7)
+      })),
+      
+      backRegistrationStep: () => set((state) => ({
+        registrationIndex: Math.max(state.registrationIndex - 1, 0)
+      })),
+      
+      resetRegistration: () => set({
+        registrationIndex: 0,
+        registrationData: {
+          firstName: '',
+          lastName: '',
+          email: '',
+          phone: { countryCode: 'US', national: '' },
+          businessName: '',
+          role: '',
+          city: '',
+          country: 'US'
+        }
+      }),
+
       getRegistrationField: (field) => get().registrationData[field],
 
-      clearRegistrationData: () => set({ registrationData: {} }),
+      clearRegistrationData: () => set({ 
+        registrationData: {
+          firstName: '',
+          lastName: '',
+          email: '',
+          phone: { countryCode: 'US', national: '' },
+          businessName: '',
+          role: '',
+          city: '',
+          country: 'US'
+        }
+      }),
       
       resetProgress: () => 
         set({
           currentStep: 'welcome',
           answers: [],
           industry: null,
-          registrationData: {},
+          registrationData: {
+            firstName: '',
+            lastName: '',
+            email: '',
+            phone: { countryCode: 'US', national: '' },
+            businessName: '',
+            role: '',
+            city: '',
+            country: 'US'
+          },
+          registrationIndex: 0,
           currentQuestionIndex: 0,
           auditQuestions: [],
           auditAnswers: {},
@@ -157,6 +222,7 @@ export const useAuditProgressStore = create<AuditProgressState>()(
         answers: state.answers,
         industry: state.industry,
         registrationData: state.registrationData,
+        registrationIndex: state.registrationIndex,
         currentQuestionIndex: state.currentQuestionIndex,
         auditAnswers: state.auditAnswers,
         auditStarted: state.auditStarted,

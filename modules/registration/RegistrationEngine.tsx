@@ -1,8 +1,8 @@
 import { lazy, Suspense } from 'react'
 import { useAuditProgressStore } from '@/stores/auditProgressStore'
-import { RegistrationStep } from '@/components/registration/RegistrationStep'
 import { TypingDots } from '@/components/chat/TypingDots'
 import { Welcome } from './steps/Welcome'
+import { Registration } from './steps/Registration'
 
 const AuditEngine = lazy(() => import('@/components/audit/AuditEngine').then(module => ({ default: module.AuditEngine })))
 
@@ -17,13 +17,13 @@ export function RegistrationEngine({ industry }: RegistrationEngineProps) {
     setCurrentStep('registration:firstName')
   }
 
-  // Show registration step if currentStep starts with 'registration:' but is not 'registration:complete'
-  if (typeof currentStep === 'string' && currentStep.startsWith('registration:') && currentStep !== 'registration:complete') {
-    return <RegistrationStep />
+  // Show registration step if currentStep starts with 'registration:'
+  if (typeof currentStep === 'string' && currentStep.startsWith('registration:')) {
+    return <Registration />
   }
 
-  // If registration is complete, show audit engine
-  if (currentStep === 'registration:complete') {
+  // If audit should start, show audit engine
+  if (currentStep === 'audit:firstQuestion') {
     return (
       <Suspense fallback={<div className="flex items-center justify-center h-64"><TypingDots /></div>}>
         <AuditEngine industry={industry} />

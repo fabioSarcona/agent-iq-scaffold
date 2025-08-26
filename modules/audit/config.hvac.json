@@ -3,139 +3,363 @@
   "vertical": "hvac",
   "sections": [
     {
-      "id": "business_profile",
-      "preHeadline": "Section 1",
-      "headline": "Business Profile",
-      "description": "Let's start by understanding your HVAC business size and service volume.",
+      "id": "company_overview",
+      "preHeadline": "Company Profile",
+      "headline": "Your Business Structure and Operations",
+      "description": "Basic information about your HVAC business to understand your current setup and operational capacity.",
       "questions": [
         {
-          "id": "hvac_service_calls",
-          "label": "How many service calls do you handle per week?",
-          "description": "This helps us understand your business volume and capacity",
-          "type": "number",
-          "required": true,
-          "validation": {
-            "min": 0,
-            "max": 500,
-            "step": 1
-          },
-          "map": {
-            "lossArea": "Capacity Utilization",
-            "weight": 0.7
-          }
-        },
-        {
-          "id": "hvac_team_size",
-          "label": "How many technicians work for your company?",
-          "description": "Including yourself if you do field work",
+          "id": "field_technicians_count_choice",
+          "label": "How many field technicians are actively working in your company?",
           "type": "multiple_choice",
           "required": true,
           "options": [
-            { "value": "solo", "label": "Just me (solo operator)", "score": 1 },
-            { "value": "2-5", "label": "2-5 technicians", "score": 2 },
-            { "value": "6-15", "label": "6-15 technicians", "score": 3 },
-            { "value": "16+", "label": "16+ technicians", "score": 4 }
+            {"value": "1_2","label": "1–2 technicians","score": 1},
+            {"value": "3_5","label": "3–5 technicians","score": 3},
+            {"value": "6_plus","label": "6 or more technicians","score": 5}
+          ]
+        },
+        {
+          "id": "call_booking_staff_count_choice",
+          "label": "How many people regularly handle incoming calls and bookings?",
+          "type": "multiple_choice",
+          "required": true,
+          "options": [
+            {"value": "1","label": "1 person","score": 1},
+            {"value": "2_3","label": "2–3 people","score": 3},
+            {"value": "4_plus","label": "4 or more","score": 5}
+          ]
+        },
+        {
+          "id": "scheduling_software_used_choice",
+          "label": "What software do you use to schedule and track jobs?",
+          "type": "multiple_choice",
+          "required": true,
+          "options": [
+            {"value": "servicetitan","label": "ServiceTitan","score": 4},
+            {"value": "housecall_pro","label": "Housecall Pro","score": 4},
+            {"value": "jobber","label": "Jobber","score": 4},
+            {"value": "fieldedge","label": "FieldEdge","score": 4},
+            {"value": "other","label": "Other","score": 2},
+            {"value": "none","label": "No software","score": 0}
+          ]
+        },
+        {
+          "id": "website_system_connection_choice",
+          "label": "Is your website or contact form connected to your scheduling system?",
+          "type": "multiple_choice",
+          "required": true,
+          "options": [
+            {"value": "full","label": "Yes, fully connected","score": 5},
+            {"value": "partial","label": "Partially connected","score": 3},
+            {"value": "not_connected","label": "Not connected","score": 0},
+            {"value": "no_website","label": "No website","score": 0}
+          ]
+        },
+        {
+          "id": "weekly_jobs_completed_choice",
+          "label": "How many jobs do you usually complete per week?",
+          "type": "multiple_choice",
+          "required": true,
+          "options": [
+            {"value": "lt_20","label": "Less than 20","score": 1},
+            {"value": "20_50","label": "20–50","score": 3},
+            {"value": "gt_50","label": "Over 50","score": 5}
+          ]
+        },
+        {
+          "id": "daily_calls_received_choice",
+          "label": "On average, how many calls do you get per day?",
+          "type": "multiple_choice",
+          "required": true,
+          "options": [
+            {"value": "lt_10","label": "Less than 10","score": 1},
+            {"value": "10_20","label": "10–20","score": 3},
+            {"value": "gt_20","label": "Over 20","score": 5}
           ]
         }
       ]
     },
     {
-      "id": "operations_management",
-      "preHeadline": "Section 2",
-      "headline": "Operations Management",
-      "description": "Now let's explore your operational challenges and service management.",
+      "id": "financial_overview",
+      "preHeadline": "Financial Performance",
+      "headline": "Understanding Your Revenue Streams",
+      "description": "Let's take a quick look at the numbers behind your business — service fees, job volume, and profit margins.",
+      "questions": [
+        {"id": "basic_service_call_fee_usd","label": "What's your average ticket for a basic service call?","type": "currency","required": true,"validation": {"min": 0, "max": 10000, "currency": "USD"}},
+        {"id": "large_job_install_value_usd","label": "What's the average value of a full system install or large job?","type": "currency","required": true,"validation": {"min": 0, "max": 50000, "currency": "USD"}},
+        {"id": "monthly_jobs_completed","label": "How many jobs do you complete monthly?","type": "number","required": true,"validation": {"min": 0, "max": 1000, "step": 1}},
+        {"id": "monthly_new_customers","label": "How many new customers do you serve each month?","type": "number","required": true,"validation": {"min": 0, "max": 500, "step": 1}},
+        {"id": "new_customer_first_year_ltv_usd","label": "What's the average first-year value of a new customer?","type": "currency","required": true,"validation": {"min": 0, "max": 20000, "currency": "USD"}},
+        {"id": "monthly_net_profit_usd","label": "What's your average monthly net profit?","type": "currency","required": true,"validation": {"min": 0, "max": 100000, "currency": "USD"}}
+      ]
+    },
+    {
+      "id": "call_handling_scheduling",
+      "preHeadline": "Operations & Communication",
+      "headline": "How You Handle Calls and Appointments",
+      "description": "Your phone line is often the first touchpoint for new and returning customers.",
       "questions": [
         {
-          "id": "hvac_operational_challenge",
-          "label": "What's your biggest operational challenge?",
-          "description": "Identifying key pain points helps us focus on the right solutions",
+          "id": "daily_unanswered_calls_choice",
+          "label": "On average, how many calls go unanswered each day?",
           "type": "multiple_choice",
           "required": true,
           "options": [
-            { "value": "scheduling_dispatch", "label": "Scheduling and dispatch", "score": 4 },
-            { "value": "customer_communication", "label": "Customer communication", "score": 3 },
-            { "value": "equipment_inventory", "label": "Equipment and inventory management", "score": 2 },
-            { "value": "staff_coordination", "label": "Staff coordination", "score": 3 }
+            {"value": "none","label": "None","score": 5},
+            {"value": "1_3","label": "1–3","score": 3},
+            {"value": "4_6","label": "4–6","score": 1},
+            {"value": "gt_6","label": "More than 6","score": 0}
           ],
-          "map": {
-            "lossArea": "Operational Inefficiency",
-            "weight": 0.8
-          }
+          "map": {"lossArea": "Missed Service Calls Loss", "weight": 0.25}
         },
         {
-          "id": "hvac_emergency_calls",
-          "label": "How do you currently manage emergency calls?",
-          "description": "Emergency response efficiency directly impacts customer satisfaction",
-          "type": "text",
+          "id": "missed_call_estimated_value_usd",
+          "label": "What's the estimated value of each missed call?",
+          "type": "currency",
           "required": true,
-          "map": {
-            "lossArea": "Emergency Response Revenue",
-            "weight": 0.9
-          }
+          "validation": {"min": 0, "max": 5000, "currency": "USD"},
+          "map": {"lossArea": "Missed Service Calls Loss", "weight": 0.25}
         },
         {
-          "id": "hvac_after_hours_calls",
-          "label": "What percentage of calls come outside business hours?",
-          "description": "After-hours demand affects staffing and revenue opportunities",
-          "type": "number",
+          "id": "after_hours_call_handling_choice",
+          "label": "How do you handle after-hours calls?",
+          "type": "multiple_choice",
           "required": true,
-          "validation": {
-            "min": 0,
-            "max": 100,
-            "step": 1
-          },
-          "map": {
-            "lossArea": "After-Hours Revenue Loss",
-            "weight": 0.8
-          }
+          "options": [
+            {"value": "ai_or_live","label": "AI or live call routing","score": 5},
+            {"value": "whatsapp_sms","label": "WhatsApp or SMS bot","score": 3},
+            {"value": "voicemail","label": "Voicemail only","score": 2},
+            {"value": "none","label": "No system","score": 0}
+          ]
+        },
+        {
+          "id": "missed_call_response_time_choice",
+          "label": "When you miss a call, how quickly do you usually call back?",
+          "type": "multiple_choice",
+          "required": true,
+          "options": [
+            {"value": "immediate","label": "Immediately (within 15 minutes)","score": 5},
+            {"value": "2h","label": "Within 2 hours","score": 3},
+            {"value": "same_day","label": "Same day","score": 2},
+            {"value": "next_day","label": "Next day or inconsistent","score": 0}
+          ]
+        },
+        {
+          "id": "booking_system_automation_choice",
+          "label": "Does your system automatically update availability when a booking is created or canceled?",
+          "type": "multiple_choice",
+          "required": true,
+          "options": [
+            {"value": "auto","label": "Yes, fully automatic","score": 5},
+            {"value": "manual","label": "No, updates manually","score": 0}
+          ]
+        },
+        {
+          "id": "automatic_appointment_reminders_choice",
+          "label": "Do you send automatic reminders before service appointments?",
+          "type": "multiple_choice",
+          "required": true,
+          "options": [
+            {"value": "yes","label": "Yes","score": 5},
+            {"value": "no","label": "No","score": 0}
+          ]
         }
       ]
     },
     {
-      "id": "customer_service",
-      "preHeadline": "Section 3",
-      "headline": "Customer Service & Revenue",
-      "description": "Finally, let's focus on customer satisfaction and revenue optimization.",
+      "id": "cancellations_quotes",
+      "preHeadline": "Revenue Protection",
+      "headline": "Managing Lost Revenue and Missed Opportunities",
+      "description": "Missed appointments and unanswered quotes can quietly drain your revenue.",
       "questions": [
         {
-          "id": "hvac_profitable_services",
-          "label": "Which services are most profitable for your business?",
-          "description": "Understanding your profit centers helps optimize resource allocation",
+          "id": "weekly_job_cancellations_choice",
+          "label": "On average, how many jobs get canceled last minute each week?",
           "type": "multiple_choice",
           "required": true,
           "options": [
-            { "value": "new_installations", "label": "New installations", "score": 4 },
-            { "value": "repair_services", "label": "Repair services", "score": 2 },
-            { "value": "maintenance_contracts", "label": "Maintenance contracts", "score": 3 },
-            { "value": "emergency_calls", "label": "Emergency calls", "score": 3 }
+            {"value": "none","label": "None","score": 5},
+            {"value": "1_2","label": "1–2","score": 3},
+            {"value": "3_5","label": "3–5","score": 1},
+            {"value": "gt_5","label": "More than 5","score": 0}
           ],
-          "map": {
-            "lossArea": "Revenue Optimization",
-            "weight": 0.7
-          }
+          "map": {"lossArea": "Last-Minute Cancellations Loss", "weight": 0.20}
         },
         {
-          "id": "hvac_average_job_value",
-          "label": "What's your average job value?",
-          "description": "This helps us calculate potential revenue impact",
+          "id": "avg_canceled_job_value_usd",
+          "label": "What's the average value of each canceled job?",
           "type": "currency",
           "required": true,
-          "validation": {
-            "min": 100,
-            "max": 10000,
-            "currency": "USD"
-          }
+          "validation": {"min": 0, "max": 10000, "currency": "USD"},
+          "map": {"lossArea": "Last-Minute Cancellations Loss", "weight": 0.20}
         },
         {
-          "id": "hvac_customer_satisfaction",
-          "label": "What would improve your customer satisfaction most?",
-          "description": "Customer satisfaction drives repeat business and referrals",
-          "type": "text",
+          "id": "large_job_deposit_policy_choice",
+          "label": "Do you collect deposits or written confirmation for larger jobs (over $1,000)?",
+          "type": "multiple_choice",
           "required": true,
-          "map": {
-            "lossArea": "Customer Retention",
-            "weight": 0.6
-          }
+          "options": [
+            {"value": "yes","label": "Yes","score": 5},
+            {"value": "sometimes","label": "Sometimes","score": 3},
+            {"value": "no","label": "No","score": 0}
+          ]
+        },
+        {
+          "id": "immediate_quote_acceptance_choice",
+          "label": "Out of every 10 quotes you send, how many are accepted right away without any follow-up?",
+          "type": "multiple_choice",
+          "required": true,
+          "options": [
+            {"value": "0_2","label": "0–2 accepted","score": 0},
+            {"value": "3_5","label": "3–5 accepted","score": 2},
+            {"value": "6_10","label": "6–10 accepted","score": 5}
+          ]
+        },
+        {
+          "id": "quote_followup_timeline_choice",
+          "label": "How long do you usually take to follow up on new quotes or estimates?",
+          "type": "multiple_choice",
+          "required": true,
+          "options": [
+            {"value": "same_day","label": "Same day","score": 5},
+            {"value": "2_3_days","label": "Within 2–3 days","score": 3},
+            {"value": "1_week","label": "After 1 week","score": 1},
+            {"value": "no_consistent","label": "No consistent follow-up","score": 0}
+          ]
+        },
+        {
+          "id": "monthly_pending_quotes",
+          "label": "How many quotes are pending without any action each month?",
+          "type": "number",
+          "required": true,
+          "validation": {"min": 0, "max": 500, "step": 1},
+          "map": {"lossArea": "Pending Quotes Revenue Loss", "weight": 0.25}
+        },
+        {
+          "id": "average_pending_quote_value_usd",
+          "label": "What's the average value of each pending quote?",
+          "type": "currency",
+          "required": true,
+          "validation": {"min": 0, "max": 20000, "currency": "USD"},
+          "map": {"lossArea": "Pending Quotes Revenue Loss", "weight": 0.25}
+        }
+      ]
+    },
+    {
+      "id": "capacity_overflow",
+      "preHeadline": "Revenue Protection",
+      "headline": "Managing Lost Revenue and Missed Opportunities",
+      "description": "Understanding how you handle peak capacity periods and overflow situations.",
+      "questions": [
+        {
+          "id": "busy_season_turnaway_rate_choice",
+          "label": "During your busiest months, about what percentage of calls or jobs do you have to turn away because of lack of capacity?",
+          "type": "multiple_choice",
+          "required": true,
+          "options": [
+            {"value": "lt_5","label": "Less than 5%","score": 5},
+            {"value": "5_10","label": "5–10%","score": 3},
+            {"value": "10_20","label": "10–20%","score": 1},
+            {"value": "gt_20","label": "Over 20%","score": 0}
+          ],
+          "map": {"lossArea": "Capacity Overflow Loss", "weight": 0.20}
+        },
+        {
+          "id": "waitlist_overflow_process_choice",
+          "label": "Do you have a waiting list or overflow process when fully booked?",
+          "type": "multiple_choice",
+          "required": true,
+          "options": [
+            {"value": "automated","label": "Yes, automated waitlist","score": 5},
+            {"value": "manual","label": "Manual callbacks","score": 2},
+            {"value": "none","label": "No process","score": 0}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "recurring_revenue_maintenance",
+      "preHeadline": "Growth & Loyalty",
+      "headline": "Building Long-Term Customer Relationships",
+      "description": "Recurring maintenance plans and customer retention strategies.",
+      "questions": [
+        {
+          "id": "customers_with_maintenance_plans_choice",
+          "label": "What percentage of your customers have a recurring maintenance or service plan?",
+          "type": "multiple_choice",
+          "required": true,
+          "options": [
+            {"value": "gt_70","label": "Over 70%","score": 5},
+            {"value": "40_70","label": "40–70%","score": 4},
+            {"value": "20_40","label": "20–40%","score": 2},
+            {"value": "lt_20","label": "Under 20%","score": 0}
+          ]
+        },
+        {
+          "id": "maintenance_renewal_reminders_choice",
+          "label": "How often do you remind customers to renew or schedule maintenance?",
+          "type": "multiple_choice",
+          "required": true,
+          "options": [
+            {"value": "6m","label": "Every 6 months","score": 5},
+            {"value": "1y","label": "Once per year","score": 3},
+            {"value": "inbound_only","label": "Only when they call","score": 1},
+            {"value": "none","label": "No reminders","score": 0}
+          ]
+        }
+      ]
+    },
+    {
+      "id": "reviews_referrals",
+      "preHeadline": "Growth & Loyalty",
+      "headline": "Building Long-Term Customer Relationships",
+      "description": "Online reputation management and customer referral systems.",
+      "questions": [
+        {
+          "id": "monthly_online_reviews_choice",
+          "label": "On average, how many new online reviews do you get per month?",
+          "type": "multiple_choice",
+          "required": true,
+          "options": [
+            {"value": "gt_10","label": "More than 10","score": 5},
+            {"value": "4_10","label": "4–10","score": 4},
+            {"value": "1_3","label": "1–3","score": 2},
+            {"value": "0","label": "None","score": 0}
+          ]
+        },
+        {
+          "id": "automated_review_system_choice",
+          "label": "Do you have an automated system to request reviews?",
+          "type": "multiple_choice",
+          "required": true,
+          "options": [
+            {"value": "yes","label": "Yes","score": 5},
+            {"value": "no","label": "No","score": 0}
+          ]
+        },
+        {
+          "id": "customer_referral_program_choice",
+          "label": "Do you have a referral program for customers?",
+          "type": "multiple_choice",
+          "required": true,
+          "options": [
+            {"value": "incentives","label": "Yes, with incentives","score": 5},
+            {"value": "informal","label": "Informal (just ask verbally)","score": 2},
+            {"value": "none","label": "No","score": 0}
+          ]
+        },
+        {
+          "id": "referral_rate_per_new_customers_choice",
+          "label": "Out of every 10 new customers, how many come from referrals?",
+          "type": "multiple_choice",
+          "required": true,
+          "options": [
+            {"value": "9_10","label": "9–10","score": 5},
+            {"value": "6_8","label": "6–8","score": 4},
+            {"value": "3_5","label": "3–5","score": 2},
+            {"value": "0_2","label": "0–2","score": 0}
+          ]
         }
       ]
     }

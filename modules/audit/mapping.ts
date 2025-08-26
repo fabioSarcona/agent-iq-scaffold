@@ -29,29 +29,33 @@ export const questionMapping = {
   },
   
   // HVAC Business Mappings
-  hvac_service_calls: {
-    lossArea: "Capacity Utilization",
-    weight: 0.7
+  daily_unanswered_calls_choice: {
+    lossArea: "Missed Service Calls Loss",
+    weight: 0.25
   },
-  hvac_operational_challenge: {
-    lossArea: "Operational Inefficiency",
-    weight: 0.8
+  missed_call_estimated_value_usd: {
+    lossArea: "Missed Service Calls Loss", 
+    weight: 0.25
   },
-  hvac_emergency_calls: {
-    lossArea: "Emergency Response Revenue",
-    weight: 0.9
+  weekly_job_cancellations_choice: {
+    lossArea: "Last-Minute Cancellations Loss",
+    weight: 0.20
   },
-  hvac_after_hours_calls: {
-    lossArea: "After-Hours Revenue Loss",
-    weight: 0.8
+  avg_canceled_job_value_usd: {
+    lossArea: "Last-Minute Cancellations Loss",
+    weight: 0.20
   },
-  hvac_profitable_services: {
-    lossArea: "Revenue Optimization",
-    weight: 0.7
+  monthly_pending_quotes: {
+    lossArea: "Pending Quotes Revenue Loss",
+    weight: 0.25
   },
-  hvac_customer_satisfaction: {
-    lossArea: "Customer Retention",
-    weight: 0.6
+  average_pending_quote_value_usd: {
+    lossArea: "Pending Quotes Revenue Loss",
+    weight: 0.25
+  },
+  busy_season_turnaway_rate_choice: {
+    lossArea: "Capacity Overflow Loss",
+    weight: 0.20
   }
 } as const;
 

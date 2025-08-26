@@ -1,0 +1,60 @@
+{
+  "questions": [
+    {
+      "id": "hvac_service_calls",
+      "text": "How many service calls do you handle per week?",
+      "description": "This helps us understand your business volume and capacity",
+      "type": "number",
+      "validation": {
+        "min": 0,
+        "max": 500
+      }
+    },
+    {
+      "id": "hvac_operational_challenge",
+      "text": "What's your biggest operational challenge?",
+      "description": "Identifying key pain points helps us focus on the right solutions",
+      "type": "multiple-choice",
+      "options": [
+        "Scheduling and dispatch",
+        "Customer communication",
+        "Equipment and inventory management",
+        "Staff coordination"
+      ]
+    },
+    {
+      "id": "hvac_emergency_calls",
+      "text": "How do you currently manage emergency calls?",
+      "description": "Emergency response efficiency directly impacts customer satisfaction",
+      "type": "text"
+    },
+    {
+      "id": "hvac_after_hours_calls",
+      "text": "What percentage of calls come outside business hours?",
+      "description": "After-hours demand affects staffing and revenue opportunities",
+      "type": "number",
+      "validation": {
+        "min": 0,
+        "max": 100
+      }
+    },
+    {
+      "id": "hvac_profitable_services",
+      "text": "Which services are most profitable for your business?",
+      "description": "Understanding your profit centers helps optimize resource allocation",
+      "type": "multiple-choice",
+      "options": [
+        "New installations",
+        "Repair services",
+        "Maintenance contracts",
+        "Emergency calls"
+      ]
+    },
+    {
+      "id": "hvac_customer_satisfaction",
+      "text": "What would improve your customer satisfaction most?",
+      "description": "Customer satisfaction drives repeat business and referrals",
+      "type": "text"
+    }
+  ]
+}

@@ -5,7 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
-import { AppLayout } from "@/components/layout/AppLayout";
+import { AppLayoutWithLogs } from "@/components/layout/AppLayoutWithLogs";
 import Landing from "./pages/Landing";
 import AuditDental from "./pages/AuditDental";
 import AuditHVAC from "./pages/AuditHVAC";
@@ -25,7 +25,7 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <Routes>
-              <Route path="/" element={<AppLayout />}>
+              <Route path="/" element={<AppLayoutWithLogs />}>
                 <Route index element={<Landing />} />
                 <Route path="audit/dental" element={<AuditDental />} />
                 <Route path="audit/hvac" element={<AuditHVAC />} />

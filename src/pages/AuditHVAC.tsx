@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, lazy, Suspense } from 'react'
 import { ChatBubble } from '@/components/chat/ChatBubble'
 import { TypingDots } from '@/components/chat/TypingDots'
 import { ProgressBar } from '@/components/ui/progress-bar'
@@ -7,6 +7,8 @@ import { useAuditProgressStore } from '@/stores/auditProgressStore'
 import { calculateTypingDelay } from '@/lib/typingUtils'
 import { RegistrationStep } from '@/components/registration/RegistrationStep'
 import { ArrowRight } from 'lucide-react'
+
+const AuditEngine = lazy(() => import('@/components/audit/AuditEngine').then(module => ({ default: module.AuditEngine })))
 
 const WELCOME_MESSAGES = [
   "Hi 👋, I'm Fabio Sarcona, founder of NeedAgent AI. For over 10 years, I've been helping HVAC companies win back clients and save time through smart automation.",
@@ -56,6 +58,15 @@ export default function AuditHVAC() {
   // Show registration step if currentStep starts with 'registration:'
   if (typeof currentStep === 'string' && currentStep.startsWith('registration:')) {
     return <RegistrationStep />
+  }
+
+  // If registration is complete, show audit engine
+  if (currentStep === 'registration:complete') {
+    return (
+      <Suspense fallback={<div className="flex items-center justify-center h-64"><TypingDots /></div>}>
+        <AuditEngine industry="hvac" />
+      </Suspense>
+    )
   }
 
   return (

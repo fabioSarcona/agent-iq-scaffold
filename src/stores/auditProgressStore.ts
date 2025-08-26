@@ -7,19 +7,19 @@ export interface AuditAnswer {
 }
 
 export interface AuditProgressState {
-  currentStep: number
+  currentStep: string | number
   answers: AuditAnswer[]
   industry: 'dental' | 'hvac' | null
   
   // Actions
-  setCurrentStep: (step: number) => void
+  setCurrentStep: (step: string | number) => void
   addAnswer: (answer: AuditAnswer) => void
   setIndustry: (industry: 'dental' | 'hvac') => void
   resetProgress: () => void
 }
 
 export const useAuditProgressStore = create<AuditProgressState>((set) => ({
-  currentStep: 0,
+  currentStep: 'welcome',
   answers: [],
   industry: null,
 
@@ -34,7 +34,7 @@ export const useAuditProgressStore = create<AuditProgressState>((set) => ({
   
   resetProgress: () => 
     set({
-      currentStep: 0,
+      currentStep: 'welcome',
       answers: [],
       industry: null
     }),

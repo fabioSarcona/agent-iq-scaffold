@@ -1,0 +1,143 @@
+{
+  "version": 1,
+  "vertical": "dental",
+  "sections": [
+    {
+      "id": "practice_profile",
+      "preHeadline": "Section 1",
+      "headline": "Practice Profile",
+      "description": "Let's start by understanding your practice size and patient flow.",
+      "questions": [
+        {
+          "id": "dental_new_patients",
+          "label": "How many new patients do you typically get per month?",
+          "description": "This helps us understand your practice growth and capacity",
+          "type": "number",
+          "required": true,
+          "validation": {
+            "min": 0,
+            "max": 1000,
+            "step": 1
+          },
+          "map": {
+            "lossArea": "Missed Lead Conversion",
+            "weight": 0.8
+          }
+        },
+        {
+          "id": "dental_practice_size",
+          "label": "How many dentists work at your practice?",
+          "description": "Including yourself and any associates",
+          "type": "multiple_choice",
+          "required": true,
+          "options": [
+            { "value": "solo", "label": "Just me (solo practice)", "score": 1 },
+            { "value": "2-3", "label": "2-3 dentists", "score": 2 },
+            { "value": "4-6", "label": "4-6 dentists", "score": 3 },
+            { "value": "7+", "label": "7+ dentists", "score": 4 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "patient_communication",
+      "preHeadline": "Section 2",
+      "headline": "Patient Communication",
+      "description": "Now let's explore how you handle patient interactions and scheduling.",
+      "questions": [
+        {
+          "id": "dental_communication_challenge",
+          "label": "What's your biggest challenge in patient communication?",
+          "description": "Identifying communication pain points helps optimize your workflow",
+          "type": "multiple_choice",
+          "required": true,
+          "options": [
+            { "value": "phone_scheduling", "label": "Phone calls and scheduling", "score": 4 },
+            { "value": "confirmations", "label": "Appointment confirmations", "score": 3 },
+            { "value": "follow_ups", "label": "Follow-up reminders", "score": 2 },
+            { "value": "all_above", "label": "All of the above", "score": 5 }
+          ],
+          "map": {
+            "lossArea": "Communication Inefficiency",
+            "weight": 0.6
+          }
+        },
+        {
+          "id": "dental_appointment_confirmations",
+          "label": "How do you currently handle appointment confirmations?",
+          "description": "Understanding your current process helps identify automation opportunities",
+          "type": "text",
+          "required": true,
+          "map": {
+            "lossArea": "Manual Process Time Loss",
+            "weight": 0.5
+          }
+        },
+        {
+          "id": "dental_missed_appointments",
+          "label": "What percentage of patients miss appointments without notice?",
+          "description": "No-shows directly impact revenue and scheduling efficiency",
+          "type": "number",
+          "required": true,
+          "validation": {
+            "min": 0,
+            "max": 100,
+            "step": 1
+          },
+          "map": {
+            "lossArea": "No-Show Revenue Loss",
+            "weight": 0.9
+          }
+        }
+      ]
+    },
+    {
+      "id": "revenue_optimization",
+      "preHeadline": "Section 3",
+      "headline": "Revenue Optimization",
+      "description": "Finally, let's identify opportunities to maximize your practice revenue.",
+      "questions": [
+        {
+          "id": "dental_revenue_services",
+          "label": "Which services generate the most revenue for your practice?",
+          "description": "This helps us focus on optimizing your most profitable areas",
+          "type": "multiple_choice",
+          "required": true,
+          "options": [
+            { "value": "preventive", "label": "Cleanings and preventive care", "score": 1 },
+            { "value": "cosmetic", "label": "Cosmetic procedures", "score": 4 },
+            { "value": "orthodontics", "label": "Orthodontics", "score": 3 },
+            { "value": "oral_surgery", "label": "Oral surgery", "score": 2 }
+          ],
+          "map": {
+            "lossArea": "Revenue Optimization",
+            "weight": 0.7
+          }
+        },
+        {
+          "id": "dental_average_visit_value",
+          "label": "What's your average patient visit value?",
+          "description": "This helps us calculate potential revenue impact",
+          "type": "currency",
+          "required": true,
+          "validation": {
+            "min": 50,
+            "max": 2000,
+            "currency": "USD"
+          }
+        },
+        {
+          "id": "dental_time_saver",
+          "label": "What would save you the most time in daily operations?",
+          "description": "Your answer helps us prioritize the most impactful improvements",
+          "type": "text",
+          "required": true,
+          "map": {
+            "lossArea": "Operational Efficiency",
+            "weight": 0.6
+          }
+        }
+      ]
+    }
+  ]
+}

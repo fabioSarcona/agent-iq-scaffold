@@ -4,7 +4,7 @@ import { TypingDots } from '@/components/chat/TypingDots'
 import { Welcome } from './steps/Welcome'
 import { Registration } from './steps/Registration'
 
-const AuditEngine = lazy(() => import('@/components/audit/AuditEngine').then(module => ({ default: module.AuditEngine })))
+const AuditEngine = lazy(() => import('../audit/AuditEngine').then(module => ({ default: module.AuditEngine })))
 
 interface RegistrationEngineProps {
   industry: 'dental' | 'hvac'

@@ -1,0 +1,143 @@
+{
+  "version": 1,
+  "vertical": "hvac",
+  "sections": [
+    {
+      "id": "business_profile",
+      "preHeadline": "Section 1",
+      "headline": "Business Profile",
+      "description": "Let's start by understanding your HVAC business size and service volume.",
+      "questions": [
+        {
+          "id": "hvac_service_calls",
+          "label": "How many service calls do you handle per week?",
+          "description": "This helps us understand your business volume and capacity",
+          "type": "number",
+          "required": true,
+          "validation": {
+            "min": 0,
+            "max": 500,
+            "step": 1
+          },
+          "map": {
+            "lossArea": "Capacity Utilization",
+            "weight": 0.7
+          }
+        },
+        {
+          "id": "hvac_team_size",
+          "label": "How many technicians work for your company?",
+          "description": "Including yourself if you do field work",
+          "type": "multiple_choice",
+          "required": true,
+          "options": [
+            { "value": "solo", "label": "Just me (solo operator)", "score": 1 },
+            { "value": "2-5", "label": "2-5 technicians", "score": 2 },
+            { "value": "6-15", "label": "6-15 technicians", "score": 3 },
+            { "value": "16+", "label": "16+ technicians", "score": 4 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "operations_management",
+      "preHeadline": "Section 2",
+      "headline": "Operations Management",
+      "description": "Now let's explore your operational challenges and service management.",
+      "questions": [
+        {
+          "id": "hvac_operational_challenge",
+          "label": "What's your biggest operational challenge?",
+          "description": "Identifying key pain points helps us focus on the right solutions",
+          "type": "multiple_choice",
+          "required": true,
+          "options": [
+            { "value": "scheduling_dispatch", "label": "Scheduling and dispatch", "score": 4 },
+            { "value": "customer_communication", "label": "Customer communication", "score": 3 },
+            { "value": "equipment_inventory", "label": "Equipment and inventory management", "score": 2 },
+            { "value": "staff_coordination", "label": "Staff coordination", "score": 3 }
+          ],
+          "map": {
+            "lossArea": "Operational Inefficiency",
+            "weight": 0.8
+          }
+        },
+        {
+          "id": "hvac_emergency_calls",
+          "label": "How do you currently manage emergency calls?",
+          "description": "Emergency response efficiency directly impacts customer satisfaction",
+          "type": "text",
+          "required": true,
+          "map": {
+            "lossArea": "Emergency Response Revenue",
+            "weight": 0.9
+          }
+        },
+        {
+          "id": "hvac_after_hours_calls",
+          "label": "What percentage of calls come outside business hours?",
+          "description": "After-hours demand affects staffing and revenue opportunities",
+          "type": "number",
+          "required": true,
+          "validation": {
+            "min": 0,
+            "max": 100,
+            "step": 1
+          },
+          "map": {
+            "lossArea": "After-Hours Revenue Loss",
+            "weight": 0.8
+          }
+        }
+      ]
+    },
+    {
+      "id": "customer_service",
+      "preHeadline": "Section 3",
+      "headline": "Customer Service & Revenue",
+      "description": "Finally, let's focus on customer satisfaction and revenue optimization.",
+      "questions": [
+        {
+          "id": "hvac_profitable_services",
+          "label": "Which services are most profitable for your business?",
+          "description": "Understanding your profit centers helps optimize resource allocation",
+          "type": "multiple_choice",
+          "required": true,
+          "options": [
+            { "value": "new_installations", "label": "New installations", "score": 4 },
+            { "value": "repair_services", "label": "Repair services", "score": 2 },
+            { "value": "maintenance_contracts", "label": "Maintenance contracts", "score": 3 },
+            { "value": "emergency_calls", "label": "Emergency calls", "score": 3 }
+          ],
+          "map": {
+            "lossArea": "Revenue Optimization",
+            "weight": 0.7
+          }
+        },
+        {
+          "id": "hvac_average_job_value",
+          "label": "What's your average job value?",
+          "description": "This helps us calculate potential revenue impact",
+          "type": "currency",
+          "required": true,
+          "validation": {
+            "min": 100,
+            "max": 10000,
+            "currency": "USD"
+          }
+        },
+        {
+          "id": "hvac_customer_satisfaction",
+          "label": "What would improve your customer satisfaction most?",
+          "description": "Customer satisfaction drives repeat business and referrals",
+          "type": "text",
+          "required": true,
+          "map": {
+            "lossArea": "Customer Retention",
+            "weight": 0.6
+          }
+        }
+      ]
+    }
+  ]
+}

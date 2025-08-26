@@ -2,9 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* NeedAgent Business Audit Design System */
 
 @layer base {
   :root {
@@ -17,8 +15,13 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Brand colors from gradient */
+    --brand-primary: 223 73% 20%; /* #032371 */
+    --brand-secondary: 225 64% 47%; /* #1f53d1 */
+    --brand-tertiary: 196 72% 46%; /* #1d96c9 */
+    
+    --primary: 223 73% 20%;
+    --primary-foreground: 0 0% 98%;
 
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
@@ -26,17 +29,23 @@ All colors MUST be HSL.
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 225 64% 47%;
+    --accent-foreground: 0 0% 98%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --ring: 223 73% 20%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
+
+    /* Chat specific variables */
+    --chat-bubble-user: 225 64% 47%;
+    --chat-bubble-bot: 0 0% 96%;
+    --chat-bubble-user-text: 0 0% 98%;
+    --chat-bubble-bot-text: 222.2 84% 4.9%;
 
     --sidebar-background: 0 0% 98%;
 
@@ -65,8 +74,12 @@ All colors MUST be HSL.
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --brand-primary: 223 73% 20%;
+    --brand-secondary: 225 64% 47%;
+    --brand-tertiary: 196 72% 46%;
+
+    --primary: 225 64% 47%;
+    --primary-foreground: 0 0% 98%;
 
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
@@ -74,23 +87,56 @@ All colors MUST be HSL.
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 225 64% 47%;
+    --accent-foreground: 0 0% 98%;
 
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
 
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --ring: 225 64% 47%;
+
+    --chat-bubble-user: 225 64% 47%;
+    --chat-bubble-bot: 217.2 32.6% 17.5%;
+    --chat-bubble-user-text: 0 0% 98%;
+    --chat-bubble-bot-text: 210 40% 98%;
+
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary: 225 64% 47%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 240 3.7% 15.9%;
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-ring: 225 64% 47%;
+  }
+}
+
+@layer components {
+  /* Brand gradient utility */
+  .bg-brand-gradient {
+    background: linear-gradient(135deg, #032371 0%, #1f53d1 50%, #1d96c9 100%);
+  }
+
+  /* Chat animations */
+  @keyframes typing {
+    0%, 20% { transform: scale(1); opacity: 0.7; }
+    50% { transform: scale(1.2); opacity: 1; }
+    80%, 100% { transform: scale(1); opacity: 0.7; }
+  }
+
+  @keyframes slideIn {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+
+  .animate-typing {
+    animation: typing 1.4s ease-in-out infinite;
+  }
+
+  .animate-slide-in {
+    animation: slideIn 0.5s ease-out forwards;
   }
 }
 

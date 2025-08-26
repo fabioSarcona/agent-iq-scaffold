@@ -2,17 +2,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { LossAreaCard } from '@/components/ui/loss-area-card'
 import { useAuditProgressStore } from '@/stores/auditProgressStore'
-import { calculateMockLosses, formatCurrency } from '@/lib/mockCalculations'
+import { calculateRealLosses, formatCurrency } from '@/../modules/moneylost/moneylost'
 import { DollarSign, AlertTriangle } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
 export default function MoneyLost() {
   const navigate = useNavigate()
-  const { industry } = useAuditProgressStore()
+  const { industry, auditAnswers } = useAuditProgressStore()
   
-  // Use mock calculations based on industry
+  // Use real calculations based on industry and audit answers
   const currentIndustry = industry as 'dental' | 'hvac' || 'dental'
-  const { total, areas } = calculateMockLosses(currentIndustry)
+  const { total, areas } = calculateRealLosses(currentIndustry, auditAnswers)
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-8">

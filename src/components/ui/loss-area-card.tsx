@@ -1,7 +1,7 @@
 import * as React from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
-import { formatCurrency, type LossArea } from "@/lib/mockCalculations"
+import { formatCurrency, type LossArea } from "@/../modules/moneylost/moneylost"
 
 interface LossAreaCardProps extends React.HTMLAttributes<HTMLDivElement> {
   lossArea: LossArea

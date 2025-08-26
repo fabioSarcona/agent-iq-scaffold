@@ -5,6 +5,7 @@ import { ProgressBar } from '@/components/ui/progress-bar'
 import { Button } from '@/components/ui/button'
 import { useAuditProgressStore } from '@/stores/auditProgressStore'
 import { calculateTypingDelay } from '@/lib/typingUtils'
+import { RegistrationStep } from '@/components/registration/RegistrationStep'
 import { ArrowRight } from 'lucide-react'
 
 const WELCOME_MESSAGES = [
@@ -17,7 +18,7 @@ export default function AuditHVAC() {
   const [messages, setMessages] = useState<Array<{ text: string; isUser: boolean; id: string }>>([])
   const [isTyping, setIsTyping] = useState(false)
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0)
-  const { setIndustry, setCurrentStep } = useAuditProgressStore()
+  const { currentStep, setIndustry, setCurrentStep } = useAuditProgressStore()
 
   useEffect(() => {
     setIndustry('hvac')
@@ -51,6 +52,11 @@ export default function AuditHVAC() {
   }
 
   const progress = (currentMessageIndex / WELCOME_MESSAGES.length) * 100
+
+  // Show registration step if currentStep starts with 'registration:'
+  if (typeof currentStep === 'string' && currentStep.startsWith('registration:')) {
+    return <RegistrationStep />
+  }
 
   return (
     <div className="max-w-[800px] mx-auto p-6 space-y-6">

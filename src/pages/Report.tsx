@@ -16,14 +16,10 @@ import {
   ArrowRight
 } from 'lucide-react'
 import { useAuditProgressStore } from '@/stores/auditProgressStore'
-import { 
-  calculateBusinessScore, 
-  generateDiagnosis, 
-  generateConsequences, 
-  generateSolutions, 
-  generateFAQ, 
-  generateRecommendedPlan 
-} from '@/lib/mockReportData'
+import { supabase } from '@/integrations/supabase/client'
+import { calculateRealLosses } from '../../modules/moneylost/moneylost'
+import { knowledgeBase } from '@/kb/index'
+import { useState, useEffect } from 'react'
 
 const iconMap = {
   Phone,
@@ -34,16 +30,124 @@ const iconMap = {
   CheckCircle
 }
 
+interface ReportData {
+  score: number
+  diagnosis: Array<{ finding: string, severity: 'high' | 'medium' | 'low' }>
+  consequences: string[]
+  solutions: Array<{ skillId: string, title: string, rationale: string, icon: string }>
+  faqIds: string[]
+  plan: { name: string, price: string, period: string, inclusions: string[], addons: string[] }
+  benchmarks: { notes: string[] }
+}
+
 export default function Report() {
-  const { industry } = useAuditProgressStore()
+  const { industry, auditAnswers } = useAuditProgressStore()
+  const [reportData, setReportData] = useState<ReportData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  
   const currentIndustry = (industry || 'dental') as 'dental' | 'hvac'
   
-  const businessScore = calculateBusinessScore(currentIndustry)
-  const diagnosis = generateDiagnosis(currentIndustry)
-  const consequences = generateConsequences(currentIndustry)
-  const solutions = generateSolutions(currentIndustry)
-  const faq = generateFAQ(currentIndustry)
-  const recommendedPlan = generateRecommendedPlan(businessScore.score)
+  useEffect(() => {
+    generateReport()
+  }, [currentIndustry, auditAnswers])
+  
+  const generateReport = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+      
+      // Calculate money lost summary using real calculations
+      const moneyLostSummary = calculateRealLosses(currentIndustry, auditAnswers || {})
+      
+      // Prepare input for edge function
+      const input = {
+        sector: currentIndustry,
+        answers: auditAnswers || {},
+        moneyLostSummary,
+        kbSlices: {
+          brandTone: knowledgeBase.brand.voiceTone,
+          voiceSkills: knowledgeBase.voice,
+          painPoints: knowledgeBase.painPoints[currentIndustry],
+          pricing: knowledgeBase.pricing
+        }
+      }
+      
+      // Call the edge function
+      const { data, error: supabaseError } = await supabase.functions.invoke('ai_generate_report', {
+        body: input
+      })
+      
+      if (supabaseError) {
+        throw new Error(supabaseError.message)
+      }
+      
+      setReportData(data)
+    } catch (err) {
+      console.error('Error generating report:', err)
+      setError(err instanceof Error ? err.message : 'Failed to generate report')
+    } finally {
+      setLoading(false)
+    }
+  }
+  
+  if (loading) {
+    return (
+      <div className="max-w-6xl mx-auto p-6 space-y-8">
+        <div className="text-center space-y-2">
+          <h1 className="text-4xl font-bold text-foreground">Generating Your Report...</h1>
+          <p className="text-lg text-muted-foreground">Analyzing your business data and creating personalized recommendations</p>
+        </div>
+        <div className="grid gap-8 lg:grid-cols-2">
+          {[1, 2, 3, 4].map(i => (
+            <Card key={i} className="animate-pulse">
+              <CardHeader><div className="h-4 bg-muted rounded w-3/4"></div></CardHeader>
+              <CardContent><div className="space-y-2">
+                <div className="h-3 bg-muted rounded"></div>
+                <div className="h-3 bg-muted rounded w-2/3"></div>
+              </div></CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    )
+  }
+  
+  if (error) {
+    return (
+      <div className="max-w-6xl mx-auto p-6 space-y-8">
+        <div className="text-center space-y-2">
+          <h1 className="text-4xl font-bold text-destructive">Report Generation Failed</h1>
+          <p className="text-lg text-muted-foreground">{error}</p>
+          <Button onClick={generateReport} className="mt-4">Try Again</Button>
+        </div>
+      </div>
+    )
+  }
+  
+  if (!reportData) return null
+  
+  // Convert score to business score format for gauge component
+  const businessScore = {
+    score: reportData.score,
+    label: reportData.score <= 30 ? 'Crisis' : reportData.score <= 60 ? 'Growth Ready' : 'AI-Optimized',
+    color: reportData.score <= 30 ? 'hsl(0, 84%, 60%)' : reportData.score <= 60 ? 'hsl(45, 93%, 47%)' : 'hsl(120, 60%, 50%)'
+  }
+  
+  // Convert solutions to match expected format
+  const solutions = reportData.solutions.map(sol => ({
+    title: sol.title,
+    benefit: sol.rationale,
+    icon: sol.icon
+  }))
+  
+  // Generate FAQ data (using fallback for now)
+  const faq = [
+    { question: "How long does implementation take?", answer: "Most businesses are operational within 2-3 weeks." },
+    { question: "Is my data secure?", answer: "Yes, we use enterprise-grade security with full compliance." },
+    { question: "Can it integrate with existing systems?", answer: "We offer seamless integration with major platforms." },
+    { question: "What if it can't handle complex questions?", answer: "The system intelligently escalates to your team when needed." }
+  ]
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-8">
@@ -79,7 +183,7 @@ export default function Report() {
             <CardDescription>Key findings from your business analysis</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {diagnosis.map((item, index) => (
+            {reportData.diagnosis.map((item, index) => (
               <div key={index} className="flex items-start space-x-3">
                 <Badge 
                   variant={item.severity === 'high' ? 'destructive' : item.severity === 'medium' ? 'secondary' : 'outline'}
@@ -103,7 +207,7 @@ export default function Report() {
             <CardDescription>Impact of current inefficiencies</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {consequences.map((consequence, index) => (
+            {reportData.consequences.map((consequence, index) => (
               <div key={index} className="flex items-start space-x-3">
                 <AlertTriangle className="h-4 w-4 text-destructive mt-1 flex-shrink-0" />
                 <p className="text-sm text-foreground">{consequence}</p>
@@ -167,10 +271,10 @@ export default function Report() {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="text-center space-y-2">
-            <h3 className="text-2xl font-bold text-foreground">{recommendedPlan.tier}</h3>
+            <h3 className="text-2xl font-bold text-foreground">{reportData.plan.name}</h3>
             <div className="flex items-baseline justify-center space-x-1">
-              <span className="text-3xl font-bold text-primary">{recommendedPlan.price}</span>
-              <span className="text-muted-foreground">{recommendedPlan.period}</span>
+              <span className="text-3xl font-bold text-primary">{reportData.plan.price}</span>
+              <span className="text-muted-foreground">{reportData.plan.period}</span>
             </div>
           </div>
 
@@ -178,7 +282,7 @@ export default function Report() {
             <div>
               <h4 className="font-semibold text-foreground mb-3">Included Features</h4>
               <ul className="space-y-2">
-                {recommendedPlan.inclusions.map((inclusion, index) => (
+                {reportData.plan.inclusions.map((inclusion, index) => (
                   <li key={index} className="flex items-center space-x-2 text-sm">
                     <CheckCircle className="h-4 w-4 text-primary flex-shrink-0" />
                     <span className="text-foreground">{inclusion}</span>
@@ -190,7 +294,7 @@ export default function Report() {
             <div>
               <h4 className="font-semibold text-foreground mb-3">Available Add-ons</h4>
               <ul className="space-y-2">
-                {recommendedPlan.addOns.map((addOn, index) => (
+                {reportData.plan.addons.map((addOn, index) => (
                   <li key={index} className="flex items-center space-x-2 text-sm">
                     <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                     <span className="text-muted-foreground">{addOn}</span>
@@ -199,6 +303,18 @@ export default function Report() {
               </ul>
             </div>
           </div>
+          
+          {/* Benchmarks Section */}
+          {reportData.benchmarks.notes.length > 0 && (
+            <div className="border-t pt-6 mt-6">
+              <h4 className="font-semibold text-foreground mb-3">Industry Benchmarks</h4>
+              <ul className="space-y-2">
+                {reportData.benchmarks.notes.map((note, index) => (
+                  <li key={index} className="text-sm text-muted-foreground">• {note}</li>
+                ))}
+              </ul>
+            </div>
+          )}
 
           <div className="text-center pt-4">
             <Button size="lg" className="bg-brand-gradient text-white">

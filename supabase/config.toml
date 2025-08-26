@@ -1,1 +1,4 @@
 project_id = "ayplztujgpctozgmdxqy"
+
+[functions.ai_generate_report]
+verify_jwt = false

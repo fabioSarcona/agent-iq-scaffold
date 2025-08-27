@@ -2,3 +2,6 @@ project_id = "ayplztujgpctozgmdxqy"
 
 [functions.ai_generate_report]
 verify_jwt = false
+
+[functions.moneylost_compute]
+verify_jwt = false

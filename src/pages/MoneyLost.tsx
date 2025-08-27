@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button'
-import { useAuditProgressStore } from '../../modules/audit/AuditProgressStore'
-import { MoneyLostSummaryCard, LossAreaCard, DisclaimerNote } from '../../modules/moneylost/components'
-import { requestMoneyLost } from '../../modules/moneylost/client'
+import { useAuditProgressStore } from '@modules/audit/AuditProgressStore'
+import { MoneyLostSummaryCard, LossAreaCard, DisclaimerNote } from '@modules/moneylost/components'
+import { requestMoneyLost } from '@modules/moneylost/client'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 

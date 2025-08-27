@@ -13,8 +13,14 @@ import MoneyLost from "./pages/MoneyLost";
 import Report from "./pages/Report";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
+import SkillScopePage from "./pages/SkillScope";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: { staleTime: 5 * 60 * 1000, gcTime: 30 * 60 * 1000, retry: 2, refetchOnWindowFocus: false },
+    mutations: { retry: 1 }
+  }
+});
 
 const App = () => (
   <ErrorBoundary>
@@ -32,6 +38,7 @@ const App = () => (
                 <Route path="moneylost" element={<MoneyLost />} />
                 <Route path="report" element={<Report />} />
                 <Route path="admin" element={<Admin />} />
+                <Route path="skills/:id" element={<SkillScopePage />} />
                 <Route path="*" element={<NotFound />} />
               </Route>
             </Routes>

@@ -3,17 +3,17 @@ import { FileText, AlertTriangle, TrendingDown } from 'lucide-react'
 import { useState, useEffect } from 'react'
 
 // Import from new audit system
-import { useAuditProgressStore } from '@/../../modules/audit/AuditProgressStore'
-import { buildMockVoiceFitReport } from '@/../../modules/ai/voicefit/report.mock'
+import { useAuditProgressStore } from '../../modules/audit/AuditProgressStore'
+import { buildMockVoiceFitReport } from '../../modules/ai/voicefit/report.mock'
 
 // Import new components
-import { ScoreGauge } from '@/../../modules/ai/voicefit/components/ScoreGauge'
-import { BenchmarkNote } from '@/../../modules/ai/voicefit/components/BenchmarkNote'
-import { SolutionCard } from '@/../../modules/ai/voicefit/components/SolutionCard'
-import { FAQAccordion } from '@/../../modules/ai/voicefit/components/FAQAccordion'
-import { PlanCard } from '@/../../modules/ai/voicefit/components/PlanCard'
+import { ScoreGauge } from '../../modules/ai/voicefit/components/ScoreGauge'
+import { BenchmarkNote } from '../../modules/ai/voicefit/components/BenchmarkNote'
+import { SolutionCard } from '../../modules/ai/voicefit/components/SolutionCard'
+import { FAQAccordion } from '../../modules/ai/voicefit/components/FAQAccordion'
+import { PlanCard } from '../../modules/ai/voicefit/components/PlanCard'
 
-import type { VoiceFitReportData } from '@/../../modules/ai/voicefit/report.types'
+import type { VoiceFitReportData } from '../../modules/ai/voicefit/report.types'
 
 export default function Report() {
   const { vertical, answers } = useAuditProgressStore()

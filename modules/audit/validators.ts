@@ -47,7 +47,7 @@ export function validateQuestion(question: AuditQuestion, value: unknown): { val
     let schema: z.ZodSchema;
     
     switch (question.type) {
-      case 'multiple_choice':
+      case 'multiple-choice':
         if (!question.options) {
           return { valid: false, error: "Invalid question configuration." };
         }

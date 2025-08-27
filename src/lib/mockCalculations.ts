@@ -1,4 +1,4 @@
-import { useAuditProgressStore } from '@/stores/auditProgressStore'
+import { useAuditProgressStore } from '../../modules/audit/AuditProgressStore'
 
 export interface LossCalculation {
   daily: number

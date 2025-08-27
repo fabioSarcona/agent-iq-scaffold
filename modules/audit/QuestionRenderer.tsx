@@ -48,7 +48,7 @@ export function QuestionRenderer({
 
   const renderInput = () => {
     switch (question.type) {
-      case 'multiple_choice':
+      case 'multiple-choice':
         return (
           <RadioGroup
             value={value as string || ''}

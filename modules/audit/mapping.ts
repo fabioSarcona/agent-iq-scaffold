@@ -62,3 +62,17 @@ export const questionMapping = {
 export function getQuestionMapping(questionId: string) {
   return questionMapping[questionId as keyof typeof questionMapping];
 }
+
+// Loss Area to Voice Skill mapping for report generation
+export const LOSS_AREA_TO_SKILL = {
+  "Missed Calls Revenue Loss": "Reception 24/7 Agent",
+  "No-Shows Revenue Loss": "Appointment Reminder System", 
+  "Treatment Plans Revenue Loss": "Treatment Plan Presenter",
+  "Missed Service Calls Loss": "Emergency Response System",
+  "Last-Minute Cancellations Loss": "Lead Follow-up Assistant",
+  "Pending Quotes Revenue Loss": "Quote Follow-up System"
+} as const;
+
+export function mapLossAreaToSkill(lossAreaTitle: string): string {
+  return LOSS_AREA_TO_SKILL[lossAreaTitle as keyof typeof LOSS_AREA_TO_SKILL] || "AI Assistant"
+}

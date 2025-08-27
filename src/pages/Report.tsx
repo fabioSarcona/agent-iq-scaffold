@@ -1,10 +1,9 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { FileText, AlertTriangle, TrendingDown } from 'lucide-react'
-import { useState, useEffect } from 'react'
+import { FileText, AlertTriangle, TrendingDown, Loader2 } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
 
 // Import from new audit system
 import { useAuditProgressStore } from '../../modules/audit/AuditProgressStore'
-import { buildMockVoiceFitReport } from '../../modules/ai/voicefit/report.mock'
 
 // Import new components
 import { ScoreGauge } from '../../modules/ai/voicefit/components/ScoreGauge'
@@ -13,22 +12,48 @@ import { SolutionCard } from '../../modules/ai/voicefit/components/SolutionCard'
 import { FAQAccordion } from '../../modules/ai/voicefit/components/FAQAccordion'
 import { PlanCard } from '../../modules/ai/voicefit/components/PlanCard'
 
+// Import API client
+import { requestVoiceFitReport } from '../../modules/ai/voicefit/report.client'
 import type { VoiceFitReportData } from '../../modules/ai/voicefit/report.types'
 
 export default function Report() {
   const { vertical, answers } = useAuditProgressStore()
-  const [reportData, setReportData] = useState<VoiceFitReportData | null>(null)
-  
   const currentVertical = (vertical || 'dental') as 'dental' | 'hvac'
   
-  useEffect(() => {
-    generateReport()
-  }, [currentVertical, answers])
+  const { data: reportData, isLoading, error } = useQuery({
+    queryKey: ['voicefit-report', currentVertical, answers],
+    queryFn: () => requestVoiceFitReport({ 
+      vertical: currentVertical, 
+      answers: answers || {} 
+    }),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  })
   
-  const generateReport = () => {
-    // Generate mock report using new system
-    const mockReport = buildMockVoiceFitReport(currentVertical, answers || {})
-    setReportData(mockReport)
+  if (isLoading) {
+    return (
+      <div className="max-w-[900px] mx-auto p-6 flex items-center justify-center min-h-[400px]">
+        <div className="flex items-center space-x-3">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <p className="text-lg text-muted-foreground">Generating your VoiceFit Report...</p>
+        </div>
+      </div>
+    )
+  }
+  
+  if (error) {
+    return (
+      <div className="max-w-[900px] mx-auto p-6">
+        <Card className="border-destructive">
+          <CardContent className="p-6 text-center">
+            <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
+            <h2 className="text-lg font-semibold text-foreground mb-2">Error Generating Report</h2>
+            <p className="text-muted-foreground">
+              {error instanceof Error ? error.message : 'An unexpected error occurred'}
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
   
   if (!reportData) return null

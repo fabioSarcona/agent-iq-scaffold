@@ -5,46 +5,371 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-interface ReportInput {
-  sector: 'dental' | 'hvac'
-  answers: Record<string, string | number>
-  moneyLostSummary: {
-    total: { daily: number, monthly: number, annual: number }
-    areas: Array<{
-      title: string
-      losses: { daily: number, monthly: number, annual: number }
-      recoverableRange: { min: number, max: number }
-    }>
-  }
-  kbSlices: {
-    brandTone: any
-    voiceSkills: any
-    painPoints: any
-    pricing: any
+// Shared types - duplicated for edge function self-containment
+type Vertical = 'dental' | 'hvac'
+type Confidence = 'low' | 'medium' | 'high'
+
+interface LossArea {
+  id: string
+  title: string
+  dailyUsd: number
+  monthlyUsd: number
+  annualUsd: number
+  recoverablePctRange: [number, number]
+  confidence: Confidence
+  notes?: string
+}
+
+interface MoneyLostSummary {
+  dailyUsd: number
+  monthlyUsd: number
+  annualUsd: number
+  areas: LossArea[]
+}
+
+interface RecommendedSolution {
+  skillId: string
+  title: string
+  rationale: string
+  estimatedRecoveryPct?: [number, number]
+}
+
+interface RecommendedPlan {
+  name: string
+  priceMonthlyUsd: number
+  inclusions: string[]
+  addons?: string[]
+}
+
+interface VoiceFitReportData {
+  score: number
+  band: 'Crisis' | 'Optimization Needed' | 'Growth Ready' | 'AI-Optimized'
+  diagnosis: string[]
+  consequences: string[]
+  solutions: RecommendedSolution[]
+  faq: Array<{ q: string; a: string }>
+  plan: RecommendedPlan
+  benchmarks?: string[]
+}
+
+interface GenerateReportRequest {
+  vertical: Vertical
+  answers: Record<string, unknown>
+  moneylost?: MoneyLostSummary
+  kb?: any
+}
+
+// MoneyLost calculator - duplicated for edge function
+function computeMoneyLost(vertical: Vertical, answers: Record<string, unknown>): MoneyLostSummary {
+  const workdays = vertical === 'dental' ? 22 : 26
+  const areas: LossArea[] = vertical === 'dental' 
+    ? computeDentalAreas(answers, workdays)
+    : computeHvacAreas(answers, workdays)
+
+  const dailyUsd = round2(areas.reduce((s, a) => s + a.dailyUsd, 0))
+  const monthlyUsd = round0(dailyUsd * workdays)
+  const annualUsd = round0(monthlyUsd * 12)
+
+  return { 
+    dailyUsd, 
+    monthlyUsd, 
+    annualUsd, 
+    areas: areas.sort((a, b) => b.dailyUsd - a.dailyUsd) 
   }
 }
 
-interface ReportOutput {
-  score: number
-  diagnosis: Array<{ finding: string, severity: 'high' | 'medium' | 'low' }>
-  consequences: string[]
-  solutions: Array<{
-    skillId: string
-    title: string
-    rationale: string
-    icon: string
-  }>
-  faqIds: string[]
-  plan: {
-    name: string
-    price: string
-    period: string
-    inclusions: string[]
-    addons: string[]
+function computeDentalAreas(ans: Record<string, unknown>, workdays: number): LossArea[] {
+  const avgAppt = num(ans['avg_fee_standard_treatment_usd'], 180)
+  const missedCallsDaily = mapDentalMissedCalls(ans['daily_unanswered_calls_choice'])
+  const weeklyNoShows = mapDentalWeeklyNoShows(ans['weekly_no_shows_choice'])
+  const monthlyColdPlans = num(ans['monthly_cold_treatment_plans'], 10)
+  const avgUnacceptedPlan = num(ans['avg_unaccepted_plan_value_usd'], 800)
+  const convRate = mapDentalNewPatientConv(ans['new_patient_conversion_rate_choice']) ?? 0.35
+
+  const mcDaily = USD(missedCallsDaily * avgAppt * convRate)
+  const mcMonthly = mcDaily * workdays
+  const areaMissedCalls: LossArea = {
+    id: 'missed_calls',
+    title: 'Missed Calls Revenue Loss',
+    dailyUsd: round0(mcDaily),
+    monthlyUsd: round0(mcMonthly),
+    annualUsd: round0(mcMonthly * 12),
+    recoverablePctRange: [0.35, 0.60],
+    confidence: conf([missedCallsDaily, avgAppt], [true, isProvided(ans['avg_fee_standard_treatment_usd'])]),
+    notes: 'Estimated using your average appointment value and conversion rate.'
   }
-  benchmarks: {
-    notes: string[]
+
+  const nsDaily = USD((weeklyNoShows * avgAppt) / 5)
+  const nsMonthly = nsDaily * workdays
+  const areaNoShows: LossArea = {
+    id: 'no_shows',
+    title: 'No-Shows Revenue Loss',
+    dailyUsd: round0(nsDaily),
+    monthlyUsd: round0(nsMonthly),
+    annualUsd: round0(nsMonthly * 12),
+    recoverablePctRange: [0.30, 0.50],
+    confidence: conf([weeklyNoShows, avgAppt], [isProvided(ans['weekly_no_shows_choice']), isProvided(ans['avg_fee_standard_treatment_usd'])]),
+    notes: 'Assumes weekdays operations; reminders & deposits typically mitigate 30–50%.'
   }
+
+  const tpMonthly = USD(monthlyColdPlans * avgUnacceptedPlan)
+  const tpDaily = USD(tpMonthly / workdays)
+  const areaPlans: LossArea = {
+    id: 'treatment_plans',
+    title: 'Treatment Plans Revenue Loss',
+    dailyUsd: round0(tpDaily),
+    monthlyUsd: round0(tpMonthly),
+    annualUsd: round0(tpMonthly * 12),
+    recoverablePctRange: [0.25, 0.45],
+    confidence: conf([monthlyColdPlans, avgUnacceptedPlan], [isProvided(ans['monthly_cold_treatment_plans']), isProvided(ans['avg_unaccepted_plan_value_usd'])]),
+    notes: 'Cold plans treated as leakage potential; follow-ups typically recover 25–45%.'
+  }
+
+  return [areaMissedCalls, areaNoShows, areaPlans]
+}
+
+function computeHvacAreas(ans: Record<string, unknown>, workdays: number): LossArea[] {
+  const valuePerMissed = num(ans['missed_call_estimated_value_usd'], 250)
+  const missedCallsDaily = mapHvacMissedCalls(ans['daily_unanswered_calls_choice'])
+  const weeklyCancels = mapHvacWeeklyCancels(ans['weekly_job_cancellations_choice'])
+  const avgCanceledJob = num(ans['avg_canceled_job_value_usd'], 350)
+  const monthlyPendingQuotes = num(ans['monthly_pending_quotes'], 12)
+  const avgPendingQuote = num(ans['average_pending_quote_value_usd'], 1500)
+  const callbackSpeed = str(ans['missed_call_response_time_choice'])
+
+  const baseClose = 0.35
+  const closeMod = (() => {
+    switch (callbackSpeed) {
+      case 'immediate': return 1.0
+      case '2h': return 0.9
+      case 'same_day': return 0.8
+      case 'next_day': return 0.6
+      default: return 0.85
+    }
+  })()
+  const effectiveClose = clamp(baseClose * closeMod, 0.2, 0.6)
+
+  const mcDaily = USD(missedCallsDaily * valuePerMissed * effectiveClose)
+  const mcMonthly = mcDaily * workdays
+  const areaMissedCalls: LossArea = {
+    id: 'missed_calls',
+    title: 'Missed Service Calls Loss',
+    dailyUsd: round0(mcDaily),
+    monthlyUsd: round0(mcMonthly),
+    annualUsd: round0(mcMonthly * 12),
+    recoverablePctRange: [0.35, 0.60],
+    confidence: conf([missedCallsDaily, valuePerMissed], [isProvided(ans['daily_unanswered_calls_choice']), isProvided(ans['missed_call_estimated_value_usd'])]),
+    notes: 'Close-rate adjusted using your callback speed.'
+  }
+
+  const cancDaily = USD((weeklyCancels * avgCanceledJob) / 5)
+  const cancMonthly = cancDaily * workdays
+  const areaCancels: LossArea = {
+    id: 'cancellations',
+    title: 'Last-Minute Cancellations Loss',
+    dailyUsd: round0(cancDaily),
+    monthlyUsd: round0(cancMonthly),
+    annualUsd: round0(cancMonthly * 12),
+    recoverablePctRange: [0.30, 0.50],
+    confidence: conf([weeklyCancels, avgCanceledJob], [isProvided(ans['weekly_job_cancellations_choice']), isProvided(ans['avg_canceled_job_value_usd'])]),
+    notes: 'Deposits & reminder flows typically recover 30–50%.'
+  }
+
+  const monthlyPendingValue = USD(monthlyPendingQuotes * avgPendingQuote)
+  const pendMonthlyLeak = USD(monthlyPendingValue * 0.25)
+  const pendDaily = USD(pendMonthlyLeak / workdays)
+  const areaPending: LossArea = {
+    id: 'pending_quotes',
+    title: 'Pending Quotes Revenue Loss',
+    dailyUsd: round0(pendDaily),
+    monthlyUsd: round0(pendMonthlyLeak),
+    annualUsd: round0(pendMonthlyLeak * 12),
+    recoverablePctRange: [0.25, 0.45],
+    confidence: conf([monthlyPendingQuotes, avgPendingQuote], [isProvided(ans['monthly_pending_quotes']), isProvided(ans['average_pending_quote_value_usd'])]),
+    notes: 'Assumes 25% stall leakage; follow-ups typically recover 25–45%.'
+  }
+
+  return [areaMissedCalls, areaCancels, areaPending]
+}
+
+// Utility functions
+function num(v: unknown, fallback: number): number {
+  const n = typeof v === 'number' ? v : (typeof v === 'string' ? Number(v) : NaN)
+  return Number.isFinite(n) ? n : fallback
+}
+
+function str(v: unknown): string {
+  return typeof v === 'string' ? v : ''
+}
+
+function isProvided(v: unknown): boolean {
+  return v !== undefined && v !== null && String(v).length > 0
+}
+
+function clamp(n: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, n))
+}
+
+function round0(n: number) { return Math.round(n) }
+function round2(n: number) { return Math.round(n * 100) / 100 }
+
+function USD(n: number) { return Math.max(0, Number.isFinite(n) ? n : 0) }
+
+function conf(values: Array<number>, providedFlags: Array<boolean>): 'low'|'medium'|'high' {
+  const provided = providedFlags.filter(Boolean).length
+  const nonZero = values.filter(x => x > 0).length
+  if (provided === providedFlags.length && nonZero > 0) return 'high'
+  if (provided > 0) return 'medium'
+  return 'low'
+}
+
+function mapDentalMissedCalls(v: unknown): number {
+  switch (str(v)) {
+    case '0': return 0
+    case '1_3': return 2
+    case '4_10': return 7
+    case '11_20': return 15
+    case '21_plus': return 25
+    default: return 2
+  }
+}
+
+function mapDentalWeeklyNoShows(v: unknown): number {
+  switch (str(v)) {
+    case '0': return 0
+    case '1_3': return 2
+    case '4_6': return 5
+    case '7_10': return 8
+    case '11_plus': return 12
+    default: return 2
+  }
+}
+
+function mapDentalNewPatientConv(v: unknown): number | undefined {
+  switch (str(v)) {
+    case '0_2': return 0.15
+    case '3_5': return 0.35
+    case '6_10': return 0.65
+    default: return undefined
+  }
+}
+
+function mapHvacMissedCalls(v: unknown): number {
+  switch (str(v)) {
+    case 'none': return 0
+    case '1_3': return 2
+    case '4_6': return 5
+    case 'gt_6': return 8
+    default: return 2
+  }
+}
+
+function mapHvacWeeklyCancels(v: unknown): number {
+  switch (str(v)) {
+    case 'none': return 0
+    case '1_2': return 1
+    case '3_5': return 4
+    case 'gt_5': return 6
+    default: return 1
+  }
+}
+
+// Main report generation
+function generateReport(request: GenerateReportRequest): VoiceFitReportData {
+  const { vertical, answers, kb } = request
+  
+  // Compute money lost if not provided
+  const moneylost = request.moneylost || computeMoneyLost(vertical, answers)
+  
+  // Calculate score based on daily loss
+  const score = scoreFromDailyLoss(vertical, moneylost.dailyUsd)
+  const band = getBand(score)
+  
+  // Get top 3 areas by daily loss
+  const topAreas = moneylost.areas.slice(0, 3)
+  
+  // Generate diagnosis from top areas
+  const diagnosis = topAreas.map(area => `${area.title}: elevated impact observed.`)
+  
+  // Generate consequences
+  const consequences = [
+    `Estimated daily loss: $${moneylost.dailyUsd.toFixed(0)}`,
+    `Monthly impact: $${moneylost.monthlyUsd.toFixed(0)} (conservative)`,
+    `Annualized leakage: $${moneylost.annualUsd.toFixed(0)}`
+  ]
+  
+  // Map areas to solutions
+  const solutions: RecommendedSolution[] = topAreas.map(area => ({
+    skillId: mapLossAreaToSkill(area.title),
+    title: mapLossAreaToSkill(area.title),
+    rationale: `Address ${area.title.toLowerCase()} with intelligent automation`,
+    estimatedRecoveryPct: [
+      Math.round(area.recoverablePctRange[0] * 100),
+      Math.round(area.recoverablePctRange[1] * 100)
+    ]
+  }))
+  
+  // Generate FAQ from KB or fallback
+  const faq = kb?.faq?.common ? Object.entries(kb.faq.common).slice(0, 3).map(([q, a]) => ({ q, a: String(a) })) : [
+    { q: "How quickly can AI be implemented?", a: "Most implementations complete within 2-4 weeks with minimal disruption to daily operations." },
+    { q: "Will AI replace our staff?", a: "AI enhances your team's capabilities, handling routine tasks so staff can focus on high-value patient/customer interactions." },
+    { q: "What about data security?", a: "Our platform uses enterprise-grade encryption and complies with all relevant industry regulations including HIPAA." }
+  ]
+  
+  // Generate plan from KB or fallback
+  const plan: RecommendedPlan = kb?.pricing?.plans?.Command ? {
+    name: kb.pricing.plans.Command.name || "Command",
+    priceMonthlyUsd: kb.pricing.plans.Command.price || 199,
+    inclusions: kb.pricing.plans.Command.inclusions || ["AI Call Handling", "Smart Scheduling", "Performance Analytics"],
+    addons: kb.pricing.plans.Command.addons
+  } : {
+    name: "Command",
+    priceMonthlyUsd: 199,
+    inclusions: ["24/7 AI Call Handling", "Smart Appointment Scheduling", "Performance Analytics Dashboard"],
+    addons: ["Advanced Integrations (+$97/month)", "Multi-location Support (+$197/month)"]
+  }
+  
+  // Generate benchmarks
+  const benchmarks = [
+    vertical === 'dental' 
+      ? `Dental practices typically see 40-60% reduction in no-shows with AI implementation`
+      : `HVAC companies report 35-50% improvement in emergency response times with AI automation`
+  ]
+  
+  return {
+    score,
+    band,
+    diagnosis,
+    consequences,
+    solutions,
+    faq,
+    plan,
+    benchmarks
+  }
+}
+
+function scoreFromDailyLoss(vertical: Vertical, daily: number): number {
+  const denom = vertical === 'dental' ? 1200 : 1600
+  return Math.round(clamp(100 - daily / denom, 1, 100))
+}
+
+function getBand(score: number): 'Crisis' | 'Optimization Needed' | 'Growth Ready' | 'AI-Optimized' {
+  if (score <= 25) return 'Crisis'
+  if (score <= 50) return 'Optimization Needed'
+  if (score <= 75) return 'Growth Ready'
+  return 'AI-Optimized'
+}
+
+function mapLossAreaToSkill(lossAreaTitle: string): string {
+  const mapping: Record<string, string> = {
+    "Missed Calls Revenue Loss": "Reception 24/7 Agent",
+    "No-Shows Revenue Loss": "Appointment Reminder System", 
+    "Treatment Plans Revenue Loss": "Treatment Plan Presenter",
+    "Missed Service Calls Loss": "Emergency Response System",
+    "Last-Minute Cancellations Loss": "Lead Follow-up Assistant",
+    "Pending Quotes Revenue Loss": "Quote Follow-up System"
+  }
+  return mapping[lossAreaTitle] || "AI Assistant"
 }
 
 serve(async (req) => {
@@ -53,10 +378,10 @@ serve(async (req) => {
   }
 
   try {
-    const input: ReportInput = await req.json()
-    console.log('Processing report for sector:', input.sector)
+    const request: GenerateReportRequest = await req.json()
+    console.log('Processing report for vertical:', request.vertical)
     
-    const report = generateReport(input)
+    const report = generateReport(request)
     
     return new Response(JSON.stringify(report), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -72,359 +397,3 @@ serve(async (req) => {
     )
   }
 })
-
-function generateReport(input: ReportInput): ReportOutput {
-  const { sector, answers, moneyLostSummary } = input
-  
-  // Calculate business score based on audit answers and money lost
-  const score = calculateBusinessScore(sector, answers, moneyLostSummary)
-  
-  // Generate personalized diagnosis
-  const diagnosis = generatePersonalizedDiagnosis(sector, answers, moneyLostSummary)
-  
-  // Generate consequences based on actual losses
-  const consequences = generatePersonalizedConsequences(sector, moneyLostSummary)
-  
-  // Generate intelligent solution recommendations
-  const solutions = generateIntelligentSolutions(sector, answers, score)
-  
-  // Select relevant FAQ topics based on industry and issues
-  const faqIds = generateRelevantFAQs(sector, diagnosis)
-  
-  // Generate dynamic pricing plan based on score and needs
-  const plan = generateDynamicPlan(score, sector)
-  
-  // Generate industry benchmarks and insights
-  const benchmarks = generateBenchmarks(sector, score, moneyLostSummary)
-  
-  return {
-    score,
-    diagnosis,
-    consequences,
-    solutions,
-    faqIds,
-    plan,
-    benchmarks
-  }
-}
-
-function calculateBusinessScore(
-  sector: 'dental' | 'hvac',
-  answers: Record<string, string | number>,
-  moneyLostSummary: any
-): number {
-  let score = 50 // Base score
-  
-  // Adjust based on sector-specific factors
-  if (sector === 'dental') {
-    const newPatients = Number(answers.dental_new_patients) || 0
-    const missedAppointments = Number(answers.dental_missed_appointments) || 15
-    
-    // Score adjustments
-    if (newPatients > 50) score += 15
-    else if (newPatients > 20) score += 5
-    else if (newPatients < 10) score -= 20
-    
-    if (missedAppointments > 25) score -= 25
-    else if (missedAppointments > 15) score -= 15
-    else if (missedAppointments < 5) score += 15
-  } else {
-    const serviceCalls = Number(answers.hvac_service_calls) || 0
-    const afterHoursPercent = Number(answers.hvac_after_hours_calls) || 20
-    
-    if (serviceCalls > 100) score += 15
-    else if (serviceCalls > 50) score += 5
-    else if (serviceCalls < 20) score -= 20
-    
-    if (afterHoursPercent > 40) score -= 20
-    else if (afterHoursPercent < 10) score += 10
-  }
-  
-  // Factor in money lost severity
-  const annualLoss = moneyLostSummary.total.annual
-  if (annualLoss > 100000) score -= 30
-  else if (annualLoss > 50000) score -= 15
-  else if (annualLoss < 10000) score += 10
-  
-  return Math.max(1, Math.min(100, Math.round(score)))
-}
-
-function generatePersonalizedDiagnosis(
-  sector: 'dental' | 'hvac',
-  answers: Record<string, string | number>,
-  moneyLostSummary: any
-): Array<{ finding: string, severity: 'high' | 'medium' | 'low' }> {
-  const diagnosis = []
-  
-  if (sector === 'dental') {
-    const missedAppointments = Number(answers.dental_missed_appointments) || 15
-    const communicationChallenge = answers.dental_communication_challenge as string
-    
-    if (missedAppointments > 20) {
-      diagnosis.push({
-        finding: `${missedAppointments}% no-show rate is significantly above industry average (8-12%)`,
-        severity: 'high' as const
-      })
-    }
-    
-    if (communicationChallenge?.includes('All of the above') || communicationChallenge?.includes('phone')) {
-      diagnosis.push({
-        finding: "Phone communication inefficiencies identified across multiple touchpoints",
-        severity: 'high' as const
-      })
-    }
-    
-    if (moneyLostSummary.total.annual > 75000) {
-      diagnosis.push({
-        finding: `Annual revenue loss of $${(moneyLostSummary.total.annual / 1000).toFixed(0)}K requires immediate attention`,
-        severity: 'high' as const
-      })
-    }
-  } else {
-    const operationalChallenge = answers.hvac_operational_challenge as string
-    const afterHours = Number(answers.hvac_after_hours_calls) || 20
-    
-    if (operationalChallenge?.includes('Customer communication')) {
-      diagnosis.push({
-        finding: "Customer communication gaps identified as primary operational bottleneck",
-        severity: 'high' as const
-      })
-    }
-    
-    if (afterHours > 30) {
-      diagnosis.push({
-        finding: `${afterHours}% after-hours calls suggest missed revenue opportunities`,
-        severity: 'medium' as const
-      })
-    }
-    
-    if (operationalChallenge?.includes('Scheduling')) {
-      diagnosis.push({
-        finding: "Dispatch and scheduling inefficiencies impacting service delivery",
-        severity: 'medium' as const
-      })
-    }
-  }
-  
-  return diagnosis
-}
-
-function generatePersonalizedConsequences(
-  sector: 'dental' | 'hvac',
-  moneyLostSummary: any
-): string[] {
-  const consequences = []
-  const formatCurrency = (amount: number) => new Intl.NumberFormat('en-US', { 
-    style: 'currency', 
-    currency: 'USD',
-    maximumFractionDigits: 0 
-  }).format(amount)
-  
-  consequences.push(`Currently losing ${formatCurrency(moneyLostSummary.total.annual)} annually due to operational inefficiencies`)
-  
-  if (moneyLostSummary.areas.length > 0) {
-    const topLoss = moneyLostSummary.areas[0]
-    consequences.push(`${topLoss.title} alone costs ${formatCurrency(topLoss.losses.annual)} per year`)
-  }
-  
-  if (sector === 'dental') {
-    consequences.push("Patient satisfaction declining due to communication delays and missed appointments")
-    consequences.push("Competitive disadvantage as modern practices adopt AI-powered patient engagement")
-  } else {
-    consequences.push("Customer retention at risk due to delayed emergency response and poor follow-up")
-    consequences.push("Market share declining as competitors implement advanced dispatch automation")
-  }
-  
-  return consequences
-}
-
-function generateIntelligentSolutions(
-  sector: 'dental' | 'hvac',
-  answers: Record<string, string | number>,
-  score: number
-): Array<{ skillId: string, title: string, rationale: string, icon: string }> {
-  const solutions = []
-  
-  if (sector === 'dental') {
-    const communicationChallenge = answers.dental_communication_challenge as string
-    const missedAppointments = Number(answers.dental_missed_appointments) || 15
-    
-    if (communicationChallenge?.includes('phone') || score < 50) {
-      solutions.push({
-        skillId: 'ai_receptionist',
-        title: 'AI Dental Receptionist',
-        rationale: 'Address phone communication challenges with 24/7 intelligent call handling',
-        icon: 'Phone'
-      })
-    }
-    
-    if (missedAppointments > 15) {
-      solutions.push({
-        skillId: 'appointment_automation',
-        title: 'Smart Appointment Management',
-        rationale: `Reduce ${missedAppointments}% no-show rate with intelligent reminders and scheduling`,
-        icon: 'Calendar'
-      })
-    }
-    
-    solutions.push({
-      skillId: 'patient_reactivation',
-      title: 'Patient Reactivation System',
-      rationale: 'Convert inactive patients into revenue with personalized outreach campaigns',
-      icon: 'Users'
-    })
-  } else {
-    const operationalChallenge = answers.hvac_operational_challenge as string
-    const afterHours = Number(answers.hvac_after_hours_calls) || 20
-    
-    if (afterHours > 25 || operationalChallenge?.includes('Customer')) {
-      solutions.push({
-        skillId: 'emergency_dispatch',
-        title: '24/7 Emergency Dispatch AI',
-        rationale: `Capture ${afterHours}% after-hours calls with intelligent emergency routing`,
-        icon: 'Phone'
-      })
-    }
-    
-    if (operationalChallenge?.includes('Scheduling')) {
-      solutions.push({
-        skillId: 'smart_scheduling',
-        title: 'Intelligent Service Scheduling',
-        rationale: 'Optimize technician routes and availability for maximum efficiency',
-        icon: 'Calendar'
-      })
-    }
-    
-    solutions.push({
-      skillId: 'maintenance_automation',
-      title: 'Maintenance Contract Automation',
-      rationale: 'Automate renewals and service reminders to prevent contract lapses',
-      icon: 'Settings'
-    })
-  }
-  
-  return solutions
-}
-
-function generateRelevantFAQs(
-  sector: 'dental' | 'hvac',
-  diagnosis: Array<{ finding: string, severity: string }>
-): string[] {
-  const faqs = []
-  
-  // Always include implementation timeline
-  faqs.push('implementation_timeline')
-  
-  if (sector === 'dental') {
-    faqs.push('hipaa_compliance')
-    faqs.push('pms_integration')
-    
-    const hasComplexIssues = diagnosis.some(d => d.severity === 'high')
-    if (hasComplexIssues) {
-      faqs.push('ai_escalation')
-    }
-  } else {
-    faqs.push('technical_questions')
-    faqs.push('emergency_prioritization')
-    faqs.push('dispatch_integration')
-    
-    const hasSeasonalConcerns = diagnosis.some(d => d.finding.includes('after-hours'))
-    if (hasSeasonalConcerns) {
-      faqs.push('seasonal_demand')
-    }
-  }
-  
-  return faqs
-}
-
-function generateDynamicPlan(score: number, sector: 'dental' | 'hvac'): {
-  name: string
-  price: string
-  period: string
-  inclusions: string[]
-  addons: string[]
-} {
-  if (score <= 30) {
-    return {
-      name: "Crisis Recovery Package",
-      price: "$497",
-      period: "per month",
-      inclusions: [
-        "24/7 AI Call Handling",
-        "Emergency Prioritization System",
-        "Basic Performance Analytics",
-        "Dedicated Implementation Support"
-      ],
-      addons: [
-        "Advanced CRM Integration (+$97/month)",
-        "Multi-location Support (+$197/month)",
-        "Custom Voice Training (+$297 setup)"
-      ]
-    }
-  } else if (score <= 60) {
-    return {
-      name: "Growth Optimization Package",
-      price: "$797",
-      period: "per month",
-      inclusions: [
-        "Complete AI Assistant Suite",
-        "Advanced Scheduling & Follow-up",
-        "Real-time Performance Dashboard",
-        "Industry-specific Customization",
-        "Staff Training Program"
-      ],
-      addons: [
-        "Premium Analytics Suite (+$197/month)",
-        "Priority Technical Support (+$97/month)",
-        "Additional Phone Lines (+$47/line/month)"
-      ]
-    }
-  } else {
-    return {
-      name: "Enterprise Excellence Package",
-      price: "$1,297",
-      period: "per month",
-      inclusions: [
-        "Full AI Business Automation Suite",
-        "Multi-channel Communication Hub",
-        "Advanced Analytics & Insights",
-        "Dedicated Success Manager",
-        "Custom API Integration",
-        "White-label Capabilities"
-      ],
-      addons: [
-        "Advanced API Access (+$297/month)",
-        "Custom Development Hours (+$197/hour)",
-        "Additional Business Locations (+$97/location)"
-      ]
-    }
-  }
-}
-
-function generateBenchmarks(
-  sector: 'dental' | 'hvac',
-  score: number,
-  moneyLostSummary: any
-): { notes: string[] } {
-  const notes = []
-  
-  if (sector === 'dental') {
-    notes.push(`Your current AI readiness score of ${score}/100 is ${score > 50 ? 'above' : 'below'} the dental industry average of 52`)
-    notes.push("Top-performing practices see 40-60% reduction in no-shows with AI implementation")
-    
-    if (moneyLostSummary.total.annual > 50000) {
-      notes.push("Practices similar to yours typically recover 45-75% of identified losses within 6 months")
-    }
-  } else {
-    notes.push(`Your current AI readiness score of ${score}/100 compares to HVAC industry average of 48`)
-    notes.push("Leading HVAC companies report 35-50% improvement in emergency response times")
-    
-    if (moneyLostSummary.total.annual > 75000) {
-      notes.push("Similar-sized HVAC businesses typically see ROI within 3-4 months of AI implementation")
-    }
-  }
-  
-  notes.push(`Businesses in your score range typically see ${score < 40 ? '15-25%' : score < 70 ? '10-20%' : '5-15%'} revenue increase in first year`)
-  
-  return { notes }
-}

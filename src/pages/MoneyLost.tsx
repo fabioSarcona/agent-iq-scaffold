@@ -1,17 +1,23 @@
 import { Button } from '@/components/ui/button'
 import { useAuditProgressStore } from '@/../modules/audit/AuditProgressStore'
-import { computeMoneyLost } from '@/../modules/moneylost/moneylost'
 import { MoneyLostSummaryCard } from '@/../modules/moneylost/components/MoneyLostSummaryCard'
 import { LossAreaCard } from '@/../modules/moneylost/components/LossAreaCard'
 import { DisclaimerNote } from '@/../modules/moneylost/components/DisclaimerNote'
+import { requestMoneyLost } from '@/../modules/moneylost/client'
 import { useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 
 export default function MoneyLost() {
   const navigate = useNavigate()
   const { vertical, answers } = useAuditProgressStore()
   
-  // Use real calculations based on vertical and audit answers
-  const data = computeMoneyLost(vertical, answers)
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['moneylost', vertical, answers],
+    queryFn: () => requestMoneyLost({ vertical, answers })
+  });
+
+  if (isLoading) return <div className="p-6">Calculating conservative estimates…</div>;
+  if (error || !data) return <div className="p-6 text-destructive">Unable to compute MoneyLost.</div>;
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-8">
@@ -25,13 +31,25 @@ export default function MoneyLost() {
 
       {/* Summary Card */}
       <MoneyLostSummaryCard 
-        dailyUsd={data.dailyUsd}
-        monthlyUsd={data.monthlyUsd}
-        annualUsd={data.annualUsd}
+        dailyUsd={data.dailyTotalUsd}
+        monthlyUsd={data.monthlyTotalUsd}
+        annualUsd={data.annualTotalUsd}
       />
 
       {/* Disclaimer */}
       <DisclaimerNote />
+
+      {/* Assumptions */}
+      {data.assumptions && data.assumptions.length > 0 && (
+        <div className="bg-muted p-4 rounded-lg">
+          <h3 className="text-sm font-semibold text-muted-foreground mb-2">Assumptions Applied</h3>
+          <ul className="space-y-1">
+            {data.assumptions.map((assumption, i) => (
+              <li key={i} className="text-xs text-muted-foreground">• {assumption}</li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Critical Areas */}
       {data.areas.length > 0 && (
@@ -46,14 +64,14 @@ export default function MoneyLost() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {data.areas.map((area) => (
               <LossAreaCard 
-                key={area.id}
+                key={area.key}
                 title={area.title}
                 dailyUsd={area.dailyUsd}
                 monthlyUsd={area.monthlyUsd}
                 annualUsd={area.annualUsd}
                 recoverablePctRange={area.recoverablePctRange}
-                confidence={area.confidence}
-                notes={area.notes}
+                severity={area.severity}
+                rationale={area.rationale}
               />
             ))}
           </div>
@@ -69,6 +87,9 @@ export default function MoneyLost() {
         >
           View your personalized report
         </Button>
+        <p className="text-xs text-muted-foreground mt-2">
+          Version: {data.version} • Calculations use conservative industry benchmarks
+        </p>
       </div>
     </div>
   )

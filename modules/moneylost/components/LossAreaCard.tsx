@@ -1,28 +1,38 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatCurrency } from "../moneylost.mock";
-import type { Confidence } from "../moneylost.types";
+import type { Severity, RecoverableRange } from "../types";
 
 interface LossAreaCardProps {
   title: string;
   dailyUsd: number;
   monthlyUsd: number;
   annualUsd: number;
-  recoverablePctRange: [number, number];
-  confidence: Confidence;
-  notes?: string;
+  recoverablePctRange: RecoverableRange;
+  severity: Severity;
+  rationale: string[];
 }
 
-const confidenceColors = {
-  high: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
-  medium: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200", 
-  low: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+export function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
+const severityColors = {
+  LOW: "bg-accent text-accent-foreground",
+  MEDIUM: "bg-secondary text-secondary-foreground",
+  HIGH: "bg-warning text-warning-foreground",
+  CRITICAL: "bg-destructive text-destructive-foreground"
 };
 
-const confidenceLabels = {
-  high: "High Confidence",
-  medium: "Medium Confidence",
-  low: "Low Confidence"
+const severityLabels = {
+  LOW: "Low Impact",
+  MEDIUM: "Medium Impact", 
+  HIGH: "High Impact",
+  CRITICAL: "Critical Impact"
 };
 
 export function LossAreaCard({ 
@@ -31,24 +41,26 @@ export function LossAreaCard({
   monthlyUsd, 
   annualUsd, 
   recoverablePctRange, 
-  confidence,
-  notes 
+  severity,
+  rationale 
 }: LossAreaCardProps) {
-  const [minPct, maxPct] = recoverablePctRange;
-  const recoverableText = `${Math.round(minPct * 100)}–${Math.round(maxPct * 100)}%`;
+  const { min, max } = recoverablePctRange;
+  const recoverableText = `${Math.round(min * 100)}–${Math.round(max * 100)}%`;
 
   return (
     <Card>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <CardTitle className="text-lg font-semibold">{title}</CardTitle>
-          <Badge variant="secondary" className={confidenceColors[confidence]}>
-            {confidenceLabels[confidence]}
+          <Badge variant="secondary" className={severityColors[severity]}>
+            {severityLabels[severity]}
           </Badge>
         </div>
-        {notes && (
-          <p className="text-sm text-muted-foreground">{notes}</p>
-        )}
+        <div className="mt-2 space-y-1">
+          {rationale.map((bullet, i) => (
+            <p key={i} className="text-xs text-muted-foreground">• {bullet}</p>
+          ))}
+        </div>
       </CardHeader>
       <CardContent className="space-y-2">
         <div className="flex justify-between items-center">

@@ -1,251 +1,277 @@
-import type { MoneyLostSummary, LossArea, CalculatorOptions } from './moneylost.types';
+import type { MoneyLostSummary, LossArea, Vertical } from './types';
+import type { Benchmarks } from './benchmarks';
+import { DEFAULT_BENCHMARKS, pickBizSize } from './benchmarks';
+import { severityFromDaily } from './severity';
 
-export type { LossArea, MoneyLostSummary, CalculatorOptions } from './moneylost.types';
+const VERSION = 'ml-v2.0';
 
-type Vertical = 'dental' | 'hvac';
-type Answers = Record<string, unknown>;
+// Helpers to interpret categorical answers conservatively
+const mcPick = (val: unknown, map: Record<string, number>, fallback = 0) =>
+  map[String(val) as keyof typeof map] ?? fallback;
 
-const USD = (n: number) => Math.max(0, Number.isFinite(n) ? n : 0);
-
-const defaultOpts: Required<CalculatorOptions> = {
-  workdaysDental: 22,
-  workdaysHvac: 26,
+const safeNum = (v: unknown, def = 0) => {
+  const n = typeof v === 'number' ? v : Number(v);
+  return Number.isFinite(n) ? n : def;
 };
 
-/** Public API */
-export function computeMoneyLost(vertical: Vertical, answers: Answers, opts: CalculatorOptions = {}): MoneyLostSummary {
-  const settings = { ...defaultOpts, ...opts };
-  const workdays = vertical === 'dental' ? settings.workdaysDental : settings.workdaysHvac;
+const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
+
+function usd(n: number) { return Math.max(0, Math.round(n)); }
+
+export interface ComputeArgs {
+  vertical: Vertical;
+  answers: Record<string, unknown>;
+  benchmarks?: Benchmarks;
+}
+
+export function computeMoneyLost({ vertical, answers, benchmarks = DEFAULT_BENCHMARKS }: ComputeArgs): MoneyLostSummary {
+  const b = benchmarks;
+  const size = pickBizSize(vertical, answers);
+  const assumptions: string[] = [];
+
+  const workDays = b.workDaysPerMonth;
 
   const areas: LossArea[] =
     vertical === 'dental'
-      ? computeDentalAreas(answers, workdays)
-      : computeHvacAreas(answers, workdays);
+      ? dentalAreas(answers, b, size, workDays, assumptions)
+      : hvacAreas(answers, b, size, workDays, assumptions);
 
-  const dailyUsd = round2(areas.reduce((s, a) => s + a.dailyUsd, 0));
-  const monthlyUsd = round0(dailyUsd * workdays);
-  const annualUsd = round0(monthlyUsd * 12);
+  const dailyTotal = areas.reduce((s, a) => s + a.dailyUsd, 0);
+  const monthlyTotal = areas.reduce((s, a) => s + a.monthlyUsd, 0);
+  const annualTotal = areas.reduce((s, a) => s + a.annualUsd, 0);
 
-  return { dailyUsd, monthlyUsd, annualUsd, areas: areas.sort((a,b)=>b.dailyUsd-a.dailyUsd) };
+  return {
+    vertical,
+    dailyTotalUsd: usd(dailyTotal),
+    monthlyTotalUsd: usd(monthlyTotal),
+    annualTotalUsd: usd(annualTotal),
+    areas: areas.sort((a, z) => z.dailyUsd - a.dailyUsd),
+    assumptions,
+    version: VERSION
+  };
 }
 
-/* -------------------- Dental -------------------- */
+/* ----------------- DENTAL ----------------- */
+function dentalAreas(
+  ans: Record<string, unknown>,
+  b: Benchmarks,
+  size: 'small' | 'medium' | 'large',
+  workDays: number,
+  assumptions: string[]
+): LossArea[] {
 
-function computeDentalAreas(ans: Answers, workdays: number): LossArea[] {
-  // Inputs with conservative fallbacks
-  const avgAppt = num(ans['avg_fee_standard_treatment_usd'], 180);                         // $
-  const missedCallsDaily = mapDentalMissedCalls(ans['daily_unanswered_calls_choice']);      // #
-  const weeklyNoShows = mapDentalWeeklyNoShows(ans['weekly_no_shows_choice']);              // #
-  const monthlyColdPlans = num(ans['monthly_cold_treatment_plans'], 10);                    // #
-  const avgUnacceptedPlan = num(ans['avg_unaccepted_plan_value_usd'], 800);                 // $
-  const convFrom10 = mapDentalNewPatientConv(ans['new_patient_conversion_rate_choice']);    // 0..1
-
-  // Area 1 — Missed Calls Revenue Loss
-  // Formula: missedCallsDaily * avgAppt * convRate  (daily)
-  // Conservative convRate: derived from "out of 10" selector (see mapper), else 0.35
-  const convRate = convFrom10 ?? 0.35;
-  const mcDaily = USD(missedCallsDaily * avgAppt * convRate);
-  const mcMonthly = mcDaily * workdays;
-  const areaMissedCalls: LossArea = {
-    id: 'missed_calls',
-    title: 'Missed Calls Revenue Loss',
-    dailyUsd: round0(mcDaily),
-    monthlyUsd: round0(mcMonthly),
-    annualUsd: round0(mcMonthly * 12),
-    recoverablePctRange: [0.35, 0.60],
-    confidence: conf([missedCallsDaily, avgAppt], [true, isProvided(ans['avg_fee_standard_treatment_usd'])]),
-    notes: 'Estimated using your average appointment value and conversion rate.'
-  };
-
-  // Area 2 — No-Shows Revenue Loss
-  // Weekly → daily: divide by 5 (clinic weekdays). Daily loss = (weeklyNoShows * avgAppt) / 5
-  const nsDaily = USD((weeklyNoShows * avgAppt) / 5);
-  const nsMonthly = nsDaily * workdays;
-  const areaNoShows: LossArea = {
-    id: 'no_shows',
-    title: 'No-Shows Revenue Loss',
-    dailyUsd: round0(nsDaily),
-    monthlyUsd: round0(nsMonthly),
-    annualUsd: round0(nsMonthly * 12),
-    recoverablePctRange: [0.30, 0.50],
-    confidence: conf([weeklyNoShows, avgAppt], [isProvided(ans['weekly_no_shows_choice']), isProvided(ans['avg_fee_standard_treatment_usd'])]),
-    notes: 'Assumes weekdays operations; reminders & deposits typically mitigate 30–50%.'
-  };
-
-  // Area 3 — Treatment Plans Revenue Loss
-  // Monthly lost ≈ monthlyColdPlans * avgUnacceptedPlan  (conservative = 100% opportunity considered "cold")
-  // Daily ≈ monthly / workdays
-  const tpMonthly = USD(monthlyColdPlans * avgUnacceptedPlan);
-  const tpDaily = USD(tpMonthly / workdays);
-  const areaPlans: LossArea = {
-    id: 'treatment_plans',
-    title: 'Treatment Plans Revenue Loss',
-    dailyUsd: round0(tpDaily),
-    monthlyUsd: round0(tpMonthly),
-    annualUsd: round0(tpMonthly * 12),
-    recoverablePctRange: [0.25, 0.45],
-    confidence: conf([monthlyColdPlans, avgUnacceptedPlan], [isProvided(ans['monthly_cold_treatment_plans']), isProvided(ans['avg_unaccepted_plan_value_usd'])]),
-    notes: 'Cold plans treated as leakage potential; follow-ups typically recover 25–45%.'
-  };
-
-  return [areaMissedCalls, areaNoShows, areaPlans];
-}
-
-function mapDentalMissedCalls(v: unknown): number {
-  switch (str(v)) {
-    case '0': return 0;
-    case '1_3': return 2;
-    case '4_10': return 7;
-    case '11_20': return 15;
-    case '21_plus': return 25;
-    default: return 2; // conservative default if unknown
+  // Appointment value (conservative blend)
+  const std = safeNum(ans['avg_fee_standard_treatment_usd'], 0);
+  const complex = safeNum(ans['avg_fee_complex_treatment_usd'], 0);
+  let apptValue = 0;
+  if (std && complex) {
+    apptValue = std * b.dental.appointmentBlend.stdWeight + complex * b.dental.appointmentBlend.complexWeight;
+  } else if (std) {
+    apptValue = std * 0.9; // conservative haircut
+    assumptions.push('Complex treatment fee missing; used standard fee ×0.9 for appointment value.');
+  } else if (complex) {
+    apptValue = complex * 0.4; // complex is rarer; conservative
+    assumptions.push('Standard fee missing; used 40% of complex fee for appointment value.');
+  } else {
+    apptValue = 180; // conservative fallback
+    assumptions.push('No fee data; used $180 conservative appointment value.');
   }
+
+  // Call→appointment conversion (from size, modulated by explicit answer if present)
+  const sizeConv = b.dental.newPatientCallToAppointment[size];
+  const userConv = mcPick(ans['new_patient_conversion_rate_choice'], { '0_2': 0.2, '3_5': 0.4, '6_10': 0.8 }, sizeConv);
+  const callToAppt = clamp(userConv, 0.1, 0.85);
+
+  // Daily missed calls
+  const missedDaily = mcPick(ans['daily_unanswered_calls_choice'], { '0': 0, '1_3': 2, '4_10': 7, '11_20': 15, '21_plus': 25 }, 0);
+
+  const missedCallsLossDaily = missedDaily * apptValue * callToAppt;
+  const missedCalls: LossArea = asArea('missed_calls', 'Missed Calls Revenue Loss', missedCallsLossDaily, workDays, { min: 0.35, max: 0.60 }, [
+    `Missed calls per day ≈ ${missedDaily}`,
+    `Call→appointment ≈ ${(callToAppt*100).toFixed(0)}%`,
+    `Avg appointment ≈ $${usd(apptValue)}`
+  ]);
+
+  // Weekly no-shows
+  const noShowsWeekly = mcPick(ans['weekly_no_shows_choice'], { '0': 0, '1_3': 2, '4_6': 5, '7_10': 9, '11_plus': 12 }, b.dental.defaultWeeklyNoShowsBySize[size]);
+  const noShowsLossDaily = (noShowsWeekly * apptValue) / 7;
+  const noShows = asArea('no_shows', 'No-Shows Revenue Loss', noShowsLossDaily, workDays, { min: 0.30, max: 0.60 }, [
+    `No-shows per week ≈ ${noShowsWeekly}`,
+    `Avg appointment ≈ $${usd(apptValue)}`
+  ]);
+
+  // Treatment plans
+  const coldPlansMonthly = safeNum(ans['monthly_cold_treatment_plans'], 0);
+  const avgUnacceptedValue = safeNum(ans['avg_unaccepted_plan_value_usd'], Math.max(250, apptValue * 2));
+  if (!ans['avg_unaccepted_plan_value_usd']) assumptions.push('Unaccepted plan value missing; used max($250, 2×appointment value).');
+
+  const plansLossDaily = (coldPlansMonthly * avgUnacceptedValue) / workDays;
+  const plans = asArea('treatment_plans', 'Treatment Plans Revenue Loss', plansLossDaily, workDays, { min: 0.25, max: 0.50 }, [
+    `Cold plans per month ≈ ${coldPlansMonthly}`,
+    `Avg unaccepted plan ≈ $${usd(avgUnacceptedValue)}`
+  ]);
+
+  // Inactive patients
+  const inactiveCount = safeNum(ans['inactive_patients_count'], 0);
+  const reactivationValue = safeNum(ans['reactivated_patient_first_year_value_usd'], Math.max(150, apptValue * 1.2));
+  const recallResp = mcPick(ans['recall_response_rate_choice'], { '0_2': 0.20, '3_5': 0.40, '6_8': 0.70, '9_10': 0.90 }, b.dental.defaultRecallSuccess);
+  const inactiveMonthlyPotential = inactiveCount * reactivationValue * recallResp / 12;
+  const inactiveLossDaily = inactiveMonthlyPotential / workDays;
+  const inactive = asArea('inactive_patients', 'Patient Reactivation Loss', inactiveLossDaily, workDays, { min: 0.15, max: 0.35 }, [
+    `Inactive patients ≈ ${inactiveCount}`,
+    `Recall success ≈ ${(recallResp*100).toFixed(0)}%`,
+    `Reactivation value (year 1) ≈ $${usd(reactivationValue)}`
+  ]);
+
+  // Reviews reputation (velocity proxy)
+  const reviewVelocity = mcPick(ans['monthly_google_reviews_choice'], { '0': 0, '1_3': 2, '4_10': 6, '11_20': 14, 'gt_20': 22 }, 2);
+  const newPatientsMonthly = safeNum(ans['monthly_new_patients'], 0);
+  const newLTV = safeNum(ans['new_patient_first_year_ltv_usd'], apptValue * 3);
+  // very conservative: at low velocity (<=3/mo), assume ≤reviewImpactMaxPct loss on new LTV; scale linearly until 10/mo
+  const lackPct = reviewVelocity <= 3 ? b.dental.reviewImpactMaxPct
+                    : reviewVelocity <= 10 ? b.dental.reviewImpactMaxPct * ( (10 - reviewVelocity) / 7 )
+                    : 0;
+  const reviewsLossMonthly = newPatientsMonthly * newLTV * clamp(lackPct, 0, b.dental.reviewImpactMaxPct);
+  const reviewsLossDaily = reviewsLossMonthly / workDays;
+  const reviews = asArea('reviews', 'Review & Reputation Loss', reviewsLossDaily, workDays, { min: 0.05, max: 0.15 }, [
+    `Review velocity ≈ ${reviewVelocity}/mo`,
+    `New patients/mo ≈ ${newPatientsMonthly}, LTV(year1) ≈ $${usd(newLTV)}`
+  ]);
+
+  // Appointment fill rate loss
+  const chairsActive = safeNum(ans['dental_chairs_active_choice'] === '1_2' ? 1.5 : ans['dental_chairs_active_choice'] === '3_4' ? 3.5 : ans['dental_chairs_active_choice'] === '5_8' ? 6.5 : 10, 3);
+  const fillRate = mcPick(ans['appointment_fill_rate_choice'], { '90_100': 0.95, '80_89': 0.85, '70_79': 0.75, 'lt_70': 0.65 }, 0.85);
+  const targetFill = 0.90; // conservative target
+  const fillGap = Math.max(0, targetFill - fillRate);
+  const chairCapacityDaily = chairsActive * 8; // 8 appointments per chair per day
+  const fillLossDaily = chairCapacityDaily * fillGap * apptValue;
+  const fill = asArea('fill_rate', 'Appointment Fill Rate Loss', fillLossDaily, workDays, { min: 0.20, max: 0.40 }, [
+    `Fill rate gap ≈ ${(fillGap*100).toFixed(0)}%`,
+    `Chair capacity ≈ ${chairCapacityDaily} appts/day`,
+    `Avg appointment ≈ $${usd(apptValue)}`
+  ]);
+
+  return [missedCalls, noShows, plans, inactive, reviews, fill];
 }
-function mapDentalWeeklyNoShows(v: unknown): number {
-  switch (str(v)) {
-    case '0': return 0;
-    case '1_3': return 2;
-    case '4_6': return 5;
-    case '7_10': return 8;
-    case '11_plus': return 12;
-    default: return 2;
+
+/* ----------------- HVAC ----------------- */
+function hvacAreas(
+  ans: Record<string, unknown>,
+  b: Benchmarks,
+  size: 'small' | 'medium' | 'large',
+  workDays: number,
+  assumptions: string[]
+): LossArea[] {
+
+  const basicTicket = safeNum(ans['basic_service_call_fee_usd'], 0);
+  const largeTicket = safeNum(ans['large_job_install_value_usd'], 0);
+  let avgTicket = 0;
+  if (basicTicket && largeTicket) {
+    avgTicket = basicTicket * b.hvac.ticketBlend.basicWeight + largeTicket * b.hvac.ticketBlend.largeWeight;
+  } else if (basicTicket) {
+    avgTicket = basicTicket;
+  } else if (largeTicket) {
+    avgTicket = largeTicket * 0.25; // conservative share of large jobs
+    assumptions.push('Basic ticket missing; used 25% of large job value as avg ticket.');
+  } else {
+    avgTicket = 250; // fallback
+    assumptions.push('No ticket data; used $250 conservative average ticket.');
   }
+
+  // Missed service calls
+  const missedCalls = mcPick(ans['hvac_daily_unanswered_calls_choice'], { 'none': 0, '1_3': 2, '4_6': 5, 'gt_6': 8 }, 0);
+  const callToJob = b.hvac.callToJobBySize[size];
+  const missedValuePerCall = safeNum(ans['missed_call_estimated_value_usd'], avgTicket);
+  if (!ans['missed_call_estimated_value_usd']) assumptions.push('Missed call value missing; used average ticket.');
+
+  const missedLossDaily = missedCalls * missedValuePerCall * callToJob;
+  const missed = asArea('missed_service_calls', 'Missed Service Calls Loss', missedLossDaily, workDays, { min: 0.35, max: 0.60 }, [
+    `Missed calls per day ≈ ${missedCalls}`,
+    `Call→job ≈ ${(callToJob*100).toFixed(0)}%`,
+    `Value per call ≈ $${usd(missedValuePerCall)}`
+  ]);
+
+  // Last-minute cancellations
+  const cancelsWeekly = mcPick(ans['weekly_job_cancellations_choice'], { 'none': 0, '1_2': 1.5, '3_5': 4, 'gt_5': 7 }, 0);
+  const avgCanceledValue = safeNum(ans['avg_canceled_job_value_usd'], avgTicket);
+  const cancelsLossDaily = (cancelsWeekly * avgCanceledValue) / 7;
+  const cancels = asArea('last_minute_cancellations', 'Last-Minute Cancellations Loss', cancelsLossDaily, workDays, { min: 0.30, max: 0.55 }, [
+    `Cancellations per week ≈ ${cancelsWeekly}`,
+    `Avg canceled job ≈ $${usd(avgCanceledValue)}`
+  ]);
+
+  // Pending quotes
+  const pendingQuotes = safeNum(ans['monthly_pending_quotes'], 0);
+  const pendingValue = safeNum(ans['average_pending_quote_value_usd'], Math.max(avgTicket, 500));
+  const followup = String(ans['quote_followup_timeline_choice'] ?? '2_3_days');
+  const followupFactor = ({ same_day: 1.15, '2_3_days': 1.0, '1_week': 0.8, no_consistent: 0.6 } as Record<string, number>)[followup] ?? 1.0;
+  const closeBaseline = b.hvac.pendingQuoteCloseRateBaseline;
+  const expectedCloseRate = clamp(closeBaseline * followupFactor, 0.1, 0.6); // conservative bounds
+  const pendingLossDaily = (pendingQuotes * pendingValue * expectedCloseRate) / workDays;
+  const pending = asArea('pending_quotes', 'Pending Quotes Revenue Loss', pendingLossDaily, workDays, { min: 0.25, max: 0.50 }, [
+    `Pending quotes/mo ≈ ${pendingQuotes}`,
+    `Avg pending ≈ $${usd(pendingValue)}`,
+    `Expected close rate ≈ ${(expectedCloseRate*100).toFixed(0)}%`
+  ]);
+
+  // Capacity overflow (busy season)
+  const turnawayPct = mcPick(ans['busy_season_turnaway_rate_choice'], { 'lt_5': 0.03, '5_10': 0.075, '10_20': 0.15, 'gt_20': 0.25 }, 0.05);
+  const jobsMonthly = safeNum(ans['monthly_jobs_completed'], 0);
+  const overflowYearly = jobsMonthly * avgTicket * turnawayPct * (b.busyMonthsFraction * 12);
+  const overflowLossDaily = (overflowYearly / 12) / workDays;
+  const overflow = asArea('capacity_overflow', 'Capacity Overflow Loss', overflowLossDaily, workDays, { min: 0.20, max: 0.45 }, [
+    `Turnaway ≈ ${(turnawayPct*100).toFixed(1)}% during busy months`,
+    `Avg ticket ≈ $${usd(avgTicket)}`
+  ]);
+
+  // Maintenance plans gap
+  const plansPct = mcPick(ans['customers_with_maintenance_plans_choice'], { 'gt_70': 0.75, '40_70': 0.55, '20_40': 0.30, 'lt_20': 0.15 }, 0.30);
+  const gapPct = clamp(0.7 - plansPct, 0, 0.7); // target 70% coverage as conservative
+  const monthlyCustomers = safeNum(ans['monthly_new_customers'], 0) || jobsMonthly; // proxy
+  const planAnnual = (basicTicket || avgTicket) * b.hvac.maintenanceAnnualFactorFromBasic;
+  const maintenanceLossDaily = ((monthlyCustomers * gapPct * (planAnnual / 12))) / workDays;
+  const maintenance = asArea('maintenance_gap', 'Maintenance Plans Gap Loss', maintenanceLossDaily, workDays, { min: 0.20, max: 0.40 }, [
+    `Coverage gap ≈ ${(gapPct*100).toFixed(0)}%`,
+    `Plan annual value ≈ $${usd(planAnnual)}`
+  ]);
+
+  // Reviews & referrals
+  const reviewVel = mcPick(ans['monthly_online_reviews_choice'], { 'gt_10': 12, '4_10': 7, '1_3': 2, '0': 0 }, 2);
+  const newCustomersMonthly = safeNum(ans['monthly_new_customers'], 0);
+  const newLTV = safeNum(ans['new_customer_first_year_ltv_usd'], avgTicket * 4);
+  const lackPct = reviewVel <= 3 ? b.hvac.reviewImpactMaxPct
+                  : reviewVel <= 10 ? b.hvac.reviewImpactMaxPct * ((10 - reviewVel) / 7)
+                  : 0;
+  const reviewLossMonthly = newCustomersMonthly * newLTV * clamp(lackPct, 0, b.hvac.reviewImpactMaxPct);
+  const reviewLossDaily = reviewLossMonthly / workDays;
+  const reviews = asArea('reviews_referrals', 'Reviews & Referrals Loss', reviewLossDaily, workDays, { min: 0.05, max: 0.12 }, [
+    `Review velocity ≈ ${reviewVel}/mo`,
+    `New customers/mo ≈ ${newCustomersMonthly}, LTV(year1) ≈ $${usd(newLTV)}`
+  ]);
+
+  return [missed, cancels, pending, overflow, maintenance, reviews];
 }
-function mapDentalNewPatientConv(v: unknown): number | undefined {
-  // From "Out of 10 calls... book appointments?"
-  // Conservative midpoints: 0–2 ⇒ 0.15, 3–5 ⇒ 0.35, 6–10 ⇒ 0.65
-  switch (str(v)) {
-    case '0_2': return 0.15;
-    case '3_5': return 0.35;
-    case '6_10': return 0.65;
-    default: return undefined;
-  }
-}
 
-/* -------------------- HVAC -------------------- */
-
-function computeHvacAreas(ans: Answers, workdays: number): LossArea[] {
-  const valuePerMissed = num(ans['missed_call_estimated_value_usd'], 250);                   // $
-  const missedCallsDaily = mapHvacMissedCalls(ans['daily_unanswered_calls_choice']);         // #
-  const weeklyCancels = mapHvacWeeklyCancels(ans['weekly_job_cancellations_choice']);        // #
-  const avgCanceledJob = num(ans['avg_canceled_job_value_usd'], 350);                        // $
-  const monthlyPendingQuotes = num(ans['monthly_pending_quotes'], 12);                       // #
-  const avgPendingQuote = num(ans['average_pending_quote_value_usd'], 1500);                 // $
-  const callbackSpeed = str(ans['missed_call_response_time_choice']);                        // affects close rate
-
-  // Derive a conservative close rate modifier from response time (faster ⇒ better)
-  const baseClose = 0.35;
-  const closeMod = ((): number => {
-    switch (callbackSpeed) {
-      case 'immediate': return 1.0;
-      case '2h': return 0.9;
-      case 'same_day': return 0.8;
-      case 'next_day': return 0.6;
-      default: return 0.85;
-    }
-  })();
-  const effectiveClose = clamp(baseClose * closeMod, 0.2, 0.6);
-
-  // Area 1 — Missed Service Calls Loss
-  // daily = missedCallsDaily * valuePerMissed * effectiveClose
-  const mcDaily = USD(missedCallsDaily * valuePerMissed * effectiveClose);
-  const mcMonthly = mcDaily * workdays;
-  const areaMissedCalls: LossArea = {
-    id: 'missed_calls',
-    title: 'Missed Service Calls Loss',
-    dailyUsd: round0(mcDaily),
-    monthlyUsd: round0(mcMonthly),
-    annualUsd: round0(mcMonthly * 12),
-    recoverablePctRange: [0.35, 0.60],
-    confidence: conf([missedCallsDaily, valuePerMissed], [isProvided(ans['daily_unanswered_calls_choice']), isProvided(ans['missed_call_estimated_value_usd'])]),
-    notes: 'Close-rate adjusted using your callback speed.'
+/* ------------- shared area helper ------------- */
+function asArea(
+  key: string,
+  title: string,
+  daily: number,
+  workDays: number,
+  recoverable: { min: number; max: number },
+  rationale: string[]
+): LossArea {
+  const dailyUsd = usd(daily);
+  const monthlyUsd = usd(daily * workDays);
+  const annualUsd = usd(monthlyUsd * 12);
+  return {
+    key,
+    title,
+    dailyUsd,
+    monthlyUsd,
+    annualUsd,
+    severity: severityFromDaily(dailyUsd),
+    recoverablePctRange: { min: recoverable.min, max: recoverable.max },
+    rationale
   };
-
-  // Area 2 — Last-Minute Cancellations Loss
-  // Weekly → daily via /5
-  const cancDaily = USD((weeklyCancels * avgCanceledJob) / 5);
-  const cancMonthly = cancDaily * workdays;
-  const areaCancels: LossArea = {
-    id: 'cancellations',
-    title: 'Last-Minute Cancellations Loss',
-    dailyUsd: round0(cancDaily),
-    monthlyUsd: round0(cancMonthly),
-    annualUsd: round0(cancMonthly * 12),
-    recoverablePctRange: [0.30, 0.50],
-    confidence: conf([weeklyCancels, avgCanceledJob], [isProvided(ans['weekly_job_cancellations_choice']), isProvided(ans['avg_canceled_job_value_usd'])]),
-    notes: 'Deposits & reminder flows typically recover 30–50%.'
-  };
-
-  // Area 3 — Pending Quotes Revenue Loss
-  // Conservative: treat 25% of monthly pending value as leakage (deals that stall out)
-  const monthlyPendingValue = USD(monthlyPendingQuotes * avgPendingQuote);
-  const pendMonthlyLeak = USD(monthlyPendingValue * 0.25);
-  const pendDaily = USD(pendMonthlyLeak / workdays);
-  const areaPending: LossArea = {
-    id: 'pending_quotes',
-    title: 'Pending Quotes Revenue Loss',
-    dailyUsd: round0(pendDaily),
-    monthlyUsd: round0(pendMonthlyLeak),
-    annualUsd: round0(pendMonthlyLeak * 12),
-    recoverablePctRange: [0.25, 0.45],
-    confidence: conf([monthlyPendingQuotes, avgPendingQuote], [isProvided(ans['monthly_pending_quotes']), isProvided(ans['average_pending_quote_value_usd'])]),
-    notes: 'Assumes 25% stall leakage; follow-ups typically recover 25–45%.'
-  };
-
-  return [areaMissedCalls, areaCancels, areaPending];
-}
-
-function mapHvacMissedCalls(v: unknown): number {
-  switch (str(v)) {
-    case 'none': return 0;
-    case '1_3': return 2;
-    case '4_6': return 5;
-    case 'gt_6': return 8;
-    default: return 2; // conservative default
-  }
-}
-
-function mapHvacWeeklyCancels(v: unknown): number {
-  switch (str(v)) {
-    case 'none': return 0;
-    case '1_2': return 2;
-    case '3_5': return 4;
-    case 'gt_5': return 7;
-    default: return 2;
-  }
-}
-
-/* -------------------- Utils -------------------- */
-
-function num(v: unknown, fallback: number): number {
-  const n = typeof v === 'number' ? v : (typeof v === 'string' ? Number(v) : NaN);
-  return Number.isFinite(n) ? n : fallback;
-}
-function str(v: unknown): string {
-  return typeof v === 'string' ? v : '';
-}
-function isProvided(v: unknown): boolean {
-  return v !== undefined && v !== null && String(v).length > 0;
-}
-function clamp(n: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, n));
-}
-function round0(n: number) { return Math.round(n); }
-function round2(n: number) { return Math.round(n * 100) / 100; }
-function conf(values: Array<number>, providedFlags: Array<boolean>): 'low'|'medium'|'high' {
-  // Heuristic: high if all provided AND non-zero; medium if at least one exact; low if all fallbacks.
-  const provided = providedFlags.filter(Boolean).length;
-  const nonZero = values.filter(x => x > 0).length;
-  if (provided === providedFlags.length && nonZero > 0) return 'high';
-  if (provided > 0) return 'medium';
-  return 'low';
-}
-
-export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount)
 }

@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react'
-import { useAuditProgressStore } from '@/stores/auditProgressStore'
+import { useAuditProgressStore } from '../../modules/audit/AuditProgressStore'
 import { TypingDots } from '@/components/chat/TypingDots'
 import { Welcome } from './steps/Welcome'
 import { Registration } from './steps/Registration'

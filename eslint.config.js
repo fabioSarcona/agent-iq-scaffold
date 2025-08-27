@@ -24,6 +24,21 @@ export default tseslint.config(
         { allowConstantExport: true },
       ],
       "@typescript-eslint/no-unused-vars": "off",
+      "no-restricted-imports": [
+        "error",
+        {
+          "paths": [
+            {
+              "name": "@/modules/moneylost/moneylost",
+              "message": "Server-only MoneyLost math. Use requestMoneyLost() from the client."
+            },
+            {
+              "name": "@/server/moneylost/compute.server",
+              "message": "Server-only wrapper. Never import in client code."
+            }
+          ]
+        }
+      ]
     },
   }
 );

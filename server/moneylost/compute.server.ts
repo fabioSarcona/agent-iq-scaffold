@@ -1,3 +1,5 @@
+/** @server-only: Do not import this module in client code */
+
 import type { Vertical, MoneyLostSummary } from '../../modules/moneylost/types';
 import { computeMoneyLost } from '../../modules/moneylost/moneylost';
 import { DEFAULT_BENCHMARKS } from '../../modules/moneylost/benchmarks';

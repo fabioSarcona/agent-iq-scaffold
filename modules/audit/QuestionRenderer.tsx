@@ -5,10 +5,10 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { validateQuestion } from './validators';
-import type { Question } from './types';
+import type { AuditQuestion } from './types';
 
 interface QuestionRendererProps {
-  question: Question;
+  question: AuditQuestion;
   value: unknown;
   onValueChange: (value: unknown) => void;
   onNext: () => void;
@@ -72,10 +72,10 @@ export function QuestionRenderer({
             type="number"
             value={value as number || ''}
             onChange={(e) => onValueChange(e.target.value ? Number(e.target.value) : '')}
-            placeholder="Enter a number"
-            min={question.validation?.min}
-            max={question.validation?.max}
-            step={question.validation?.step}
+            placeholder={question.placeholder || "Enter a number"}
+            min={question.min}
+            max={question.max}
+            step={question.step}
             className="max-w-xs"
           />
         );
@@ -90,9 +90,9 @@ export function QuestionRenderer({
               type="number"
               value={value as number || ''}
               onChange={(e) => onValueChange(e.target.value ? Number(e.target.value) : '')}
-              placeholder="0.00"
-              min={question.validation?.min || 0}
-              max={question.validation?.max}
+              placeholder={question.placeholder || "0.00"}
+              min={question.min || 0}
+              max={question.max}
               step="0.01"
               className="pl-8"
             />
@@ -104,7 +104,7 @@ export function QuestionRenderer({
           <Textarea
             value={value as string || ''}
             onChange={(e) => onValueChange(e.target.value)}
-            placeholder="Type your answer here..."
+            placeholder={question.placeholder || "Type your answer here..."}
             className="min-h-[100px] resize-none"
           />
         );

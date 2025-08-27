@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { AuditConfig, AuditSection, Question } from './types';
+import type { AuditConfig, AuditSection, AuditQuestion, ScoreSummary } from './types';
+import { computeScores } from './scoring';
 
 interface AuditProgressState {
   // Current position
@@ -11,16 +12,18 @@ interface AuditProgressState {
   answers: Record<string, unknown>;
   logsEnabled: boolean;
   vertical: 'dental' | 'hvac';
+  scoreSummary: ScoreSummary;
   
   // Config
   config: AuditConfig | null;
   currentSection: AuditSection | null;
-  currentQuestion: Question | null;
+  currentQuestion: AuditQuestion | null;
   
   // Actions
   setVertical: (vertical: 'dental' | 'hvac') => void;
   loadConfig: (config: AuditConfig) => void;
   setAnswer: (questionId: string, value: unknown) => void;
+  setScoreSummary: (summary: ScoreSummary) => void;
   next: () => void;
   back: () => void;
   restart: () => void;
@@ -49,6 +52,7 @@ export const useAuditProgressStore = create<AuditProgressState>()(
       answers: {},
       logsEnabled: false,
       vertical: 'dental',
+      scoreSummary: { overall: 0, sections: [] },
       config: null,
       currentSection: null,
       currentQuestion: null,
@@ -87,11 +91,20 @@ export const useAuditProgressStore = create<AuditProgressState>()(
 
       setAnswer: (questionId, value) => {
         const state = get();
-        set((state) => ({
-          answers: { ...state.answers, [questionId]: value }
-        }));
+        const newAnswers = { ...state.answers, [questionId]: value };
+        set({ answers: newAnswers });
+        
+        // Recompute scores
+        if (state.config) {
+          const newScores = computeScores(state.config, newAnswers);
+          set({ scoreSummary: newScores });
+        }
         
         logEvent(state.logsEnabled, 'answer_submit', { questionId, value });
+      },
+
+      setScoreSummary: (summary) => {
+        set({ scoreSummary: summary });
       },
 
       next: () => {
@@ -202,6 +215,7 @@ export const useAuditProgressStore = create<AuditProgressState>()(
           currentSectionIndex: 0,
           currentQuestionIndex: 0,
           answers: {},
+          scoreSummary: { overall: 0, sections: [] },
           currentSection: firstSection || null,
           currentQuestion: firstQuestion || null
         });
@@ -273,7 +287,8 @@ export const useAuditProgressStore = create<AuditProgressState>()(
         currentQuestionIndex: state.currentQuestionIndex,
         answers: state.answers,
         vertical: state.vertical,
-        logsEnabled: state.logsEnabled
+        logsEnabled: state.logsEnabled,
+        scoreSummary: state.scoreSummary
       })
     }
   )

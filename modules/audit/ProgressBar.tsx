@@ -17,6 +17,7 @@ interface ProgressBarProps {
   currentQuestion: number;
   totalQuestionsInSection: number;
   progressPercentage: number;
+  overallScore: number;
   onRestart: () => void;
 }
 
@@ -25,6 +26,7 @@ export function ProgressBar({
   currentQuestion,
   totalQuestionsInSection,
   progressPercentage,
+  overallScore,
   onRestart
 }: ProgressBarProps) {
   return (
@@ -35,7 +37,11 @@ export function ProgressBar({
             Section {currentSection + 1} · Q {currentQuestion + 1}/{totalQuestionsInSection}
           </div>
           
-          <AlertDialog>
+          <div className="flex items-center gap-3">
+            <div className="text-xs font-medium text-muted-foreground">
+              Overall Score: <span className="text-primary">{overallScore}/100</span>
+            </div>
+            <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="outline" size="sm">
                 Restart audit
@@ -56,7 +62,8 @@ export function ProgressBar({
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
-          </AlertDialog>
+            </AlertDialog>
+          </div>
         </div>
         
         <Progress value={progressPercentage} className="h-2" />

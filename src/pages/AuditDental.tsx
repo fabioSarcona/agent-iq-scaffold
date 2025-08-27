@@ -1,13 +1,13 @@
 import { useEffect } from 'react'
-import { useAuditProgressStore } from '@/stores/auditProgressStore'
-import { RegistrationEngine } from '../../modules/registration/RegistrationEngine'
+import { useAuditProgressStore } from '../../modules/audit/AuditProgressStore'
+import { AuditEngine } from '../../modules/audit/AuditEngine'
 
 export default function AuditDental() {
-  const { setIndustry } = useAuditProgressStore()
+  const { setVertical } = useAuditProgressStore()
 
   useEffect(() => {
-    setIndustry('dental')
-  }, [setIndustry])
+    setVertical('dental')
+  }, [setVertical])
 
-  return <RegistrationEngine industry="dental" />
+  return <AuditEngine industry="dental" />
 }

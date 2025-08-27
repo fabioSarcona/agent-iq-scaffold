@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { Question } from './types';
+import type { AuditQuestion } from './types';
 
 const multipleChoiceValidator = (options: string[]) =>
   z.string().refine(
@@ -42,7 +42,7 @@ const textValidator = () =>
     .trim()
     .min(2, "Please enter at least 2 characters.");
 
-export function validateQuestion(question: Question, value: unknown): { valid: boolean; error?: string } {
+export function validateQuestion(question: AuditQuestion, value: unknown): { valid: boolean; error?: string } {
   try {
     let schema: z.ZodSchema;
     
@@ -55,12 +55,12 @@ export function validateQuestion(question: Question, value: unknown): { valid: b
         break;
         
       case 'number':
-        const { min, max, step } = question.validation || {};
+        const { min, max, step } = question;
         schema = numberValidator(min, max, step);
         break;
         
       case 'currency':
-        const currencyMax = question.validation?.max;
+        const currencyMax = question.max;
         schema = currencyValidator(currencyMax);
         break;
         

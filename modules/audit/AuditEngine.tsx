@@ -9,6 +9,7 @@ import { ProgressBar } from './ProgressBar';
 import { ScoreIndicator } from './ScoreIndicator';
 import { calculateTypingDelay } from '@/lib/typingUtils';
 import { LogsToggle } from './LogsToggle';
+import { loadAuditConfig } from './config.loader';
 import type { AuditConfig } from './types';
 
 interface AuditEngineProps {
@@ -35,16 +36,16 @@ export function AuditEngine({ industry }: AuditEngineProps) {
     canGoBack,
     isAtEnd,
     getProgressPercentage,
-    getTotalQuestions
+    getTotalQuestions,
+    scoreSummary
   } = useAuditProgressStore();
 
   // Load audit configuration
   useEffect(() => {
-    const loadAuditConfig = async () => {
+    const initializeAudit = async () => {
       try {
         setVertical(industry);
-        const response = await fetch(`/modules/audit/config.${industry}.json`);
-        const config: AuditConfig = await response.json();
+        const config = loadAuditConfig(industry);
         loadConfig(config);
         setIsLoading(false);
         
@@ -58,7 +59,7 @@ export function AuditEngine({ industry }: AuditEngineProps) {
       }
     };
 
-    loadAuditConfig();
+    initializeAudit();
   }, [industry, setVertical, loadConfig]);
 
   const handleAnswerChange = (value: unknown) => {
@@ -123,6 +124,7 @@ export function AuditEngine({ industry }: AuditEngineProps) {
         currentQuestion={currentQuestionIndex}
         totalQuestionsInSection={currentSection.questions.length}
         progressPercentage={getProgressPercentage()}
+        overallScore={scoreSummary.overall}
         onRestart={restart}
       />
 

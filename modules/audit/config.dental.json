@@ -1,459 +1,146 @@
 {
-  "version": 1,
   "vertical": "dental",
   "sections": [
     {
       "id": "practice_profile",
       "preHeadline": "Practice Profile",
       "headline": "Who You Are and How Your Practice Runs",
-      "description": "Before we can offer the right solutions, we need to understand how your practice works day to day — how many patients you see, how your team is structured, and which tools you rely on.",
+      "description": "Tell us how your practice operates day to day.",
       "questions": [
-        {
-          "id": "chairs_active",
-          "label": "How many dental chairs are you actively using in your practice?",
-          "type": "multiple_choice",
-          "required": true,
-          "options": [
-            {"value": "1_2","label": "1 – 2 chairs","score": 2},
-            {"value": "3_4","label": "3 – 4 chairs","score": 4},
-            {"value": "5_8","label": "5 – 8 chairs","score": 6},
-            {"value": "9_plus","label": "9 or more chairs","score": 8}
-          ]
-        },
-        {
-          "id": "call_team_members",
-          "label": "How many team members usually answer phone calls?",
-          "type": "multiple_choice",
-          "required": true,
-          "options": [
-            {"value": "1","label": "1 person","score": 2},
-            {"value": "2_3","label": "2 – 3 people","score": 4},
-            {"value": "4_6","label": "4 – 6 people","score": 6},
-            {"value": "7_plus","label": "7 or more people","score": 8}
-          ]
-        },
-        {
-          "id": "practice_management_software",
-          "label": "What practice management software do you use for appointments and records?",
-          "type": "multiple_choice",
-          "required": true,
-          "options": [
-            {"value": "opendental","label": "OpenDental","score": 4},
-            {"value": "dentrix","label": "Dentrix","score": 4},
-            {"value": "eaglesoft","label": "Eaglesoft","score": 4},
-            {"value": "curve","label": "Curve","score": 4},
-            {"value": "carestack","label": "CareStack","score": 4},
-            {"value": "other","label": "Other software","score": 3},
-            {"value": "none","label": "We don't use any software","score": 0}
-          ]
-        },
-        {
-          "id": "website_scheduling_connection",
-          "label": "Is your website fully connected to your scheduling system?",
-          "type": "multiple_choice",
-          "required": true,
-          "options": [
-            {"value": "full","label": "Yes, fully connected","score": 5},
-            {"value": "partial","label": "Partially connected","score": 3},
-            {"value": "not_connected","label": "Not connected","score": 0},
-            {"value": "no_website","label": "We don't have a website","score": 0}
-          ]
-        },
-        {
-          "id": "weekly_appointments_count",
-          "label": "On average, how many patient appointments do you have per week?",
-          "type": "multiple_choice",
-          "required": true,
-          "options": [
-            {"value": "lt_30","label": "Fewer than 30","score": 2},
-            {"value": "30_70","label": "30 – 70","score": 4},
-            {"value": "71_120","label": "71 – 120","score": 6},
-            {"value": "121_plus","label": "121 or more","score": 8}
-          ]
-        },
-        {
-          "id": "chair_utilization_pct",
-          "label": "On a typical day, about what percentage of your chairs are in use with patients?",
-          "type": "multiple_choice",
-          "required": true,
-          "options": [
-            {"value": "lt_60","label": "Under 60%","score": 2},
-            {"value": "60_80","label": "60 – 80%","score": 4},
-            {"value": "gt_80","label": "Over 80%","score": 6}
-          ]
-        }
-      ]
-    },
+        { "id": "dental_chairs_active_choice", "type": "multiple-choice", "label": "How many dental chairs are you actively using in your practice?", "sectionId": "practice_profile", "scoring": { "kind": "options", "max": 8 }, "options": [
+          { "value": "1_2", "label": "1 – 2 chairs", "score": 2 }, { "value": "3_4", "label": "3 – 4 chairs", "score": 4 }, { "value": "5_8", "label": "5 – 8 chairs", "score": 6 }, { "value": "9_plus", "label": "9 or more chairs", "score": 8 }
+        ] },
+        { "id": "call_team_members_choice", "type": "multiple-choice", "label": "How many team members usually answer phone calls?", "sectionId": "practice_profile", "scoring": { "kind": "options", "max": 8 }, "options": [
+          { "value": "1", "label": "1 person", "score": 2 }, { "value": "2_3", "label": "2 – 3 people", "score": 4 }, { "value": "4_6", "label": "4 – 6 people", "score": 6 }, { "value": "7_plus", "label": "7 or more people", "score": 8 }
+        ] },
+        { "id": "practice_management_software_choice", "type": "multiple-choice", "label": "What practice management software do you use for appointments and records?", "sectionId": "practice_profile", "scoring": { "kind": "options", "max": 4 }, "options": [
+          { "value": "opendental", "label": "OpenDental", "score": 4 }, { "value": "dentrix", "label": "Dentrix", "score": 4 }, { "value": "eaglesoft", "label": "Eaglesoft", "score": 4 }, { "value": "curve", "label": "Curve", "score": 4 }, { "value": "carestack", "label": "CareStack", "score": 4 }, { "value": "other", "label": "Other software", "score": 3 }, { "value": "none", "label": "We don't use any software", "score": 0 }
+        ] },
+        { "id": "website_scheduling_connection_choice", "type": "multiple-choice", "label": "Is your website fully connected to your scheduling system?", "sectionId": "practice_profile", "scoring": { "kind": "options", "max": 5 }, "options": [
+          { "value": "full", "label": "Yes, fully connected", "score": 5 }, { "value": "partial", "label": "Partially connected", "score": 3 }, { "value": "not_connected", "label": "Not connected", "score": 0 }, { "value": "no_website", "label": "We don't have a website", "score": 0 }
+        ] },
+        { "id": "weekly_appointments_count_choice", "type": "multiple-choice", "label": "On average, how many patient appointments do you have per week?", "sectionId": "practice_profile", "scoring": { "kind": "options", "max": 8 }, "options": [
+          { "value": "lt_30", "label": "Fewer than 30", "score": 2 }, { "value": "30_70", "label": "30 – 70", "score": 4 }, { "value": "71_120", "label": "71 – 120", "score": 6 }, { "value": "121_plus", "label": "121 or more", "score": 8 }
+        ] },
+        { "id": "chair_utilization_pct_choice", "type": "multiple-choice", "label": "On a typical day, about what percentage of your chairs are in use with patients?", "sectionId": "practice_profile", "scoring": { "kind": "options", "max": 6 }, "options": [
+          { "value": "under_60", "label": "Under 60%", "score": 2 }, { "value": "60_80", "label": "60 – 80%", "score": 4 }, { "value": "over_80", "label": "Over 80%", "score": 6 }
+        ] }
+      ]},
     {
       "id": "financial_overview",
       "preHeadline": "Financial Performance",
       "headline": "Understanding Your Revenue Streams",
-      "description": "Let's take a quick look at the numbers behind your business — treatment fees, patient volume, and profit margins.",
+      "description": "Share a few numbers so we can estimate impact and ROI.",
       "questions": [
-        {
-          "id": "avg_fee_standard_treatment_usd",
-          "label": "What's the average fee you charge for a standard treatment (like cleaning or filling)?",
-          "type": "currency",
-          "required": true,
-          "validation": {"min": 0, "max": 10000, "currency": "USD"}
-        },
-        {
-          "id": "avg_fee_complex_treatment_usd",
-          "label": "What's the average fee you charge for a complex treatment (like crowns or implants)?",
-          "type": "currency",
-          "required": true,
-          "validation": {"min": 0, "max": 50000, "currency": "USD"}
-        },
-        {
-          "id": "monthly_treatments_count",
-          "label": "About how many treatments do you perform each month?",
-          "type": "number",
-          "required": true,
-          "validation": {"min": 0, "max": 1000, "step": 1}
-        },
-        {
-          "id": "monthly_new_patients",
-          "label": "How many new patients do you usually see each month?",
-          "type": "number",
-          "required": true,
-          "validation": {"min": 0, "max": 500, "step": 1}
-        },
-        {
-          "id": "new_patient_first_year_ltv_usd",
-          "label": "What's the average total value you earn from a patient in their first year?",
-          "type": "currency",
-          "required": true,
-          "validation": {"min": 0, "max": 20000, "currency": "USD"}
-        },
-        {
-          "id": "treatment_acceptance_rate_choice",
-          "label": "What percentage of proposed treatment plans are accepted?",
-          "type": "multiple_choice",
-          "required": true,
-          "options": [
-            {"value": "lt_30","label": "Less than 30%","score": 2},
-            {"value": "30_60","label": "30 – 60%","score": 4},
-            {"value": "60_80","label": "60 – 80%","score": 6},
-            {"value": "gt_80","label": "Over 80%","score": 8}
-          ]
-        },
-        {
-          "id": "payment_within_30_days_choice",
-          "label": "What percentage of invoices are fully paid within 30 days?",
-          "type": "multiple_choice",
-          "required": true,
-          "options": [
-            {"value": "lt_70","label": "Less than 70%","score": 0},
-            {"value": "70_90","label": "70–90%","score": 3},
-            {"value": "gt_90","label": "Over 90%","score": 5}
-          ]
-        },
-        {
-          "id": "monthly_operating_margin_usd",
-          "label": "What's your estimated monthly operating margin in dollars?",
-          "type": "currency",
-          "required": true,
-          "validation": {"min": 0, "max": 100000, "currency": "USD"}
-        }
-      ]
-    },
+        { "id": "avg_fee_standard_treatment_usd", "type": "currency", "label": "What's the average fee you charge for a standard treatment (like cleaning or filling)?", "sectionId": "financial_overview", "min": 0, "max": 10000, "placeholder": "Enter amount in dollars", "scoring": { "kind": "range", "mode": "higher-is-better", "min": 0, "max": 10000 } },
+        { "id": "avg_fee_complex_treatment_usd", "type": "currency", "label": "What's the average fee you charge for a complex treatment (like crowns or implants)?", "sectionId": "financial_overview", "min": 0, "max": 50000, "scoring": { "kind": "range", "mode": "higher-is-better", "min": 0, "max": 50000 } },
+        { "id": "monthly_treatments_count", "type": "number", "label": "About how many treatments do you perform each month?", "sectionId": "financial_overview", "min": 0, "max": 1000, "scoring": { "kind": "range", "mode": "higher-is-better", "min": 0, "max": 1000 } },
+        { "id": "monthly_new_patients", "type": "number", "label": "How many new patients do you usually see each month?", "sectionId": "financial_overview", "min": 0, "max": 500, "scoring": { "kind": "range", "mode": "higher-is-better", "min": 0, "max": 500 } },
+        { "id": "new_patient_first_year_ltv_usd", "type": "currency", "label": "What's the average total value you earn from a patient in their first year?", "sectionId": "financial_overview", "min": 0, "max": 20000, "scoring": { "kind": "range", "mode": "higher-is-better", "min": 0, "max": 20000 } },
+        { "id": "treatment_acceptance_rate_choice", "type": "multiple-choice", "label": "What percentage of proposed treatment plans are accepted?", "sectionId": "financial_overview", "scoring": { "kind": "options", "max": 8 }, "options": [
+          { "value": "lt_30", "label": "Less than 30%", "score": 2 }, { "value": "30_60", "label": "30 – 60%", "score": 4 }, { "value": "60_80", "label": "60 – 80%", "score": 6 }, { "value": "gt_80", "label": "Over 80%", "score": 8 }
+        ] },
+        { "id": "payment_within_30_days_choice", "type": "multiple-choice", "label": "What percentage of invoices are fully paid within 30 days?", "sectionId": "financial_overview", "scoring": { "kind": "options", "max": 5 }, "options": [
+          { "value": "lt_70", "label": "Less than 70%", "score": 0 }, { "value": "70_90", "label": "70–90%", "score": 3 }, { "value": "gt_90", "label": "Over 90%", "score": 5 }
+        ] },
+        { "id": "monthly_operating_margin_usd", "type": "currency", "label": "What's your estimated monthly operating margin in dollars?", "sectionId": "financial_overview", "min": 0, "max": 100000, "scoring": { "kind": "range", "mode": "higher-is-better", "min": 0, "max": 100000 } }
+      ]},
     {
       "id": "call_handling_conversion",
       "preHeadline": "Operations & Communication",
       "headline": "How You Handle Calls and Appointments",
-      "description": "Your phone line is often the first touchpoint for new and returning patients.",
+      "description": "Phone performance drives new and returning patients.",
       "questions": [
-        {
-          "id": "daily_incoming_calls_choice",
-          "label": "How many incoming calls do you receive per day on average?",
-          "type": "multiple_choice",
-          "required": true,
-          "options": [
-            {"value": "lt_20","label": "Fewer than 20","score": 2},
-            {"value": "20_50","label": "20 – 50","score": 4},
-            {"value": "51_100","label": "51 – 100","score": 6},
-            {"value": "101_150","label": "101 – 150","score": 8},
-            {"value": "151_plus","label": "151 or more","score": 10}
-          ],
-          "map": {"lossArea": "Missed Calls Revenue Loss", "weight": 0.25}
-        },
-        {
-          "id": "daily_unanswered_calls_choice",
-          "label": "On an average day, how many calls are missed or not answered?",
-          "type": "multiple_choice",
-          "required": true,
-          "options": [
-            {"value": "0","label": "0","score": 10},
-            {"value": "1_3","label": "1 – 3","score": 8},
-            {"value": "4_10","label": "4 – 10","score": 6},
-            {"value": "11_20","label": "11 – 20","score": 4},
-            {"value": "21_plus","label": "21 or more","score": 2}
-          ],
-          "map": {"lossArea": "Missed Calls Revenue Loss", "weight": 0.25}
-        },
-        {
-          "id": "new_patient_conversion_rate_choice",
-          "label": "Out of 10 calls from potential new patients, about how many turn into booked appointments?",
-          "type": "multiple_choice",
-          "required": true,
-          "options": [
-            {"value": "0_2","label": "0–2","score": 0},
-            {"value": "3_5","label": "3–5","score": 2},
-            {"value": "6_10","label": "6–10","score": 5}
-          ]
-        },
-        {
-          "id": "after_hours_call_handling_choice",
-          "label": "How do you handle calls that come in after business hours?",
-          "type": "multiple_choice",
-          "required": true,
-          "options": [
-            {"value": "ai_or_live","label": "AI answering system or live call service","score": 5},
-            {"value": "whatsapp_sms","label": "WhatsApp/SMS bot","score": 3},
-            {"value": "voicemail","label": "Voicemail only","score": 2},
-            {"value": "none","label": "No system","score": 0}
-          ]
-        },
-        {
-          "id": "missed_call_followup_speed_choice",
-          "label": "If you miss a call, how quickly do you usually call back?",
-          "type": "multiple_choice",
-          "required": true,
-          "options": [
-            {"value": "15m","label": "Within 15 minutes","score": 10},
-            {"value": "15_60m","label": "15 – 60 minutes","score": 8},
-            {"value": "2h","label": "Within 2 hours","score": 6},
-            {"value": "eod","label": "By end of day","score": 4},
-            {"value": "next_day","label": "Next day / inconsistent","score": 2}
-          ]
-        }
-      ]
-    },
+        { "id": "daily_incoming_calls_choice", "type": "multiple-choice", "label": "How many incoming calls do you receive per day on average?", "sectionId": "call_handling_conversion", "scoring": { "kind": "options", "max": 10 }, "options": [
+          { "value": "lt_20", "label": "Fewer than 20", "score": 2 }, { "value": "20_50", "label": "20 – 50", "score": 4 }, { "value": "51_100", "label": "51 – 100", "score": 6 }, { "value": "101_150", "label": "101 – 150", "score": 8 }, { "value": "151_plus", "label": "151 or more", "score": 10 }
+        ] },
+        { "id": "daily_unanswered_calls_choice", "type": "multiple-choice", "label": "On an average day, how many calls are missed or not answered?", "sectionId": "call_handling_conversion", "scoring": { "kind": "options", "max": 10 }, "options": [
+          { "value": "0", "label": "0", "score": 10 }, { "value": "1_3", "label": "1 – 3", "score": 8 }, { "value": "4_10", "label": "4 – 10", "score": 6 }, { "value": "11_20", "label": "11 – 20", "score": 4 }, { "value": "21_plus", "label": "21 or more", "score": 2 }
+        ] },
+        { "id": "new_patient_conversion_rate_choice", "type": "multiple-choice", "label": "Out of 10 calls from potential new patients, about how many turn into booked appointments?", "sectionId": "call_handling_conversion", "scoring": { "kind": "options", "max": 5 }, "options": [
+          { "value": "0_2", "label": "0–2", "score": 0 }, { "value": "3_5", "label": "3–5", "score": 2 }, { "value": "6_10", "label": "6–10", "score": 5 }
+        ] },
+        { "id": "after_hours_call_handling_choice", "type": "multiple-choice", "label": "How do you handle calls that come in after business hours?", "sectionId": "call_handling_conversion", "scoring": { "kind": "options", "max": 5 }, "options": [
+          { "value": "ai_or_live", "label": "AI answering system or live call service", "score": 5 }, { "value": "whatsapp_sms", "label": "WhatsApp/SMS bot", "score": 3 }, { "value": "voicemail", "label": "Voicemail only", "score": 2 }, { "value": "none", "label": "No system", "score": 0 }
+        ] },
+        { "id": "missed_call_followup_speed_choice", "type": "multiple-choice", "label": "If you miss a call, how quickly do you usually call back?", "sectionId": "call_handling_conversion", "scoring": { "kind": "options", "max": 10 }, "options": [
+          { "value": "15m", "label": "Within 15 minutes", "score": 10 }, { "value": "15_60m", "label": "15 – 60 minutes", "score": 8 }, { "value": "2h", "label": "Within 2 hours", "score": 6 }, { "value": "eod", "label": "By end of day", "score": 4 }, { "value": "next_day", "label": "Next day / inconsistent", "score": 2 }
+        ] }
+      ]},
     {
       "id": "scheduling_no_shows",
       "preHeadline": "Revenue Protection",
       "headline": "Managing Lost Revenue and Missed Opportunities",
-      "description": "Missed appointments and unanswered estimates can quietly drain your revenue.",
+      "description": "Cancellations and no-shows silently drain revenue.",
       "questions": [
-        {
-          "id": "weekly_no_shows_choice",
-          "label": "How many no-shows do you have in a typical week?",
-          "type": "multiple_choice",
-          "required": true,
-          "options": [
-            {"value": "0","label": "0","score": 10},
-            {"value": "1_3","label": "1 – 3","score": 8},
-            {"value": "4_6","label": "4 – 6","score": 6},
-            {"value": "7_10","label": "7 – 10","score": 4},
-            {"value": "11_plus","label": "11 or more","score": 2}
-          ],
-          "map": {"lossArea": "No-Shows Revenue Loss", "weight": 0.25}
-        },
-        {
-          "id": "high_value_deposit_policy_choice",
-          "label": "Do you ask for deposits for high-value treatments (over $500)?",
-          "type": "multiple_choice",
-          "required": true,
-          "options": [
-            {"value": "always","label": "Yes, always","score": 5},
-            {"value": "sometimes","label": "Sometimes","score": 3},
-            {"value": "no","label": "No","score": 0}
-          ]
-        },
-        {
-          "id": "cancellation_rebooking_rate_choice",
-          "label": "When patients cancel, how often do you fill that slot with another appointment within 1–2 days?",
-          "type": "multiple_choice",
-          "required": true,
-          "options": [
-            {"value": "gt_75","label": "Over 75%","score": 5},
-            {"value": "50_75","label": "50–75%","score": 3},
-            {"value": "lt_50","label": "Under 50%","score": 0}
-          ]
-        },
-        {
-          "id": "automatic_reminders_choice",
-          "label": "Do you send automatic reminders for appointments?",
-          "type": "multiple_choice",
-          "required": true,
-          "options": [
-            {"value": "yes","label": "Yes","score": 5},
-            {"value": "no","label": "No","score": 0}
-          ]
-        },
-        {
-          "id": "appointment_fill_rate_choice",
-          "label": "On average, what percentage of your available appointment slots get booked?",
-          "type": "multiple_choice",
-          "required": true,
-          "options": [
-            {"value": "gt_95","label": "Over 95%","score": 10},
-            {"value": "90_95","label": "90 – 95%","score": 8},
-            {"value": "75_90","label": "75 – 90%","score": 6},
-            {"value": "lt_75","label": "Under 75%","score": 4}
-          ]
-        }
-      ]
-    },
+        { "id": "weekly_no_shows_choice", "type": "multiple-choice", "label": "How many no-shows do you have in a typical week?", "sectionId": "scheduling_no_shows", "scoring": { "kind": "options", "max": 10 }, "options": [
+          { "value": "0", "label": "0", "score": 10 }, { "value": "1_3", "label": "1 – 3", "score": 8 }, { "value": "4_6", "label": "4 – 6", "score": 6 }, { "value": "7_10", "label": "7 – 10", "score": 4 }, { "value": "11_plus", "label": "11 or more", "score": 2 }
+        ] },
+        { "id": "high_value_deposit_policy_choice", "type": "multiple-choice", "label": "Do you ask for deposits for high-value treatments (over $500)?", "sectionId": "scheduling_no_shows", "scoring": { "kind": "options", "max": 5 }, "options": [
+          { "value": "always", "label": "Yes, always", "score": 5 }, { "value": "sometimes", "label": "Sometimes", "score": 3 }, { "value": "no", "label": "No", "score": 0 }
+        ] },
+        { "id": "cancellation_rebooking_rate_choice", "type": "multiple-choice", "label": "When patients cancel, how often do you fill that slot with another appointment within 1–2 days?", "sectionId": "scheduling_no_shows", "scoring": { "kind": "options", "max": 5 }, "options": [
+          { "value": "gt_75", "label": "Over 75%", "score": 5 }, { "value": "50_75", "label": "50–75%", "score": 3 }, { "value": "lt_50", "label": "Under 50%", "score": 0 }
+        ] },
+        { "id": "automatic_reminders_choice", "type": "multiple-choice", "label": "Do you send automatic reminders for appointments?", "sectionId": "scheduling_no_shows", "scoring": { "kind": "options", "max": 5 }, "options": [
+          { "value": "yes", "label": "Yes", "score": 5 }, { "value": "no", "label": "No", "score": 0 }
+        ] },
+        { "id": "appointment_fill_rate_choice", "type": "multiple-choice", "label": "On average, what percentage of your available appointment slots get booked?", "sectionId": "scheduling_no_shows", "scoring": { "kind": "options", "max": 10 }, "options": [
+          { "value": "gt_95", "label": "Over 95%", "score": 10 }, { "value": "90_95", "label": "90 – 95%", "score": 8 }, { "value": "75_90", "label": "75 – 90%", "score": 6 }, { "value": "lt_75", "label": "Under 75%", "score": 4 }
+        ] }
+      ]},
     {
       "id": "treatment_plan_conversion",
       "preHeadline": "Treatment Plan Conversion",
       "headline": "Plug the Revenue Leaks in Your Chair-Side Presentations",
-      "description": "Every unaccepted treatment plan is money walking out the door.",
+      "description": "Turn pending plans into accepted treatments.",
       "questions": [
-        {
-          "id": "first_discussion_acceptance_rate_choice",
-          "label": "About what percentage of your treatment plans are accepted at the first discussion?",
-          "type": "multiple_choice",
-          "required": true,
-          "options": [
-            {"value": "gt_80","label": "Over 80%","score": 10},
-            {"value": "60_80","label": "60 – 80%","score": 8},
-            {"value": "40_60","label": "40 – 60%","score": 6},
-            {"value": "lt_40","label": "Under 40%","score": 4}
-          ]
-        },
-        {
-          "id": "monthly_cold_treatment_plans",
-          "label": "On average, how many treatment plans get no follow-up and go cold each month?",
-          "type": "number",
-          "required": true,
-          "validation": {"min": 0, "max": 200, "step": 1},
-          "map": {"lossArea": "Treatment Plans Revenue Loss", "weight": 0.25}
-        },
-        {
-          "id": "avg_unaccepted_plan_value_usd",
-          "label": "What's the average value of each unaccepted treatment plan?",
-          "type": "currency",
-          "required": true,
-          "validation": {"min": 0, "max": 10000, "currency": "USD"},
-          "map": {"lossArea": "Treatment Plans Revenue Loss", "weight": 0.25}
-        },
-        {
-          "id": "treatment_plan_followup_system_choice",
-          "label": "Do you use any system to automatically follow up on pending treatment plans?",
-          "type": "multiple_choice",
-          "required": true,
-          "options": [
-            {"value": "auto","label": "Yes, automatic reminders","score": 5},
-            {"value": "manual","label": "Notes/manual reminders","score": 2},
-            {"value": "none","label": "No system","score": 0}
-          ]
-        }
-      ]
-    },
+        { "id": "first_discussion_acceptance_rate_choice", "type": "multiple-choice", "label": "About what percentage of your treatment plans are accepted at the first discussion?", "sectionId": "treatment_plan_conversion", "scoring": { "kind": "options", "max": 10 }, "options": [
+          { "value": "gt_80", "label": "Over 80%", "score": 10 }, { "value": "60_80", "label": "60 – 80%", "score": 8 }, { "value": "40_60", "label": "40 – 60%", "score": 6 }, { "value": "lt_40", "label": "Under 40%", "score": 4 }
+        ] },
+        { "id": "monthly_cold_treatment_plans", "type": "number", "label": "On average, how many treatment plans get no follow-up and go cold each month?", "sectionId": "treatment_plan_conversion", "min": 0, "max": 200, "scoring": { "kind": "range", "mode": "lower-is-better", "min": 0, "max": 200 } },
+        { "id": "avg_unaccepted_plan_value_usd", "type": "currency", "label": "What's the average value of each unaccepted treatment plan?", "sectionId": "treatment_plan_conversion", "min": 0, "max": 10000, "scoring": { "kind": "range", "mode": "higher-is-better", "min": 0, "max": 10000 } },
+        { "id": "treatment_plan_followup_system_choice", "type": "multiple-choice", "label": "Do you use any system to automatically follow up on pending treatment plans?", "sectionId": "treatment_plan_conversion", "scoring": { "kind": "options", "max": 5 }, "options": [
+          { "value": "auto", "label": "Yes, automatic reminders", "score": 5 }, { "value": "manual", "label": "Notes/manual reminders", "score": 2 }, { "value": "none", "label": "No system", "score": 0 }
+        ] }
+      ]},
     {
       "id": "patient_retention_recall",
       "preHeadline": "Growth & Loyalty",
       "headline": "Building Long-Term Patient Relationships",
-      "description": "Many patients slip through the cracks after their first visit.",
+      "description": "Keep patients active and returning.",
       "questions": [
-        {
-          "id": "inactive_patient_contact_frequency_choice",
-          "label": "How often do you contact patients who haven't been back for more than 6 months?",
-          "type": "multiple_choice",
-          "required": true,
-          "options": [
-            {"value": "regular","label": "Regular recall campaigns","score": 5},
-            {"value": "occasional","label": "Occasionally","score": 2},
-            {"value": "never","label": "Never","score": 0}
-          ]
-        },
-        {
-          "id": "inactive_patients_count",
-          "label": "About how many inactive patients do you currently have?",
-          "type": "number",
-          "required": true,
-          "validation": {"min": 0, "max": 5000, "step": 1},
-          "map": {"lossArea": "Patient Reactivation Loss", "weight": 0.25}
-        },
-        {
-          "id": "reactivated_patient_first_year_value_usd",
-          "label": "On average, how much is a reactivated patient worth in their first year back?",
-          "type": "currency",
-          "required": true,
-          "validation": {"min": 0, "max": 5000, "currency": "USD"},
-          "map": {"lossArea": "Patient Reactivation Loss", "weight": 0.20}
-        },
-        {
-          "id": "proactive_reminder_frequency_choice",
-          "label": "Roughly, how often do you proactively remind patients for hygiene, check-ups, or treatments each year?",
-          "type": "multiple_choice",
-          "required": true,
-          "options": [
-            {"value": "3_plus","label": "3+ times","score": 5},
-            {"value": "1_2","label": "1–2 times","score": 3},
-            {"value": "none","label": "None","score": 0}
-          ]
-        },
-        {
-          "id": "recall_response_rate_choice",
-          "label": "Out of every 10 recall reminders you send, about how many patients book an appointment?",
-          "type": "multiple_choice",
-          "required": true,
-          "options": [
-            {"value": "0_2","label": "0 – 2","score": 4},
-            {"value": "3_5","label": "3 – 5","score": 6},
-            {"value": "6_8","label": "6 – 8","score": 8},
-            {"value": "9_10","label": "9 – 10","score": 10}
-          ],
-          "map": {"lossArea": "Patient Reactivation Loss", "weight": 0.15}
-        }
-      ]
-    },
+        { "id": "inactive_patient_contact_frequency_choice", "type": "multiple-choice", "label": "How often do you contact patients who haven't been back for more than 6 months?", "sectionId": "patient_retention_recall", "scoring": { "kind": "options", "max": 5 }, "options": [
+          { "value": "regular", "label": "Regular recall campaigns", "score": 5 }, { "value": "occasional", "label": "Occasionally", "score": 2 }, { "value": "never", "label": "Never", "score": 0 }
+        ] },
+        { "id": "inactive_patients_count", "type": "number", "label": "About how many inactive patients do you currently have?", "sectionId": "patient_retention_recall", "min": 0, "max": 5000, "scoring": { "kind": "range", "mode": "lower-is-better", "min": 0, "max": 5000 } },
+        { "id": "reactivated_patient_first_year_value_usd", "type": "currency", "label": "On average, how much is a reactivated patient worth in their first year back?", "sectionId": "patient_retention_recall", "min": 0, "max": 5000, "scoring": { "kind": "range", "mode": "higher-is-better", "min": 0, "max": 5000 } },
+        { "id": "proactive_reminder_frequency_choice", "type": "multiple-choice", "label": "Roughly, how often do you proactively remind patients for hygiene, check-ups, or treatments each year?", "sectionId": "patient_retention_recall", "scoring": { "kind": "options", "max": 5 }, "options": [
+          { "value": "three_plus", "label": "3+ times", "score": 5 }, { "value": "one_two", "label": "1–2 times", "score": 3 }, { "value": "none", "label": "None", "score": 0 }
+        ] },
+        { "id": "recall_response_rate_choice", "type": "multiple-choice", "label": "Out of every 10 recall reminders you send, about how many patients book an appointment?", "sectionId": "patient_retention_recall", "scoring": { "kind": "options", "max": 10 }, "options": [
+          { "value": "0_2", "label": "0 – 2", "score": 4 }, { "value": "3_5", "label": "3 – 5", "score": 6 }, { "value": "6_8", "label": "6 – 8", "score": 8 }, { "value": "9_10", "label": "9 – 10", "score": 10 }
+        ] }
+      ]},
     {
       "id": "reviews_reputation",
       "preHeadline": "Reputation Engine",
       "headline": "Turn Reviews into Revenue",
-      "description": "Every new five-star bumps your Google rating—and your practice's income.",
+      "description": "Online reputation drives discovery and trust.",
       "questions": [
-        {
-          "id": "monthly_google_reviews_choice",
-          "label": "On average, how many new Google reviews does your practice get each month?",
-          "type": "multiple_choice",
-          "required": true,
-          "options": [
-            {"value": "0","label": "0","score": 2},
-            {"value": "1_3","label": "1 – 3","score": 4},
-            {"value": "4_10","label": "4 – 10","score": 6},
-            {"value": "11_20","label": "11 – 20","score": 8},
-            {"value": "gt_20","label": "Over 20","score": 10}
-          ]
-        },
-        {
-          "id": "automated_review_requests_choice",
-          "label": "Do you use any system to automatically ask patients for reviews after their visits?",
-          "type": "multiple_choice",
-          "required": true,
-          "options": [
-            {"value": "auto","label": "Yes, fully automatic requests","score": 5},
-            {"value": "manual","label": "No, only manual requests","score": 2},
-            {"value": "none","label": "We don't ask for reviews","score": 0}
-          ]
-        },
-        {
-          "id": "review_response_frequency_choice",
-          "label": "How often do you respond to your Google or Facebook reviews?",
-          "type": "multiple_choice",
-          "required": true,
-          "options": [
-            {"value": "always","label": "Always respond","score": 5},
-            {"value": "sometimes","label": "Sometimes","score": 3},
-            {"value": "rarely_never","label": "Rarely/Never","score": 0}
-          ]
-        },
-        {
-          "id": "feedback_improvement_usage_choice",
-          "label": "When patients leave feedback, how often do you use it to improve your service?",
-          "type": "multiple_choice",
-          "required": true,
-          "options": [
-            {"value": "regular","label": "We review and take action regularly","score": 5},
-            {"value": "sometimes","label": "Sometimes","score": 3},
-            {"value": "rarely_never","label": "Rarely or never","score": 0}
-          ]
-        }
-      ]
-    }
-  ]
+        { "id": "monthly_google_reviews_choice", "type": "multiple-choice", "label": "On average, how many new Google reviews does your practice get each month?", "sectionId": "reviews_reputation", "scoring": { "kind": "options", "max": 10 }, "options": [
+          { "value": "0", "label": "0", "score": 2 }, { "value": "1_3", "label": "1 – 3", "score": 4 }, { "value": "4_10", "label": "4 – 10", "score": 6 }, { "value": "11_20", "label": "11 – 20", "score": 8 }, { "value": "gt_20", "label": "Over 20", "score": 10 }
+        ] },
+        { "id": "automated_review_requests_choice", "type": "multiple-choice", "label": "Do you use any system to automatically ask patients for reviews after their visits?", "sectionId": "reviews_reputation", "scoring": { "kind": "options", "max": 5 }, "options": [
+          { "value": "auto", "label": "Yes, fully automatic requests", "score": 5 }, { "value": "manual", "label": "No, only manual requests", "score": 2 }, { "value": "none", "label": "We don't ask for reviews", "score": 0 }
+        ] },
+        { "id": "review_response_frequency_choice", "type": "multiple-choice", "label": "How often do you respond to your Google or Facebook reviews?", "sectionId": "reviews_reputation", "scoring": { "kind": "options", "max": 5 }, "options": [
+          { "value": "always", "label": "Always respond", "score": 5 }, { "value": "sometimes", "label": "Sometimes", "score": 3 }, { "value": "rarely", "label": "Rarely/Never", "score": 0 }
+        ] },
+        { "id": "feedback_improvement_usage_choice", "type": "multiple-choice", "label": "When patients leave feedback, how often do you use it to improve your service?", "sectionId": "reviews_reputation", "scoring": { "kind": "options", "max": 5 }, "options": [
+          { "value": "regular", "label": "We review and take action regularly", "score": 5 }, { "value": "sometimes", "label": "Sometimes", "score": 3 }, { "value": "rarely", "label": "Rarely or never", "score": 0 }
+        ] }
+      ]}
+    ]
+  }
 }

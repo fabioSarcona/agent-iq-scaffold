@@ -1,5 +1,5 @@
 import { AppLayout } from './AppLayout'
-import { LogsToggle } from '../../../modules/audit/LogsToggle'
+import { LogsToggle } from '../../../modules/audit'
 
 export function AppLayoutWithLogs() {
   return (

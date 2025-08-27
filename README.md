@@ -1,5 +1,7 @@
 # Welcome to your Lovable project
 
+> **Note**: This project includes enhanced TypeScript strictness and organized module imports. See [Strict TS & Aliases Status](docs/strictness-waiver.md) for current configuration constraints and migration plans.
+
 ## Project info
 
 **URL**: https://lovable.dev/projects/13452b89-7869-4e83-ae74-a7186c6ae8d6

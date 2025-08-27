@@ -2,19 +2,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { FileText, AlertTriangle, TrendingDown, Loader2 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 
-// Import from new audit system
-import { useAuditProgressStore } from '../../modules/audit/AuditProgressStore'
-
-// Import new components
-import { ScoreGauge } from '../../modules/ai/voicefit/components/ScoreGauge'
-import { BenchmarkNote } from '../../modules/ai/voicefit/components/BenchmarkNote'
-import { SolutionCard } from '../../modules/ai/voicefit/components/SolutionCard'
-import { FAQAccordion } from '../../modules/ai/voicefit/components/FAQAccordion'
-import { PlanCard } from '../../modules/ai/voicefit/components/PlanCard'
-
-// Import API client
-import { requestVoiceFitReport } from '../../modules/ai/voicefit/report.client'
-import type { VoiceFitReportData } from '../../modules/ai/voicefit/report.types'
+// Import from audit and AI modules
+import { useAuditProgressStore } from '../../modules/audit'
+import { 
+  ScoreGauge, 
+  BenchmarkNote, 
+  SolutionCard, 
+  FAQAccordion, 
+  PlanCard,
+  requestVoiceFitReport,
+  type VoiceFitReportData 
+} from '../../modules/ai/voicefit'
 
 export default function Report() {
   const { vertical, answers } = useAuditProgressStore()

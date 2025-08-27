@@ -33,6 +33,18 @@ export default tseslint.config(
               "message": "Server-only MoneyLost math. Use requestMoneyLost() from the client."
             },
             {
+              "name": "../../../modules/moneylost/moneylost",
+              "message": "Server-only MoneyLost math. Use requestMoneyLost() from the client."
+            },
+            {
+              "name": "../../modules/moneylost/moneylost",
+              "message": "Server-only MoneyLost math. Use requestMoneyLost() from the client."
+            },
+            {
+              "name": "../modules/moneylost/moneylost",
+              "message": "Server-only MoneyLost math. Use requestMoneyLost() from the client."
+            },
+            {
               "name": "@/server/moneylost/compute.server",
               "message": "Server-only wrapper. Never import in client code."
             }

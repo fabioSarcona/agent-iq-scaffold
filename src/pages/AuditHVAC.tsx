@@ -1,6 +1,5 @@
 import { useEffect } from 'react'
-import { useAuditProgressStore } from '../../modules/audit/AuditProgressStore'
-import { AuditEngine } from '../../modules/audit/AuditEngine'
+import { useAuditProgressStore, AuditEngine } from '../../modules/audit'
 
 export default function AuditHVAC() {
   const { setVertical } = useAuditProgressStore()

@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign } from "lucide-react";
-import { formatCurrency } from "../moneylost.mock";
+import { formatCurrency } from "../moneylost";
 
 interface MoneyLostSummaryCardProps {
   dailyUsd: number;

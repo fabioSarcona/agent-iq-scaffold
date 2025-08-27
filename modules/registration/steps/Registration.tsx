@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAuditProgressStore } from '@/stores/auditProgressStore'
 import { ChatBubble } from '@/components/chat/ChatBubble'
 import { TypingDots } from '@/components/chat/TypingDots'
@@ -38,7 +38,7 @@ export function Registration() {
   const currentField = REGISTRATION_FIELDS[registrationIndex]
   const isLastField = registrationIndex === REGISTRATION_FIELDS.length - 1
 
-  // Get current field value from store
+  // Get current field value from store (memoized to prevent re-renders)
   const getCurrentValue = useCallback(() => {
     const value = registrationData[currentField.key]
     if (currentField.key === 'phone') {
@@ -47,7 +47,7 @@ export function Registration() {
     return value as string
   }, [registrationData, currentField.key])
 
-  // Validate current field
+  // Validate current field (memoized)
   const validateCurrentField = useCallback(() => {
     const value = getCurrentValue()
     const validation = validateRegistrationField(currentField.key, value)
@@ -55,7 +55,7 @@ export function Registration() {
     return validation.success
   }, [getCurrentValue, currentField.key])
 
-  // Show question with typing animation
+  // Show question with typing animation (removed getCurrentValue dependency)
   const showQuestion = useCallback(async () => {
     setIsTyping(true)
     const delay = calculateTypingDelay(currentField.question)
@@ -69,17 +69,19 @@ export function Registration() {
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
       }
       setMessages(prev => [...prev, questionMessage])
-      
-      // Pre-fill input with existing value
-      const existingValue = getCurrentValue()
-      if (currentField.type === 'phone') {
-        const phoneValue = existingValue as Phone
-        setCurrentInput(phoneValue.national)
-      } else {
-        setCurrentInput(existingValue as string || '')
-      }
     }, delay)
-  }, [currentField, registrationIndex, getCurrentValue])
+  }, [currentField, registrationIndex])
+
+  // Pre-fill input with existing value (separate effect to avoid circular dependency)
+  useEffect(() => {
+    const existingValue = getCurrentValue()
+    if (currentField.type === 'phone') {
+      const phoneValue = existingValue as Phone
+      setCurrentInput(phoneValue.national)
+    } else {
+      setCurrentInput(existingValue as string || '')
+    }
+  }, [getCurrentValue, currentField.type])
 
   // Load question on mount or index change
   useEffect(() => {
@@ -202,7 +204,11 @@ export function Registration() {
     }
   }
 
-  const isValid = validateCurrentField()
+  // Memoize validation result to prevent calling on every render
+  const isValid = useMemo(() => {
+    const value = getCurrentValue()
+    return validateRegistrationField(currentField.key, value).success
+  }, [getCurrentValue, currentField.key])
 
   return (
     <div className="flex flex-col h-full max-w-2xl mx-auto">

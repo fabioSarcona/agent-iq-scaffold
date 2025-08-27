@@ -1,170 +1,244 @@
-export interface LossCalculation {
-  daily: number
-  monthly: number
-  annual: number
+import type { MoneyLostSummary, LossArea, CalculatorOptions } from './moneylost.types';
+
+export type { LossArea, MoneyLostSummary, CalculatorOptions } from './moneylost.types';
+
+type Vertical = 'dental' | 'hvac';
+type Answers = Record<string, unknown>;
+
+const USD = (n: number) => Math.max(0, Number.isFinite(n) ? n : 0);
+
+const defaultOpts: Required<CalculatorOptions> = {
+  workdaysDental: 22,
+  workdaysHvac: 26,
+};
+
+/** Public API */
+export function computeMoneyLost(vertical: Vertical, answers: Answers, opts: CalculatorOptions = {}): MoneyLostSummary {
+  const settings = { ...defaultOpts, ...opts };
+  const workdays = vertical === 'dental' ? settings.workdaysDental : settings.workdaysHvac;
+
+  const areas: LossArea[] =
+    vertical === 'dental'
+      ? computeDentalAreas(answers, workdays)
+      : computeHvacAreas(answers, workdays);
+
+  const dailyUsd = round2(areas.reduce((s, a) => s + a.dailyUsd, 0));
+  const monthlyUsd = round0(dailyUsd * workdays);
+  const annualUsd = round0(monthlyUsd * 12);
+
+  return { dailyUsd, monthlyUsd, annualUsd, areas: areas.sort((a,b)=>b.dailyUsd-a.dailyUsd) };
 }
 
-export interface RecoverableRange {
-  min: number // percentage
-  max: number // percentage
+/* -------------------- Dental -------------------- */
+
+function computeDentalAreas(ans: Answers, workdays: number): LossArea[] {
+  // Inputs with conservative fallbacks
+  const avgAppt = num(ans['avg_fee_standard_treatment_usd'], 180);                         // $
+  const missedCallsDaily = mapDentalMissedCalls(ans['daily_unanswered_calls_choice']);      // #
+  const weeklyNoShows = mapDentalWeeklyNoShows(ans['weekly_no_shows_choice']);              // #
+  const monthlyColdPlans = num(ans['monthly_cold_treatment_plans'], 10);                    // #
+  const avgUnacceptedPlan = num(ans['avg_unaccepted_plan_value_usd'], 800);                 // $
+  const convFrom10 = mapDentalNewPatientConv(ans['new_patient_conversion_rate_choice']);    // 0..1
+
+  // Area 1 — Missed Calls Revenue Loss
+  // Formula: missedCallsDaily * avgAppt * convRate  (daily)
+  // Conservative convRate: derived from "out of 10" selector (see mapper), else 0.35
+  const convRate = convFrom10 ?? 0.35;
+  const mcDaily = USD(missedCallsDaily * avgAppt * convRate);
+  const mcMonthly = mcDaily * workdays;
+  const areaMissedCalls: LossArea = {
+    id: 'missed_calls',
+    title: 'Missed Calls Revenue Loss',
+    dailyUsd: round0(mcDaily),
+    monthlyUsd: round0(mcMonthly),
+    annualUsd: round0(mcMonthly * 12),
+    recoverablePctRange: [0.35, 0.60],
+    confidence: conf([missedCallsDaily, avgAppt], [true, isProvided(ans['avg_fee_standard_treatment_usd'])]),
+    notes: 'Estimated using your average appointment value and conversion rate.'
+  };
+
+  // Area 2 — No-Shows Revenue Loss
+  // Weekly → daily: divide by 5 (clinic weekdays). Daily loss = (weeklyNoShows * avgAppt) / 5
+  const nsDaily = USD((weeklyNoShows * avgAppt) / 5);
+  const nsMonthly = nsDaily * workdays;
+  const areaNoShows: LossArea = {
+    id: 'no_shows',
+    title: 'No-Shows Revenue Loss',
+    dailyUsd: round0(nsDaily),
+    monthlyUsd: round0(nsMonthly),
+    annualUsd: round0(nsMonthly * 12),
+    recoverablePctRange: [0.30, 0.50],
+    confidence: conf([weeklyNoShows, avgAppt], [isProvided(ans['weekly_no_shows_choice']), isProvided(ans['avg_fee_standard_treatment_usd'])]),
+    notes: 'Assumes weekdays operations; reminders & deposits typically mitigate 30–50%.'
+  };
+
+  // Area 3 — Treatment Plans Revenue Loss
+  // Monthly lost ≈ monthlyColdPlans * avgUnacceptedPlan  (conservative = 100% opportunity considered "cold")
+  // Daily ≈ monthly / workdays
+  const tpMonthly = USD(monthlyColdPlans * avgUnacceptedPlan);
+  const tpDaily = USD(tpMonthly / workdays);
+  const areaPlans: LossArea = {
+    id: 'treatment_plans',
+    title: 'Treatment Plans Revenue Loss',
+    dailyUsd: round0(tpDaily),
+    monthlyUsd: round0(tpMonthly),
+    annualUsd: round0(tpMonthly * 12),
+    recoverablePctRange: [0.25, 0.45],
+    confidence: conf([monthlyColdPlans, avgUnacceptedPlan], [isProvided(ans['monthly_cold_treatment_plans']), isProvided(ans['avg_unaccepted_plan_value_usd'])]),
+    notes: 'Cold plans treated as leakage potential; follow-ups typically recover 25–45%.'
+  };
+
+  return [areaMissedCalls, areaNoShows, areaPlans];
 }
 
-export interface LossArea {
-  title: string
-  subtitle: string
-  losses: LossCalculation
-  recoverableRange: RecoverableRange
+function mapDentalMissedCalls(v: unknown): number {
+  switch (str(v)) {
+    case '0': return 0;
+    case '1_3': return 2;
+    case '4_10': return 7;
+    case '11_20': return 15;
+    case '21_plus': return 25;
+    default: return 2; // conservative default if unknown
+  }
 }
-
-export interface TotalLosses extends LossCalculation {}
-
-export interface CalculationInputs {
-  [questionId: string]: string | number | undefined
+function mapDentalWeeklyNoShows(v: unknown): number {
+  switch (str(v)) {
+    case '0': return 0;
+    case '1_3': return 2;
+    case '4_6': return 5;
+    case '7_10': return 8;
+    case '11_plus': return 12;
+    default: return 2;
+  }
 }
-
-// Industry business metrics (conservative estimates)
-const DENTAL_METRICS = {
-  averagePatientValue: 350, // per visit
-  treatmentPlanValues: {
-    'Cleanings and preventive care': 200,
-    'Cosmetic procedures': 1200,
-    'Orthodontics': 800,
-    'Oral surgery': 600
-  },
-  defaultTreatmentValue: 400,
-  workingDaysPerMonth: 22,
-  workingDaysPerYear: 252
-}
-
-const HVAC_METRICS = {
-  emergencyCallValue: 300, // average emergency call
-  maintenanceContractValue: 800, // annual contract
-  averageServiceCall: 180,
-  workingDaysPerMonth: 22,
-  workingDaysPerYear: 252
-}
-
-export function calculateRealLosses(
-  industry: 'dental' | 'hvac',
-  auditAnswers: CalculationInputs
-): { total: TotalLosses; areas: LossArea[] } {
-  if (industry === 'dental') {
-    return calculateDentalRealLosses(auditAnswers)
-  } else {
-    return calculateHVACRealLosses(auditAnswers)
+function mapDentalNewPatientConv(v: unknown): number | undefined {
+  // From "Out of 10 calls... book appointments?"
+  // Conservative midpoints: 0–2 ⇒ 0.15, 3–5 ⇒ 0.35, 6–10 ⇒ 0.65
+  switch (str(v)) {
+    case '0_2': return 0.15;
+    case '3_5': return 0.35;
+    case '6_10': return 0.65;
+    default: return undefined;
   }
 }
 
-function calculateDentalRealLosses(answers: CalculationInputs): {
-  total: TotalLosses
-  areas: LossArea[]
-} {
-  const newPatientsPerMonth = Number(answers.dental_new_patients) || 20
-  const missedAppointmentRate = Number(answers.dental_missed_appointments) || 15
-  const revenueService = answers.dental_revenue_services as string || 'Cleanings and preventive care'
-  
-  // Conservative calculations
-  const areas: LossArea[] = []
+/* -------------------- HVAC -------------------- */
 
-  // 1. Inactive Patients Loss
-  // Assume 30% of existing patients become inactive annually
-  // Conservative: only 45% are recoverable
-  const estimatedPatientBase = newPatientsPerMonth * 12 * 3 // 3 years of growth
-  const inactivePatients = estimatedPatientBase * 0.30
-  const inactivePatientDaily = (inactivePatients * DENTAL_METRICS.averagePatientValue * 0.45) / DENTAL_METRICS.workingDaysPerYear
-  
-  areas.push({
-    title: "Inactive Patients",
-    subtitle: "Revenue from patients who haven't returned in 6+ months",
-    losses: {
-      daily: Math.round(inactivePatientDaily),
-      monthly: Math.round(inactivePatientDaily * DENTAL_METRICS.workingDaysPerMonth),
-      annual: Math.round(inactivePatientDaily * DENTAL_METRICS.workingDaysPerYear)
-    },
-    recoverableRange: { min: 35, max: 55 }
-  })
+function computeHvacAreas(ans: Answers, workdays: number): LossArea[] {
+  const valuePerMissed = num(ans['missed_call_estimated_value_usd'], 250);                   // $
+  const missedCallsDaily = mapHvacMissedCalls(ans['daily_unanswered_calls_choice']);         // #
+  const weeklyCancels = mapHvacWeeklyCancels(ans['weekly_job_cancellations_choice']);        // #
+  const avgCanceledJob = num(ans['avg_canceled_job_value_usd'], 350);                        // $
+  const monthlyPendingQuotes = num(ans['monthly_pending_quotes'], 12);                       // #
+  const avgPendingQuote = num(ans['average_pending_quote_value_usd'], 1500);                 // $
+  const callbackSpeed = str(ans['missed_call_response_time_choice']);                        // affects close rate
 
-  // 2. Missed Appointments Loss
-  // Based on reported missed appointment rate
-  const dailyAppointments = (newPatientsPerMonth * 2) / DENTAL_METRICS.workingDaysPerMonth // patients visit 2x/month on average
-  const missedDaily = dailyAppointments * (missedAppointmentRate / 100)
-  const treatmentValue = DENTAL_METRICS.treatmentPlanValues[revenueService as keyof typeof DENTAL_METRICS.treatmentPlanValues] 
-    || DENTAL_METRICS.defaultTreatmentValue
-  const missedAppointmentLoss = missedDaily * treatmentValue * 0.60 // 60% could be rescheduled
-  
-  areas.push({
-    title: "Lost Treatment Plans", 
-    subtitle: "Missed appointments and unscheduled treatments",
-    losses: {
-      daily: Math.round(missedAppointmentLoss),
-      monthly: Math.round(missedAppointmentLoss * DENTAL_METRICS.workingDaysPerMonth),
-      annual: Math.round(missedAppointmentLoss * DENTAL_METRICS.workingDaysPerYear)
-    },
-    recoverableRange: { min: 40, max: 65 }
-  })
+  // Derive a conservative close rate modifier from response time (faster ⇒ better)
+  const baseClose = 0.35;
+  const closeMod = ((): number => {
+    switch (callbackSpeed) {
+      case 'immediate': return 1.0;
+      case '2h': return 0.9;
+      case 'same_day': return 0.8;
+      case 'next_day': return 0.6;
+      default: return 0.85;
+    }
+  })();
+  const effectiveClose = clamp(baseClose * closeMod, 0.2, 0.6);
 
-  const total: TotalLosses = {
-    daily: areas.reduce((sum, area) => sum + area.losses.daily, 0),
-    monthly: areas.reduce((sum, area) => sum + area.losses.monthly, 0),
-    annual: areas.reduce((sum, area) => sum + area.losses.annual, 0)
-  }
+  // Area 1 — Missed Service Calls Loss
+  // daily = missedCallsDaily * valuePerMissed * effectiveClose
+  const mcDaily = USD(missedCallsDaily * valuePerMissed * effectiveClose);
+  const mcMonthly = mcDaily * workdays;
+  const areaMissedCalls: LossArea = {
+    id: 'missed_calls',
+    title: 'Missed Service Calls Loss',
+    dailyUsd: round0(mcDaily),
+    monthlyUsd: round0(mcMonthly),
+    annualUsd: round0(mcMonthly * 12),
+    recoverablePctRange: [0.35, 0.60],
+    confidence: conf([missedCallsDaily, valuePerMissed], [isProvided(ans['daily_unanswered_calls_choice']), isProvided(ans['missed_call_estimated_value_usd'])]),
+    notes: 'Close-rate adjusted using your callback speed.'
+  };
 
-  return { total, areas }
+  // Area 2 — Last-Minute Cancellations Loss
+  // Weekly → daily via /5
+  const cancDaily = USD((weeklyCancels * avgCanceledJob) / 5);
+  const cancMonthly = cancDaily * workdays;
+  const areaCancels: LossArea = {
+    id: 'cancellations',
+    title: 'Last-Minute Cancellations Loss',
+    dailyUsd: round0(cancDaily),
+    monthlyUsd: round0(cancMonthly),
+    annualUsd: round0(cancMonthly * 12),
+    recoverablePctRange: [0.30, 0.50],
+    confidence: conf([weeklyCancels, avgCanceledJob], [isProvided(ans['weekly_job_cancellations_choice']), isProvided(ans['avg_canceled_job_value_usd'])]),
+    notes: 'Deposits & reminder flows typically recover 30–50%.'
+  };
+
+  // Area 3 — Pending Quotes Revenue Loss
+  // Conservative: treat 25% of monthly pending value as leakage (deals that stall out)
+  const monthlyPendingValue = USD(monthlyPendingQuotes * avgPendingQuote);
+  const pendMonthlyLeak = USD(monthlyPendingValue * 0.25);
+  const pendDaily = USD(pendMonthlyLeak / workdays);
+  const areaPending: LossArea = {
+    id: 'pending_quotes',
+    title: 'Pending Quotes Revenue Loss',
+    dailyUsd: round0(pendDaily),
+    monthlyUsd: round0(pendMonthlyLeak),
+    annualUsd: round0(pendMonthlyLeak * 12),
+    recoverablePctRange: [0.25, 0.45],
+    confidence: conf([monthlyPendingQuotes, avgPendingQuote], [isProvided(ans['monthly_pending_quotes']), isProvided(ans['average_pending_quote_value_usd'])]),
+    notes: 'Assumes 25% stall leakage; follow-ups typically recover 25–45%.'
+  };
+
+  return [areaMissedCalls, areaCancels, areaPending];
 }
 
-function calculateHVACRealLosses(answers: CalculationInputs): {
-  total: TotalLosses
-  areas: LossArea[]
-} {
-  const servicCallsPerWeek = Number(answers.hvac_service_calls) || 15
-  const afterHoursRate = Number(answers.hvac_after_hours_calls) || 25
-  const profitableService = answers.hvac_profitable_services as string || 'Repair services'
-  
-  const areas: LossArea[] = []
-
-  // 1. Missed Emergency Calls
-  // After-hours calls are higher value but harder to answer
-  const weeklyAfterHoursCalls = servicCallsPerWeek * (afterHoursRate / 100)
-  const dailyAfterHoursCalls = weeklyAfterHoursCalls / 7
-  const missedEmergencyRate = 0.35 // assume 35% of after-hours calls are missed
-  const missedEmergencyDaily = dailyAfterHoursCalls * missedEmergencyRate * HVAC_METRICS.emergencyCallValue * 0.70 // 70% could be captured
-  
-  areas.push({
-    title: "Missed Emergency Calls",
-    subtitle: "Revenue lost from unanswered after-hours emergency calls", 
-    losses: {
-      daily: Math.round(missedEmergencyDaily),
-      monthly: Math.round(missedEmergencyDaily * 30),
-      annual: Math.round(missedEmergencyDaily * 365)
-    },
-    recoverableRange: { min: 35, max: 50 }
-  })
-
-  // 2. Poor Follow-up (Maintenance Contracts)
-  // Based on service call volume and follow-up efficiency
-  const dailyServiceCalls = (servicCallsPerWeek * 52) / 365
-  const followUpConversionRate = 0.15 // 15% of service calls could convert to maintenance
-  const poorFollowUpRate = 0.60 // assume 60% of potential conversions are lost due to poor follow-up
-  const lostMaintenanceDaily = dailyServiceCalls * followUpConversionRate * poorFollowUpRate * (HVAC_METRICS.maintenanceContractValue / 365)
-  
-  areas.push({
-    title: "Poor Follow-up",
-    subtitle: "Lost maintenance contracts and repeat business opportunities",
-    losses: {
-      daily: Math.round(lostMaintenanceDaily),
-      monthly: Math.round(lostMaintenanceDaily * 30),
-      annual: Math.round(lostMaintenanceDaily * 365)
-    },
-    recoverableRange: { min: 40, max: 60 }
-  })
-
-  const total: TotalLosses = {
-    daily: areas.reduce((sum, area) => sum + area.losses.daily, 0),
-    monthly: areas.reduce((sum, area) => sum + area.losses.monthly, 0),
-    annual: areas.reduce((sum, area) => sum + area.losses.annual, 0)
+function mapHvacMissedCalls(v: unknown): number {
+  switch (str(v)) {
+    case 'none': return 0;
+    case '1_3': return 2;
+    case '4_6': return 5;
+    case 'gt_6': return 8;
+    default: return 2; // conservative default
   }
+}
 
-  return { total, areas }
+function mapHvacWeeklyCancels(v: unknown): number {
+  switch (str(v)) {
+    case 'none': return 0;
+    case '1_2': return 2;
+    case '3_5': return 4;
+    case 'gt_5': return 7;
+    default: return 2;
+  }
+}
+
+/* -------------------- Utils -------------------- */
+
+function num(v: unknown, fallback: number): number {
+  const n = typeof v === 'number' ? v : (typeof v === 'string' ? Number(v) : NaN);
+  return Number.isFinite(n) ? n : fallback;
+}
+function str(v: unknown): string {
+  return typeof v === 'string' ? v : '';
+}
+function isProvided(v: unknown): boolean {
+  return v !== undefined && v !== null && String(v).length > 0;
+}
+function clamp(n: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, n));
+}
+function round0(n: number) { return Math.round(n); }
+function round2(n: number) { return Math.round(n * 100) / 100; }
+function conf(values: Array<number>, providedFlags: Array<boolean>): 'low'|'medium'|'high' {
+  // Heuristic: high if all provided AND non-zero; medium if at least one exact; low if all fallbacks.
+  const provided = providedFlags.filter(Boolean).length;
+  const nonZero = values.filter(x => x > 0).length;
+  if (provided === providedFlags.length && nonZero > 0) return 'high';
+  if (provided > 0) return 'medium';
+  return 'low';
 }
 
 export function formatCurrency(amount: number): string {

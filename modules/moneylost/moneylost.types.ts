@@ -17,3 +17,8 @@ export interface MoneyLostSummary {
   annualUsd: number;
   areas: LossArea[];
 }
+
+export interface CalculatorOptions {
+  workdaysDental?: number;   // default 22
+  workdaysHvac?: number;     // default 26
+}

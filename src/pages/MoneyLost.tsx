@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button'
 import { useAuditProgressStore } from '@/../modules/audit/AuditProgressStore'
-import { buildMockMoneyLost } from '@/../modules/moneylost/moneylost.mock'
+import { computeMoneyLost } from '@/../modules/moneylost/moneylost'
 import { MoneyLostSummaryCard } from '@/../modules/moneylost/components/MoneyLostSummaryCard'
 import { LossAreaCard } from '@/../modules/moneylost/components/LossAreaCard'
 import { DisclaimerNote } from '@/../modules/moneylost/components/DisclaimerNote'
@@ -10,8 +10,8 @@ export default function MoneyLost() {
   const navigate = useNavigate()
   const { vertical, answers } = useAuditProgressStore()
   
-  // Use mock calculations based on vertical and audit answers
-  const mockSummary = buildMockMoneyLost(vertical, answers)
+  // Use real calculations based on vertical and audit answers
+  const data = computeMoneyLost(vertical, answers)
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-8">
@@ -25,16 +25,16 @@ export default function MoneyLost() {
 
       {/* Summary Card */}
       <MoneyLostSummaryCard 
-        dailyUsd={mockSummary.dailyUsd}
-        monthlyUsd={mockSummary.monthlyUsd}
-        annualUsd={mockSummary.annualUsd}
+        dailyUsd={data.dailyUsd}
+        monthlyUsd={data.monthlyUsd}
+        annualUsd={data.annualUsd}
       />
 
       {/* Disclaimer */}
       <DisclaimerNote />
 
       {/* Critical Areas */}
-      {mockSummary.areas.length > 0 && (
+      {data.areas.length > 0 && (
         <div className="space-y-6">
           <div className="text-center">
             <h2 className="text-2xl font-bold">Critical Areas Identified</h2>
@@ -44,7 +44,7 @@ export default function MoneyLost() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {mockSummary.areas.map((area) => (
+            {data.areas.map((area) => (
               <LossAreaCard 
                 key={area.id}
                 title={area.title}

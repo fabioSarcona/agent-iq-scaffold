@@ -12,25 +12,25 @@ const LossAreaCard = React.forwardRef<HTMLDivElement, LossAreaCardProps>(
     <Card ref={ref} className={cn("", className)} {...props}>
       <CardHeader className="pb-3">
         <CardTitle className="text-lg font-semibold">{lossArea.title}</CardTitle>
-        <p className="text-sm text-muted-foreground">{lossArea.subtitle}</p>
+        <p className="text-sm text-muted-foreground">{lossArea.notes}</p>
       </CardHeader>
       <CardContent className="space-y-2">
         <div className="flex justify-between items-center">
           <span className="text-sm font-medium">Daily Loss:</span>
           <span className="text-sm font-semibold text-destructive">
-            {formatCurrency(lossArea.losses.daily)}
+            {formatCurrency(lossArea.dailyUsd)}
           </span>
         </div>
         <div className="flex justify-between items-center">
           <span className="text-sm font-medium">Monthly Loss:</span>
           <span className="text-sm font-semibold text-destructive">
-            {formatCurrency(lossArea.losses.monthly)}
+            {formatCurrency(lossArea.monthlyUsd)}
           </span>
         </div>
         <div className="flex justify-between items-center border-t pt-2">
           <span className="text-sm font-medium">Annual Loss:</span>
           <span className="text-base font-bold text-destructive">
-            {formatCurrency(lossArea.losses.annual)}
+            {formatCurrency(lossArea.annualUsd)}
           </span>
         </div>
       </CardContent>

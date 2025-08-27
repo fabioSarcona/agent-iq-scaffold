@@ -12,6 +12,7 @@ export interface RegistrationData {
   role: string
   city: string
   country: string
+  emailVerified: boolean
 }
 
 export interface RegistrationField {

@@ -21,6 +21,7 @@ export interface RegistrationData {
   role: string
   city: string
   country: string
+  emailVerified: boolean
 }
 
 export interface Question {
@@ -41,6 +42,7 @@ export interface AuditProgressState {
   industry: 'dental' | 'hvac' | null
   registrationData: RegistrationData
   registrationIndex: number
+  otpCooldownUntil?: number
   
   // Audit-specific state
   currentQuestionIndex: number
@@ -49,7 +51,6 @@ export interface AuditProgressState {
   auditStarted: boolean
   auditCompleted: boolean
   
-  // Actions
   setCurrentStep: (step: string | number) => void
   addAnswer: (answer: AuditAnswer) => void
   setIndustry: (industry: 'dental' | 'hvac') => void
@@ -58,9 +59,11 @@ export interface AuditProgressState {
   nextRegistrationStep: () => void
   backRegistrationStep: () => void
   resetRegistration: () => void
-  getRegistrationField: (field: keyof RegistrationData) => string | Phone | undefined
+  getRegistrationField: (field: keyof RegistrationData) => string | Phone | boolean | undefined
   clearRegistrationData: () => void
   resetProgress: () => void
+  setEmailVerified: (verified: boolean) => void
+  setOtpCooldown: (ms: number) => void
   
   // Audit actions
   loadAuditQuestions: (industry: 'dental' | 'hvac') => Promise<void>
@@ -86,9 +89,11 @@ export const useAuditProgressStore = create<AuditProgressState>()(
         businessName: '',
         role: '',
         city: '',
-        country: 'US'
+        country: 'US',
+        emailVerified: false
       },
       registrationIndex: 0,
+      otpCooldownUntil: undefined,
       
       // Audit state
       currentQuestionIndex: 0,
@@ -134,7 +139,8 @@ export const useAuditProgressStore = create<AuditProgressState>()(
           businessName: '',
           role: '',
           city: '',
-          country: 'US'
+          country: 'US',
+          emailVerified: false
         }
       }),
 
@@ -149,7 +155,8 @@ export const useAuditProgressStore = create<AuditProgressState>()(
           businessName: '',
           role: '',
           city: '',
-          country: 'US'
+          country: 'US',
+          emailVerified: false
         }
       }),
       
@@ -166,15 +173,27 @@ export const useAuditProgressStore = create<AuditProgressState>()(
             businessName: '',
             role: '',
             city: '',
-            country: 'US'
+            country: 'US',
+            emailVerified: false
           },
           registrationIndex: 0,
+          otpCooldownUntil: undefined,
           currentQuestionIndex: 0,
           auditQuestions: [],
           auditAnswers: {},
           auditStarted: false,
           auditCompleted: false
         }),
+
+      setEmailVerified: (verified) => 
+        set((state) => ({
+          registrationData: {
+            ...state.registrationData,
+            emailVerified: verified
+          }
+        })),
+
+      setOtpCooldown: (ms) => set({ otpCooldownUntil: ms }),
 
       // Audit actions
       loadAuditQuestions: async (industry) => {
@@ -223,6 +242,7 @@ export const useAuditProgressStore = create<AuditProgressState>()(
         industry: state.industry,
         registrationData: state.registrationData,
         registrationIndex: state.registrationIndex,
+        otpCooldownUntil: state.otpCooldownUntil,
         currentQuestionIndex: state.currentQuestionIndex,
         auditAnswers: state.auditAnswers,
         auditStarted: state.auditStarted,

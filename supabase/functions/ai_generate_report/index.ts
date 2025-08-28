@@ -7,6 +7,20 @@ import {
   type LLMOutput 
 } from './schemas.ts'
 
+// Load Fabio's system prompt verbatim
+const SYSTEM_PROMPT = await Deno.readTextFile(
+  new URL('./system-prompt-voicefit.md', import.meta.url)
+)
+
+// Guard: prevent accidental truncation (heuristic threshold)
+if (!SYSTEM_PROMPT || SYSTEM_PROMPT.length < 2000) {
+  console.error('VoiceFit SYSTEM_PROMPT load error: content too short or missing.')
+  throw new Error('SYSTEM_PROMPT_NOT_LOADED')
+}
+
+console.log(`VoiceFit SYSTEM_PROMPT length: ${SYSTEM_PROMPT.length} bytes (OK if >= 2000)`)
+console.log('Claude call configured with system prompt (Fabio persona) ✔')
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -192,10 +206,7 @@ serve(async (req) => {
     console.log('Processing VoiceFit report request for:', request.vertical)
 
     // Load system prompt and KB
-    const [systemPrompt] = await Promise.all([
-      loadSystemPrompt(),
-      loadKB() // This loads into cache
-    ])
+    await loadKB() // This loads KB into cache
 
     // Build LLM input from our format
     const llmInput = buildLLMInput(request)
@@ -203,8 +214,8 @@ serve(async (req) => {
     // Validate input
     const validatedInput = LLMInputSchema.parse(llmInput)
     
-    // Call Claude
-    const llmOutput = await callClaude(systemPrompt, validatedInput)
+    // Call Claude with Fabio's system prompt
+    const llmOutput = await callClaude(SYSTEM_PROMPT, validatedInput)
     
     const processingTime = Date.now() - startTime
     console.log(`Report generated in ${processingTime}ms`)

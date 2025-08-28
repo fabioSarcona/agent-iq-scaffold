@@ -1,8 +1,13 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { z } from 'https://esm.sh/zod@3.22.4';
 
-// Configuration (inline for edge function)
+// Shared modules
+import { corsHeaders } from '../_shared/env.ts';
+import { logger } from '../_shared/logger.ts';
+import { NeedAgentIQInputSchema, NeedAgentIQOutputSchema } from '../_shared/validation.ts';
+import { validateKBSlice } from '../_shared/kb.ts';
+import type { NeedAgentIQInput, NeedAgentIQOutput, ErrorResponse } from '../_shared/types.ts';
+
+// Configuration (inline for edge function - will be moved to shared config later)
 const NEEDAGENTIQ_MODEL = "claude-3.7-sonnet" as const;
 const NEEDAGENTIQ_PARAMS = {
   temperature: 0.2,
@@ -14,65 +19,6 @@ const NEEDAGENTIQ_PARAMS = {
 } as const;
 const NEEDAGENTIQ_SYSTEM_PROMPT = ""; // <-- will be injected later via a separate prompt
 const NEEDAGENTIQ_TIMEOUT_MS = 1200;
-
-// Validation schema (inline for edge function)
-const NeedAgentIQInputSchema = z.object({
-  context: z.object({
-    auditId: z.string(),
-    auditType: z.enum(['dental', 'hvac']),
-    sectionId: z.string(),
-    business: z.object({
-      name: z.string(),
-      location: z.string().optional(),
-      size: z.object({
-        chairs: z.number().optional(), // dental
-        techs: z.number().optional()   // hvac
-      }).optional()
-    }).optional(),
-    settings: z.object({
-      currency: z.enum(['USD', 'EUR']).default('USD'),
-      locale: z.string().default('en-US')
-    }).optional()
-  }),
-  audit: z.object({
-    responses: z.array(z.object({
-      key: z.string(),
-      value: z.unknown()
-    })),
-    aiReadinessScore: z.number().min(0).max(100).optional(),
-    sectionScores: z.record(z.string(), z.number()).optional()
-  }),
-  moneyLost: z.object({
-    items: z.array(z.object({
-      area: z.string(),
-      formula: z.string(),
-      assumptions: z.array(z.string()),
-      resultMonthly: z.number(),
-      confidence: z.number().min(0).max(100)
-    })),
-    totalMonthly: z.number()
-  }).optional(),
-  kb: z.object({
-    approved_claims: z.array(z.string()),
-    services: z.array(z.object({
-      name: z.string(),
-      target: z.enum(['Dental', 'HVAC', 'Both']),
-      problem: z.string(),
-      how: z.string(),
-      roiRangeMonthly: z.array(z.number()).optional(),
-      tags: z.array(z.string()).optional()
-    }))
-  }),
-  history: z.object({
-    previousInsights: z.array(z.string()).optional(),
-    lastTriggered: z.string().optional()
-  }).optional()
-});
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
 
 // Simple in-memory cache
 const cache = new Map<string, { data: any; timestamp: number; ttl: number }>();
@@ -110,13 +56,16 @@ serve(async (req) => {
   }
 
   if (req.method !== 'POST') {
-    return new Response(
-      JSON.stringify({ error: { message: 'Method not allowed', code: 'METHOD_NOT_ALLOWED' } }),
-      { 
-        status: 405, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
-    );
+    const errorResponse: ErrorResponse = {
+      success: false,
+      error: { message: 'Method not allowed', code: 'METHOD_NOT_ALLOWED' },
+      metadata: { processing_time_ms: Date.now() - startTime }
+    };
+
+    return new Response(JSON.stringify(errorResponse), { 
+      status: 405, 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
   }
 
   try {
@@ -127,9 +76,15 @@ serve(async (req) => {
     const { context, audit, moneyLost, kb } = input;
     const cacheKey = getCacheKey(context.auditId, context.sectionId);
     
+    logger.info('Processing NeedAgentIQ request', { 
+      auditId: context.auditId, 
+      sectionId: context.sectionId 
+    });
+    
     // Check cache first
     const cached = getFromCache(cacheKey);
     if (cached) {
+      logger.info('Cache hit', { cacheKey });
       return new Response(JSON.stringify(cached), {
         status: 200,
         headers: { 
@@ -140,13 +95,18 @@ serve(async (req) => {
       });
     }
 
+    // Validate KB slice
+    validateKBSlice(kb);
+
     // Check if system prompt is set
     if (!NEEDAGENTIQ_SYSTEM_PROMPT || NEEDAGENTIQ_SYSTEM_PROMPT.trim() === '') {
-      const response = [];
+      const response: NeedAgentIQOutput = [];
       const processingTime = Date.now() - startTime;
       
       // Cache empty response to avoid repeated calls
       setCache(cacheKey, response, 60000); // 1 minute cache for empty responses
+      
+      logger.warn('System prompt not installed', { cacheKey });
       
       return new Response(JSON.stringify(response), {
         status: 200,
@@ -161,13 +121,17 @@ serve(async (req) => {
 
     // TODO: In a future prompt, we'll implement the actual LLM call here
     // For now, return empty insights array as stub
-    const insights = [];
+    const insights: NeedAgentIQOutput = [];
     const processingTime = Date.now() - startTime;
     
     // Cache the response
     setCache(cacheKey, insights);
     
-    console.log(`NeedAgentIQ processed for audit ${context.auditId}, section ${context.sectionId} in ${processingTime}ms`);
+    logger.info('NeedAgentIQ processed successfully', { 
+      auditId: context.auditId, 
+      sectionId: context.sectionId,
+      processingTime 
+    });
     
     return new Response(JSON.stringify(insights), {
       status: 200,
@@ -180,45 +144,40 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('NeedAgentIQ error:', error);
+    logger.error('NeedAgentIQ error', { error: error.message });
     
     const processingTime = Date.now() - startTime;
+    let errorResponse: ErrorResponse;
     
     if (error.name === 'ZodError') {
-      return new Response(
-        JSON.stringify({
-          error: { 
-            message: 'Invalid input format', 
-            code: 'VALIDATION_ERROR',
-            details: error.errors 
-          }
-        }),
-        { 
-          status: 400, 
-          headers: { 
-            ...corsHeaders, 
-            'Content-Type': 'application/json',
-            'X-Processing-Time-Ms': processingTime.toString()
-          }
-        }
-      );
+      errorResponse = {
+        success: false,
+        error: { 
+          message: 'Invalid input format', 
+          code: 'VALIDATION_ERROR',
+          details: error.errors 
+        },
+        metadata: { processing_time_ms: processingTime }
+      };
+
+      return new Response(JSON.stringify(errorResponse), { 
+        status: 400, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
     }
 
-    return new Response(
-      JSON.stringify({
-        error: { 
-          message: error.message || 'Internal server error', 
-          code: 'INTERNAL_ERROR' 
-        }
-      }),
-      { 
-        status: 500, 
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json',
-          'X-Processing-Time-Ms': processingTime.toString()
-        }
-      }
-    );
+    errorResponse = {
+      success: false,
+      error: { 
+        message: error.message || 'Internal server error', 
+        code: 'INTERNAL_ERROR' 
+      },
+      metadata: { processing_time_ms: processingTime }
+    };
+
+    return new Response(JSON.stringify(errorResponse), { 
+      status: 500, 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
   }
 });

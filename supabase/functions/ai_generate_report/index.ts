@@ -1,66 +1,52 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts"
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { 
-  LLMInputSchema, 
-  LLMOutputSchema, 
-  type LLMInput, 
-  type LLMOutput 
-} from './schemas.ts'
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-// Load Fabio's system prompt verbatim
-const SYSTEM_PROMPT = await Deno.readTextFile(
-  new URL('./system-prompt-voicefit.md', import.meta.url)
-)
+// Shared modules
+import { validateAIEnv, corsHeaders } from '../_shared/env.ts';
+import { logger } from '../_shared/logger.ts';
+import { VoiceFitInputSchema, VoiceFitOutputSchema } from '../_shared/validation.ts';
+import { validateKBSlice } from '../_shared/kb.ts';
+import type { VoiceFitInput, VoiceFitOutput, ErrorResponse } from '../_shared/types.ts';
 
-// Guard: prevent accidental truncation (heuristic threshold)
+// Load system prompt at module level  
+let SYSTEM_PROMPT: string;
+try {
+  SYSTEM_PROMPT = await Deno.readTextFile(
+    new URL('./system-prompt-voicefit.md', import.meta.url)
+  );
+  logger.info('VoiceFit system prompt loaded', { length: SYSTEM_PROMPT.length });
+} catch (error) {
+  logger.error('Failed to load VoiceFit system prompt', { error: error.message });
+  SYSTEM_PROMPT = '';
+}
+
+// Guard against truncated system prompt
 if (!SYSTEM_PROMPT || SYSTEM_PROMPT.length < 2000) {
-  console.error('VoiceFit SYSTEM_PROMPT load error: content too short or missing.')
-  throw new Error('SYSTEM_PROMPT_NOT_LOADED')
+  logger.error('VoiceFit SYSTEM_PROMPT load error: content too short or missing');
+  throw new Error('SYSTEM_PROMPT_NOT_LOADED');
 }
 
-console.log(`VoiceFit SYSTEM_PROMPT length: ${SYSTEM_PROMPT.length} bytes (OK if >= 2000)`)
-console.log('Claude call configured with system prompt (Fabio persona) ✔')
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
-// Cache for system prompt and KB data
-let systemPromptCache: string | null = null
-let kbCache: { approved_claims: string[], services: any[] } | null = null
-
-async function loadSystemPrompt(): Promise<string> {
-  if (systemPromptCache) return systemPromptCache
-  
-  try {
-    systemPromptCache = await Deno.readTextFile(
-      new URL('./system-prompt-voicefit.md', import.meta.url)
-    )
-    return systemPromptCache
-  } catch (error) {
-    console.error('Failed to load system prompt:', error)
-    throw new Error('System prompt not available')
-  }
-}
+// Cache for KB data
+let kbCache: { approved_claims: string[], services: any[] } | null = null;
 
 async function loadKB(): Promise<{ approved_claims: string[], services: any[] }> {
-  if (kbCache) return kbCache
+  if (kbCache) return kbCache;
   
   try {
     const [claimsText, servicesText] = await Promise.all([
       Deno.readTextFile(new URL('./kb/approved_claims.json', import.meta.url)),
       Deno.readTextFile(new URL('./kb/services.json', import.meta.url))
-    ])
+    ]);
     
     kbCache = {
       approved_claims: JSON.parse(claimsText),
       services: JSON.parse(servicesText)
-    }
-    return kbCache
+    };
+    logger.info('KB files loaded successfully');
+    return kbCache;
   } catch (error) {
-    console.error('Failed to load KB files:', error)
-    return { approved_claims: [], services: [] }
+    logger.error('Failed to load KB files', { error: error.message });
+    return { approved_claims: [], services: [] };
   }
 }
 
@@ -71,13 +57,13 @@ function buildLLMInput({
   moneylost, 
   benchmarks 
 }: {
-  vertical: string
-  answers: Record<string, unknown>
-  scoreSummary?: any
-  moneylost?: any
-  benchmarks?: string[]
-}): LLMInput {
-  const auditId = `audit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  vertical: string;
+  answers: Record<string, unknown>;
+  scoreSummary?: any;
+  moneylost?: any;
+  benchmarks?: string[];
+}): VoiceFitInput {
+  const auditId = `audit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   
   // Convert answers to audit responses format
   const responses = Object.entries(answers).map(([key, value], index) => ({
@@ -87,7 +73,7 @@ function buildLLMInput({
     section: key.includes('daily_unanswered') ? 'calls' : 
              key.includes('no_shows') ? 'appointments' : 
              key.includes('treatment_plan') ? 'treatment' : 'general'
-  }))
+  }));
 
   // Convert moneylost to required format
   const moneyLostItems = moneylost?.areas?.map((area: any) => ({
@@ -96,7 +82,7 @@ function buildLLMInput({
     formula: `${area.dailyUsd} * workdays_per_month`,
     resultMonthly: area.monthlyUsd || 0,
     confidence: area.confidence === 'high' ? 90 : area.confidence === 'medium' ? 70 : 50
-  })) || []
+  })) || [];
 
   // Generate insights from top loss areas
   const insights = moneylost?.areas?.slice(0, 3).map((area: any, index: number) => ({
@@ -106,7 +92,7 @@ function buildLLMInput({
     impactMonthly: area.monthlyUsd || 0,
     recommendations: [`Implement AI automation for ${area.title?.toLowerCase() || area.id}`],
     confidence: area.confidence === 'high' ? 90 : area.confidence === 'medium' ? 70 : 50
-  })) || []
+  })) || [];
 
   return {
     context: {
@@ -142,26 +128,22 @@ function buildLLMInput({
       previousInsightsKeys: [],
       previousReports: []
     }
-  }
+  };
 }
 
-async function callClaude(systemPrompt: string, llmInput: LLMInput): Promise<LLMOutput> {
-  const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY')
-  if (!ANTHROPIC_API_KEY) {
-    throw new Error('ANTHROPIC_API_KEY not configured')
-  }
-
-  const startTime = Date.now()
+async function callClaude(systemPrompt: string, llmInput: VoiceFitInput): Promise<VoiceFitOutput> {
+  const env = validateAIEnv();
+  const startTime = Date.now();
   
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': ANTHROPIC_API_KEY,
+      'x-api-key': env.ANTHROPIC_API_KEY,
       'anthropic-version': '2023-06-01'
     },
     body: JSON.stringify({
-      model: 'claude-3-5-sonnet-20241022',
+      model: env.AI_MODEL,
       max_tokens: 1800,
       temperature: 0.2,
       system: systemPrompt,
@@ -170,55 +152,57 @@ async function callClaude(systemPrompt: string, llmInput: LLMInput): Promise<LLM
         content: `Generate a VoiceFit Report based on this data. Respond ONLY with valid JSON matching the LLMOutputSchema:\n\n${JSON.stringify(llmInput, null, 2)}`
       }]
     })
-  })
+  });
 
   if (!response.ok) {
-    const error = await response.text()
-    throw new Error(`Claude API error: ${error}`)
+    const error = await response.text();
+    throw new Error(`Claude API error: ${error}`);
   }
 
-  const result = await response.json()
-  const content = result.content?.[0]?.text
+  const result = await response.json();
+  const content = result.content?.[0]?.text;
 
   if (!content) {
-    throw new Error('No content received from Claude')
+    throw new Error('No content received from Claude');
   }
 
   try {
-    const parsed = JSON.parse(content)
-    return LLMOutputSchema.parse(parsed)
+    const parsed = JSON.parse(content);
+    return VoiceFitOutputSchema.parse(parsed);
   } catch (parseError) {
-    console.error('LLM Output validation failed:', parseError)
-    console.error('Raw content:', content)
-    throw new Error(`LLM validation failed: ${parseError.message}`)
+    logger.error('LLM Output validation failed', { 
+      error: parseError.message, 
+      content: content.substring(0, 500) 
+    });
+    throw new Error(`LLM validation failed: ${parseError.message}`);
   }
 }
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
-  const startTime = Date.now()
+  const startTime = Date.now();
   
   try {
-    const request = await req.json()
-    console.log('Processing VoiceFit report request for:', request.vertical)
+    const request = await req.json();
+    logger.info('Processing VoiceFit report request', { vertical: request.vertical });
 
-    // Load system prompt and KB
-    await loadKB() // This loads KB into cache
+    // Load KB into cache
+    await loadKB();
 
-    // Build LLM input from our format
-    const llmInput = buildLLMInput(request)
+    // Build LLM input from request format
+    const llmInput = buildLLMInput(request);
     
     // Validate input
-    const validatedInput = LLMInputSchema.parse(llmInput)
+    const validatedInput = VoiceFitInputSchema.parse(llmInput);
     
-    // Call Claude with Fabio's system prompt
-    const llmOutput = await callClaude(SYSTEM_PROMPT, validatedInput)
+    // Call Claude with system prompt
+    const llmOutput = await callClaude(SYSTEM_PROMPT, validatedInput);
     
-    const processingTime = Date.now() - startTime
-    console.log(`Report generated in ${processingTime}ms`)
+    const processingTime = Date.now() - startTime;
+    logger.info('Report generated successfully', { processingTime });
 
     return new Response(JSON.stringify(llmOutput), {
       headers: { 
@@ -227,27 +211,26 @@ serve(async (req) => {
         'X-Processing-Time': `${processingTime}ms`,
         'X-Cache': 'MISS'
       }
-    })
+    });
   } catch (error) {
-    console.error('Error generating VoiceFit report:', error)
+    logger.error('Error generating VoiceFit report', { error: error.message });
     
-    const processingTime = Date.now() - startTime
-    const errorResponse = {
+    const processingTime = Date.now() - startTime;
+    const errorResponse: ErrorResponse = {
       success: false,
       error: {
         message: error.message || 'Unknown error occurred',
-        missing: []
+        code: error.name === 'ZodError' ? 'VALIDATION_ERROR' : 'INTERNAL_ERROR'
       },
       metadata: {
         processing_time_ms: processingTime,
-        data_quality: "low" as const,
         warnings: [`Processing failed: ${error.message}`]
       }
-    }
+    };
 
     return new Response(JSON.stringify(errorResponse), {
       status: error.message.includes('validation') ? 422 : 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    })
+    });
   }
-})
+});

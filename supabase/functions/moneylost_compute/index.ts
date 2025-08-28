@@ -1,44 +1,63 @@
-// Deno runtime (Supabase Functions)
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 
-type Vertical = 'dental' | 'hvac';
+// Shared modules
+import { corsHeaders } from '../_shared/env.ts';
+import { logger } from '../_shared/logger.ts';
+import { MoneyLostInputSchema, MoneyLostOutputSchema } from '../_shared/validation.ts';
+import type { MoneyLostInput, MoneyLostOutput, ErrorResponse } from '../_shared/types.ts';
 
-interface RecoverableRange { min: number; max: number }
+type Vertical = 'dental' | 'hvac';
 type Severity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
 
-interface LossArea {
-  key: string; title: string;
-  dailyUsd: number; monthlyUsd: number; annualUsd: number;
-  severity: Severity; recoverablePctRange: RecoverableRange; rationale: string[];
-}
-interface MoneyLostSummary {
-  vertical: Vertical;
-  dailyTotalUsd: number; monthlyTotalUsd: number; annualTotalUsd: number;
-  areas: LossArea[]; assumptions: string[]; version: string;
+interface RecoverableRange { 
+  min: number; 
+  max: number; 
 }
 
-// Lightweight zod-like input check
-function isRecord(x: unknown): x is Record<string, unknown> {
-  return !!x && typeof x === 'object' && !Array.isArray(x);
+interface LossArea {
+  key: string; 
+  title: string;
+  dailyUsd: number; 
+  monthlyUsd: number; 
+  annualUsd: number;
+  severity: Severity; 
+  recoverablePctRange: RecoverableRange; 
+  rationale: string[];
 }
 
 serve(async (req) => {
-  if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method Not Allowed' }), { status: 405, headers: { 'Content-Type': 'application/json' }});
+  const startTime = Date.now();
+
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
   }
+
+  if (req.method !== 'POST') {
+    const errorResponse: ErrorResponse = {
+      success: false,
+      error: { message: 'Method Not Allowed', code: 'METHOD_NOT_ALLOWED' },
+      metadata: { processing_time_ms: Date.now() - startTime }
+    };
+
+    return new Response(JSON.stringify(errorResponse), { 
+      status: 405, 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+
   try {
     const body = await req.json();
-    if (!isRecord(body) || (body.vertical !== 'dental' && body.vertical !== 'hvac') || !isRecord(body.answers)) {
-      return new Response(JSON.stringify({ error: 'Invalid payload' }), { status: 400, headers: { 'Content-Type': 'application/json' }});
-    }
+    
+    // Validate input
+    const input = MoneyLostInputSchema.parse(body);
+    const { vertical, answers } = input;
 
-    // Import server math from bundled code or inline minimal compute (for now we inline a safe proxy):
-    // NOTE: Keep conservative fallback to avoid inflating numbers.
-    const { vertical, answers } = body as { vertical: Vertical; answers: Record<string, unknown> };
+    logger.info('Processing MoneyLost computation', { vertical });
 
-    // Minimal proxy to your existing math — NOTE: if you have server math in repo, mirror logic here or keep conservative placeholder.
-    // For now, return a minimal well-structured object to unblock the client. Replace later with real math port if needed.
-    const summary: MoneyLostSummary = {
+    // Minimal proxy to existing math logic
+    // NOTE: This is a conservative placeholder. Replace with real computation logic if available.
+    const summary: MoneyLostOutput = {
       vertical,
       dailyTotalUsd: 0,
       monthlyTotalUsd: 0,
@@ -48,8 +67,61 @@ serve(async (req) => {
       version: 'ml-edge-v1'
     };
 
-    return new Response(JSON.stringify(summary), { status: 200, headers: { 'Content-Type': 'application/json' }});
-  } catch (e) {
-    return new Response(JSON.stringify({ error: 'Bad Request' }), { status: 400, headers: { 'Content-Type': 'application/json' }});
+    const processingTime = Date.now() - startTime;
+    
+    // Validate output
+    const validatedOutput = MoneyLostOutputSchema.parse(summary);
+
+    logger.info('MoneyLost computation completed', { 
+      vertical, 
+      processingTime,
+      totalMonthly: validatedOutput.monthlyTotalUsd 
+    });
+
+    return new Response(JSON.stringify(validatedOutput), { 
+      status: 200, 
+      headers: { 
+        ...corsHeaders, 
+        'Content-Type': 'application/json',
+        'X-Processing-Time': `${processingTime}ms`
+      }
+    });
+
+  } catch (error) {
+    logger.error('MoneyLost computation error', { error: error.message });
+    
+    const processingTime = Date.now() - startTime;
+    let errorResponse: ErrorResponse;
+
+    if (error.name === 'ZodError') {
+      errorResponse = {
+        success: false,
+        error: { 
+          message: 'Invalid input format', 
+          code: 'VALIDATION_ERROR',
+          details: error.errors 
+        },
+        metadata: { processing_time_ms: processingTime }
+      };
+
+      return new Response(JSON.stringify(errorResponse), { 
+        status: 400, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      });
+    }
+
+    errorResponse = {
+      success: false,
+      error: { 
+        message: error.message || 'Internal server error', 
+        code: 'INTERNAL_ERROR' 
+      },
+      metadata: { processing_time_ms: processingTime }
+    };
+
+    return new Response(JSON.stringify(errorResponse), { 
+      status: 500, 
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
   }
 });

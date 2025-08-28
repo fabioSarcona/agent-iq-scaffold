@@ -2,53 +2,54 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.4";
 import { crypto } from "https://deno.land/std@0.224.0/crypto/mod.ts";
 
-type Body = { email: string; code: string };
+// Shared modules
+import { getEnv, corsHeaders } from '../_shared/env.ts';
+import { logger } from '../_shared/logger.ts';
+import { OTPVerifyInputSchema, OTPVerifyOutputSchema } from '../_shared/validation.ts';
+import type { OTPVerifyInput, OTPVerifyOutput, ErrorResponse } from '../_shared/types.ts';
 
-const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-const serviceKey  = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+// Environment setup
+const env = getEnv();
+const supabaseUrl = env.SUPABASE_URL!;
+const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const sb = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-async function sha256(s: string) {
+async function sha256(s: string): Promise<string> {
   const data = new TextEncoder().encode(s);
   const hash = await crypto.subtle.digest('SHA-256', data);
-  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,'0')).join('');
+  return Array.from(new Uint8Array(hash))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
 }
 
 serve(async (req) => {
+  const startTime = Date.now();
+
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method Not Allowed' }), { 
+    const errorResponse: ErrorResponse = {
+      success: false,
+      error: { message: 'Method Not Allowed', code: 'METHOD_NOT_ALLOWED' },
+      metadata: { processing_time_ms: Date.now() - startTime }
+    };
+
+    return new Response(JSON.stringify(errorResponse), { 
       status: 405, 
       headers: { "Content-Type": "application/json", ...corsHeaders }
     });
   }
 
   try {
-    const { email, code } = await req.json() as Body;
+    const body = await req.json();
     
-    if (!email || !code) {
-      return new Response(JSON.stringify({ verified: false, error: 'Missing fields' }), { 
-        status: 400, 
-        headers: { "Content-Type": "application/json", ...corsHeaders }
-      });
-    }
+    // Validate input
+    const { email, code } = OTPVerifyInputSchema.parse(body);
 
-    // Validate code format (6 digits)
-    if (!/^\d{6}$/.test(code)) {
-      return new Response(JSON.stringify({ verified: false, error: 'Invalid code format' }), { 
-        status: 400, 
-        headers: { "Content-Type": "application/json", ...corsHeaders }
-      });
-    }
+    logger.info('OTP verification request received', { email });
 
     const { data: row } = await sb
       .from('email_otp')
@@ -57,21 +58,36 @@ serve(async (req) => {
       .maybeSingle();
 
     if (!row) {
-      return new Response(JSON.stringify({ verified: false, error: 'No code found' }), { 
+      const response: OTPVerifyOutput = {
+        verified: false, 
+        error: 'No code found'
+      };
+
+      return new Response(JSON.stringify(response), { 
         status: 400, 
         headers: { "Content-Type": "application/json", ...corsHeaders }
       });
     }
 
     if (row.consumed_at) {
-      return new Response(JSON.stringify({ verified: false, error: 'Code already used' }), { 
+      const response: OTPVerifyOutput = {
+        verified: false, 
+        error: 'Code already used'
+      };
+
+      return new Response(JSON.stringify(response), { 
         status: 400, 
         headers: { "Content-Type": "application/json", ...corsHeaders }
       });
     }
 
     if (new Date(row.expires_at).getTime() < Date.now()) {
-      return new Response(JSON.stringify({ verified: false, error: 'Code expired' }), { 
+      const response: OTPVerifyOutput = {
+        verified: false, 
+        error: 'Code expired'
+      };
+
+      return new Response(JSON.stringify(response), { 
         status: 400, 
         headers: { "Content-Type": "application/json", ...corsHeaders }
       });
@@ -79,7 +95,14 @@ serve(async (req) => {
 
     const hash = await sha256(code);
     if (hash !== row.code_hash) {
-      return new Response(JSON.stringify({ verified: false, error: 'Invalid code' }), { 
+      const response: OTPVerifyOutput = {
+        verified: false, 
+        error: 'Invalid code'
+      };
+
+      logger.warn('Invalid OTP code provided', { email });
+
+      return new Response(JSON.stringify(response), { 
         status: 400, 
         headers: { "Content-Type": "application/json", ...corsHeaders }
       });
@@ -91,13 +114,43 @@ serve(async (req) => {
       .update({ consumed_at: new Date().toISOString() })
       .eq('email', email);
 
-    return new Response(JSON.stringify({ verified: true }), { 
-      headers: { "Content-Type": "application/json", ...corsHeaders }
+    const response: OTPVerifyOutput = { verified: true };
+    const processingTime = Date.now() - startTime;
+
+    logger.info('OTP verification successful', { email, processingTime });
+
+    return new Response(JSON.stringify(response), { 
+      headers: { 
+        "Content-Type": "application/json", 
+        ...corsHeaders,
+        'X-Processing-Time': `${processingTime}ms`
+      }
     });
     
   } catch (error) {
-    console.error('Error in otp_verify:', error);
-    return new Response(JSON.stringify({ verified: false, error: 'Internal server error' }), {
+    logger.error('Error in otp_verify', { error: error.message });
+    
+    const processingTime = Date.now() - startTime;
+    let errorResponse: ErrorResponse;
+
+    if (error.name === 'ZodError') {
+      const response: OTPVerifyOutput = {
+        verified: false, 
+        error: 'Invalid input format'
+      };
+
+      return new Response(JSON.stringify(response), {
+        status: 400,
+        headers: { "Content-Type": "application/json", ...corsHeaders }
+      });
+    }
+
+    const response: OTPVerifyOutput = {
+      verified: false, 
+      error: 'Internal server error'
+    };
+
+    return new Response(JSON.stringify(response), {
       status: 500,
       headers: { "Content-Type": "application/json", ...corsHeaders }
     });

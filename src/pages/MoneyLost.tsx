@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button'
-import { useAuditProgressStore } from '@modules/audit/AuditProgressStore'
+import { useAuditProgressStore } from '@modules/audit'
 import { MoneyLostSummaryCard, LossAreaCard, DisclaimerNote } from '@modules/moneylost/components'
 import { requestMoneyLost } from '@modules/moneylost/client'
 import { useNavigate } from 'react-router-dom'
@@ -11,7 +11,7 @@ export default function MoneyLost() {
   
   const { data, isLoading, error } = useQuery({
     queryKey: ['moneylost', vertical, answers],
-    queryFn: () => requestMoneyLost({ vertical, answers })
+    queryFn: () => requestMoneyLost(vertical || 'dental', answers)
   });
 
   if (isLoading) return <div className="p-6">Calculating conservative estimates…</div>;
@@ -29,9 +29,9 @@ export default function MoneyLost() {
 
       {/* Summary Card */}
       <MoneyLostSummaryCard 
-        dailyUsd={data.dailyTotalUsd}
-        monthlyUsd={data.monthlyTotalUsd}
-        annualUsd={data.annualTotalUsd}
+        dailyUsd={data.dailyUsd}
+        monthlyUsd={data.monthlyUsd}
+        annualUsd={data.annualUsd}
       />
 
       {/* Disclaimer */}
@@ -60,14 +60,14 @@ export default function MoneyLost() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {data.areas.map((area) => (
+            {data.areas.map((area, index) => (
               <LossAreaCard 
-                key={area.key}
+                key={`${area.title}-${index}`}
                 title={area.title}
                 dailyUsd={area.dailyUsd}
                 monthlyUsd={area.monthlyUsd}
                 annualUsd={area.annualUsd}
-                recoverablePctRange={area.recoverablePctRange}
+                recoverablePct={area.recoverablePct}
                 severity={area.severity}
                 rationale={area.rationale}
               />

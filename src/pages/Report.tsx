@@ -20,10 +20,7 @@ export default function Report() {
   
   const { data: reportData, isLoading, error } = useQuery({
     queryKey: ['voicefit-report', currentVertical, answers],
-    queryFn: () => requestVoiceFitReport({ 
-      vertical: currentVertical, 
-      answers: answers || {} 
-    }),
+    queryFn: () => requestVoiceFitReport(currentVertical, answers || {}),
     staleTime: 5 * 60 * 1000, // 5 minutes
   })
   
@@ -70,12 +67,12 @@ export default function Report() {
       <Card className="text-center">
         <CardHeader className="pb-8">
           <CardTitle className="text-2xl mb-6">Your Business AI Readiness Score</CardTitle>
-          <ScoreGauge score={reportData.score} />
+          <ScoreGauge score={reportData.score} band={reportData.band} />
         </CardHeader>
       </Card>
 
       {/* Benchmark Note */}
-      <BenchmarkNote notes={reportData.benchmarks || []} />
+      <BenchmarkNote benchmarks={reportData.benchmarks} />
 
       <div className="grid gap-8 lg:grid-cols-2">
         {/* Diagnosis Section */}
@@ -130,7 +127,13 @@ export default function Report() {
         <CardContent>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {reportData.solutions.map((solution, index) => (
-              <SolutionCard key={index} solution={solution} />
+              <SolutionCard 
+                key={index} 
+                skillId={solution.skillId}
+                title={solution.title}
+                rationale={solution.rationale}
+                estimatedRecoveryPct={solution.estimatedRecoveryPct}
+              />
             ))}
           </div>
         </CardContent>
@@ -143,14 +146,19 @@ export default function Report() {
           <CardDescription>Common concerns about AI implementation</CardDescription>
         </CardHeader>
         <CardContent>
-          <FAQAccordion items={reportData.faq} />
+          <FAQAccordion faq={reportData.faq} />
         </CardContent>
       </Card>
 
       {/* Recommended Plan Section */}
       <div>
         <h2 className="text-2xl font-bold text-foreground mb-6">Recommended Plan</h2>
-        <PlanCard plan={reportData.plan} />
+        <PlanCard 
+          name={reportData.plan.name}
+          priceMonthlyUsd={reportData.plan.priceMonthlyUsd}
+          inclusions={reportData.plan.inclusions}
+          addons={reportData.plan.addons}
+        />
       </div>
     </div>
   )

@@ -8,7 +8,7 @@ export { ScoreGauge } from './components/ScoreGauge'
 export { SolutionCard } from './components/SolutionCard'
 
 // Client utilities
-export { requestVoiceFitReport } from './report.client'
+export { requestVoiceFitReport, mapLLMToUI } from './report.client'
 
 // Types
 export type * from './report.types'

@@ -10,19 +10,25 @@ import {
   SolutionCard, 
   FAQAccordion, 
   PlanCard,
-  requestVoiceFitReport,
-  type VoiceFitReportData 
+  requestVoiceFitReport, 
+  mapLLMToUI,
+  type VoiceFitReportData,
+  type LLMOutput
 } from '@modules/ai/voicefit'
 
 export default function Report() {
   const { vertical, answers } = useAuditProgressStore()
   const currentVertical = (vertical || 'dental') as 'dental' | 'hvac'
   
-  const { data: reportData, isLoading, error } = useQuery({
-    queryKey: ['voicefit-report', currentVertical, answers],
+  const { data: llmOutput, isLoading, error } = useQuery({
+    queryKey: ['voicefit-report', currentVertical, JSON.stringify(answers)],
     queryFn: () => requestVoiceFitReport(currentVertical, answers || {}),
     staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 1
   })
+
+  // Map LLM output to UI format
+  const reportData: VoiceFitReportData | null = llmOutput ? mapLLMToUI(llmOutput) : null
   
   if (isLoading) {
     return (
@@ -61,6 +67,11 @@ export default function Report() {
         <p className="text-lg text-muted-foreground">
           Comprehensive business analysis with AI-powered recommendations
         </p>
+        {llmOutput && llmOutput.success && llmOutput.report?.welcome && (
+          <div className="mt-4 p-4 bg-muted/50 rounded-lg">
+            <p className="text-foreground italic">{llmOutput.report.welcome}</p>
+          </div>
+        )}
       </div>
 
       {/* Business Score Section */}

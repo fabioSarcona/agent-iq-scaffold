@@ -1,3 +1,4 @@
+// Legacy UI types (maintained for compatibility)
 export interface RecommendedSolution {
   skillId: string;            // e.g., "Reception 24/7 Agent"
   title: string;              // user-facing
@@ -21,4 +22,58 @@ export interface VoiceFitReportData {
   faq: Array<{ q: string; a: string }>;
   plan: RecommendedPlan;
   benchmarks?: string[];      // notes about sector/local benchmarks used
+}
+
+// New LLM-based types (from schemas)
+export interface LLMVoiceSkill {
+  name: string;
+  why: string;
+  expected_roi_monthly: number;
+  currency: 'USD' | 'EUR';
+  proof_points: string[];
+}
+
+export interface LLMBleedingMoney {
+  area: string;
+  estimate_monthly: number;
+  currency: 'USD' | 'EUR';
+  formula: string;
+  assumptions: string[];
+  confidence: number;
+}
+
+export interface LLMOutput {
+  success: boolean;
+  report: {
+    welcome: string;
+    ai_readiness_score: number;
+    quadrant: 'Low-ROI/Low-Readiness' | 'High-ROI/Low-Readiness' | 'Low-ROI/High-Readiness' | 'High-ROI/High-Readiness';
+    bleeding_money: LLMBleedingMoney[];
+    recommendations: {
+      plan: 'Starter' | 'Growth' | 'Elite';
+      voice_skills: LLMVoiceSkill[];
+    };
+    next_steps: {
+      primary_cta: {
+        label: string;
+        url: string;
+      };
+      secondary: string[];
+    };
+  };
+  calculations: {
+    total_estimated_recovery_monthly: number;
+    currency: 'USD' | 'EUR';
+    logic_notes: string[];
+  };
+  confidence_score: number;
+  metadata: {
+    processing_time_ms: number;
+    data_quality: 'high' | 'medium' | 'low';
+    warnings: string[];
+  };
+  error?: {
+    message: string;
+    missing: string[];
+  };
 }

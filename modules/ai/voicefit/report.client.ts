@@ -7,7 +7,7 @@ export async function requestVoiceFitReport(
   scoreSummary?: any,
   moneylost?: any,
   benchmarks?: string[]
-): Promise<LLMOutput> {
+): Promise<VoiceFitReportData> {
   const { data, error } = await supabase.functions.invoke('ai_generate_report', {
     body: { vertical, answers, scoreSummary, moneylost, benchmarks }
   })
@@ -17,7 +17,8 @@ export async function requestVoiceFitReport(
     throw new Error(`Failed to generate report: ${error.message}`)
   }
 
-  return data as LLMOutput
+  const llmOutput = data as LLMOutput
+  return mapLLMToUI(llmOutput)
 }
 
 // Adapter function to map LLM output to existing UI format

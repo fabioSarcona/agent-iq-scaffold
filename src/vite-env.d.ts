@@ -85,7 +85,14 @@ declare module '@modules/ai/voicefit' {
     inclusions: string[];
     addons?: string[];
   }>;
-  export const requestVoiceFitReport: (vertical: string, answers: Record<string, unknown>) => Promise<VoiceFitReportData>;
+  export const requestVoiceFitReport: (
+    vertical: string, 
+    answers: Record<string, unknown>,
+    scoreSummary?: any,
+    moneylost?: any,
+    benchmarks?: string[]
+  ) => Promise<VoiceFitReportData>;
+  export const mapLLMToUI: (llmOutput: LLMOutput) => VoiceFitReportData;
   export interface VoiceFitReportData {
     score: number;
     band: 'Crisis' | 'Optimization Needed' | 'Growth Ready' | 'AI-Optimized';
@@ -105,5 +112,53 @@ declare module '@modules/ai/voicefit' {
       addons?: string[];
     };
     benchmarks?: string[];
+  }
+  export interface LLMOutput {
+    success: boolean;
+    report: {
+      welcome: string;
+      ai_readiness_score: number;
+      quadrant: string;
+      bleeding_money: Array<{
+        area: string;
+        estimate_monthly: number;
+        currency: 'USD' | 'EUR';
+        formula: string;
+        assumptions: string[];
+        confidence: number;
+      }>;
+      recommendations: {
+        plan: 'Starter' | 'Growth' | 'Elite';
+        voice_skills: Array<{
+          name: string;
+          why: string;
+          expected_roi_monthly: number;
+          currency: 'USD' | 'EUR';
+          proof_points: string[];
+        }>;
+      };
+      next_steps: {
+        primary_cta: {
+          label: string;
+          url: string;
+        };
+        secondary: string[];
+      };
+    };
+    calculations: {
+      total_estimated_recovery_monthly: number;
+      currency: 'USD' | 'EUR';
+      logic_notes: string[];
+    };
+    confidence_score: number;
+    metadata: {
+      processing_time_ms: number;
+      data_quality: 'high' | 'medium' | 'low';
+      warnings: string[];
+    };
+    error?: {
+      message: string;
+      missing: string[];
+    };
   }
 }

@@ -48,6 +48,12 @@ export default tseslint.config(
               "name": "@/server/moneylost/compute.server",
               "message": "Server-only wrapper. Never import in client code."
             }
+          ],
+          "patterns": [
+            {
+              "group": ["../../modules/**", "../../../modules/**"],
+              "message": "Use @modules alias instead of relative imports to modules/ directory."
+            }
           ]
         }
       ]

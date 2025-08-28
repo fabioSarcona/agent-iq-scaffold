@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import type { Phone } from '../../../modules/registration/types'
+import type { Phone } from '@modules/registration/types'
 
 interface PhoneInputProps {
   value?: string

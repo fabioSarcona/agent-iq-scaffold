@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useAuditProgressStore, AuditEngine } from '../../modules/audit'
+import { useAuditProgressStore, AuditEngine } from '@modules/audit'
 
 export default function AuditDental() {
   const { setVertical } = useAuditProgressStore()

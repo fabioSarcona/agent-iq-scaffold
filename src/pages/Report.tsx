@@ -3,7 +3,7 @@ import { FileText, AlertTriangle, TrendingDown, Loader2 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 
 // Import from audit and AI modules
-import { useAuditProgressStore } from '../../modules/audit'
+import { useAuditProgressStore } from '@modules/audit'
 import { 
   ScoreGauge, 
   BenchmarkNote, 
@@ -12,7 +12,7 @@ import {
   PlanCard,
   requestVoiceFitReport,
   type VoiceFitReportData 
-} from '../../modules/ai/voicefit'
+} from '@modules/ai/voicefit'
 
 export default function Report() {
   const { vertical, answers } = useAuditProgressStore()

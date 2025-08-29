@@ -5,7 +5,7 @@ export { BenchmarkNote } from './components/BenchmarkNote'
 export { FAQAccordion } from './components/FAQAccordion'
 export { PlanCard } from './components/PlanCard'
 export { ScoreGauge } from './components/ScoreGauge'
-export { SolutionCard } from './components/SolutionCard'
+export { SolutionCard, type SolutionCardProps } from './components/SolutionCard'
 export { SkillScopeModal } from './components/SkillScopeModal'
 
 // Client utilities

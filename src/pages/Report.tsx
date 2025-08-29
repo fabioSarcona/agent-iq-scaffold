@@ -178,8 +178,7 @@ export default function Report() {
                 title={solution.title}
                 rationale={solution.rationale}
                 estimatedRecoveryPct={solution.estimatedRecoveryPct}
-                auditContext={auditContext}
-                kb={kbContext}
+                {...({ auditContext, kb: kbContext } as any)}
               />
             ))}
           </div>

@@ -1,13 +1,14 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { FileText, AlertTriangle, TrendingDown, Loader2 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
+import * as React from 'react'
 
 // Import from audit and AI modules
 import { useAuditProgressStore } from '@modules/audit'
 import { 
   ScoreGauge, 
   BenchmarkNote, 
-  SolutionCard, 
+  SolutionCard,
   FAQAccordion, 
   PlanCard,
   requestVoiceFitReport,
@@ -24,6 +25,49 @@ export default function Report() {
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 1
   })
+
+  // Create audit context for SkillScope
+  const auditContext = React.useMemo(() => ({
+    auditId: `audit-${Date.now()}`,
+    auditType: currentVertical,
+    business: {
+      // Extract business info from answers if available
+      name: (answers as any)?.business_name || "Your Business",
+      location: (answers as any)?.business_location,
+      size: {
+        chairs: currentVertical === 'dental' ? ((answers as any)?.chair_count || 3) : undefined,
+        techs: currentVertical === 'hvac' ? ((answers as any)?.tech_count || 2) : undefined,
+      },
+    },
+    settings: {
+      currency: "USD" as const,
+      locale: "en-US" as const,
+    },
+  }), [currentVertical, answers])
+
+  // Create basic KB context from report data
+  const kbContext = React.useMemo(() => {
+    if (!reportData?.solutions) return undefined;
+    
+    return {
+      approved_claims: [
+        "Reduces missed calls by up to 80%",
+        "Improves appointment scheduling efficiency",
+        "Increases treatment plan acceptance rates",
+        "Enhances customer satisfaction scores"
+      ],
+      services: reportData.solutions.map(solution => ({
+        name: solution.skillId,
+        target: (currentVertical === 'dental' ? "Dental" : "HVAC") as "Dental" | "HVAC",
+        problem: solution.rationale,
+        how: "AI-powered automation that integrates with your existing systems",
+        roiRangeMonthly: solution.estimatedRecoveryPct ? 
+          [solution.estimatedRecoveryPct[0] * 100, solution.estimatedRecoveryPct[1] * 100] as [number, number] :
+          undefined,
+        tags: [solution.skillId.toLowerCase().replace(/\s+/g, '-')],
+      })),
+    };
+  }, [reportData, currentVertical])
   
   if (isLoading) {
     return (
@@ -134,6 +178,8 @@ export default function Report() {
                 title={solution.title}
                 rationale={solution.rationale}
                 estimatedRecoveryPct={solution.estimatedRecoveryPct}
+                auditContext={auditContext}
+                kb={kbContext}
               />
             ))}
           </div>

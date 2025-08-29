@@ -6,6 +6,7 @@ export { FAQAccordion } from './components/FAQAccordion'
 export { PlanCard } from './components/PlanCard'
 export { ScoreGauge } from './components/ScoreGauge'
 export { SolutionCard } from './components/SolutionCard'
+export { SkillScopeModal } from './components/SkillScopeModal'
 
 // Client utilities
 export { requestVoiceFitReport, mapLLMToUI } from './report.client'

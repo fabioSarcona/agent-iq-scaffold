@@ -1,10 +1,12 @@
 import { supabase } from "@/integrations/supabase/client";
-import type { SkillScopeOutput } from "./types";
+import type { SkillScopeOutput, SkillScopeInput } from "./types";
 
-export async function requestSkillScopeBrief(payload: Record<string, unknown>): Promise<SkillScopeOutput> {
+export type SkillScopeResponse = SkillScopeOutput;
+
+export async function requestSkillScope(input: SkillScopeInput): Promise<SkillScopeResponse> {
   try {
-    const { data, error } = await supabase.functions.invoke('ai_skillscope_generate', {
-      body: payload,
+    const { data, error } = await supabase.functions.invoke('skillscope_generate', {
+      body: input,
     });
 
     if (error) {
@@ -23,4 +25,9 @@ export async function requestSkillScopeBrief(payload: Record<string, unknown>): 
       error: { message: error instanceof Error ? error.message : "Network error" }
     };
   }
+}
+
+// Legacy function for backward compatibility
+export async function requestSkillScopeBrief(payload: Record<string, unknown>): Promise<SkillScopeOutput> {
+  return requestSkillScope(payload as SkillScopeInput);
 }

@@ -13,6 +13,7 @@ export { requestVoiceFitReport, mapLLMToUI } from './report.client'
 
 // Types
 export type * from './report.types'
+export type * from '../shared/types'
 
 // Mock data (for development)
 export { buildMockVoiceFitReport } from './report.mock'

@@ -52,7 +52,7 @@ export const VoiceFitReportSchema = z.object({
 export const AuditAnswersSchema = z.record(z.string(), z.unknown())
 
 // Validation utility functions
-export function validateApiResponse(data: unknown): { success: boolean; data?: any; error?: string } {
+export function validateApiResponse(data: unknown): { success: boolean; data?: unknown; error?: string } {
   try {
     const result = ApiResponseSchema.parse(data)
     return { success: true, data: result }

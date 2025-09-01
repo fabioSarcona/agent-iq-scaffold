@@ -35,7 +35,12 @@ interface SolutionCardProps extends React.HTMLAttributes<HTMLDivElement> {
     }>;
   };
   // Legacy prop for backward compatibility
-  solution?: any;
+  solution?: {
+    skillId?: string;
+    title?: string;
+    rationale?: string;
+    estimatedRecoveryPct?: [number, number];
+  };
 }
 
 const iconMap = {

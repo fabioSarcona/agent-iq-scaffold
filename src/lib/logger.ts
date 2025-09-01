@@ -1,7 +1,7 @@
 type Level = 'debug' | 'info' | 'warn' | 'error';
-const redact = (data: unknown) => {
-  if (!data || typeof data !== 'object') return data as any;
-  const clone: Record<string, unknown> = { ...(data as Record<string, unknown>) };
+const redact = (data: unknown): unknown => {
+  if (!data || typeof data !== 'object') return data;
+  const clone: Record<string, unknown> = { ...data as Record<string, unknown> };
   ['email', 'phone', 'firstName', 'lastName'].forEach(k => { if (k in clone) clone[k] = '[REDACTED]'; });
   return clone;
 };

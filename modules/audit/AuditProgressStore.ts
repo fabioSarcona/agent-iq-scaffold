@@ -37,7 +37,7 @@ interface AuditProgressState {
   canGoBack: () => boolean;
 }
 
-const logEvent = (logsEnabled: boolean, event: string, data?: any) => {
+const logEvent = (logsEnabled: boolean, event: string, data?: Record<string, unknown>) => {
   if (logsEnabled) {
     console.log(`[AUDIT LOG] ${event}:`, data || '');
   }

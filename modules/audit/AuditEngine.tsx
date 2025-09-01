@@ -10,6 +10,7 @@ import { ScoreIndicator } from './ScoreIndicator';
 import { calculateTypingDelay } from '@/lib/typingUtils';
 import { LogsToggle } from './LogsToggle';
 import { loadAuditConfig } from './config.loader';
+import { logger } from '@/lib/logger';
 import type { AuditConfig } from './types';
 
 interface AuditEngineProps {
@@ -84,6 +85,11 @@ export function AuditEngine({ industry }: AuditEngineProps) {
         currentQuestionIndex === currentSection.questions.length - 1;
       
       if (willCompleteSection) {
+        logger.event('section_complete', {
+          sectionId: currentSection.id,
+          sectionIndex: currentSectionIndex,
+          questionsAnswered: currentSection.questions.length
+        });
         await triggerNeedAgentIQIfReady();
       }
       
@@ -109,6 +115,12 @@ export function AuditEngine({ industry }: AuditEngineProps) {
     
     // Import and call NeedAgentIQ
     try {
+      logger.event('iq_request_start', {
+        sectionId: currentSection.id,
+        foundationComplete: foundationSectionsComplete,
+        completedSectionsCount: config.sections.filter((_, idx) => isSectionComplete(idx)).length
+      });
+
       const { requestNeedAgentIQ } = await import('@modules/ai/needagentiq/client');
       
       // Get completed sections
@@ -132,10 +144,20 @@ export function AuditEngine({ industry }: AuditEngineProps) {
       };
       
       const insights = await requestNeedAgentIQ(payload);
+      
+      logger.event('iq_request_success', {
+        sectionId: currentSection.id,
+        insightsCount: insights.length
+      });
+      
       if (insights.length > 0) {
         appendInsights(insights);
       }
     } catch (error) {
+      logger.event('iq_request_error', {
+        sectionId: currentSection.id,
+        error: error.message
+      });
       console.error('NeedAgentIQ request failed:', error);
       setIqError(error.message || 'Failed to generate insights');
     }

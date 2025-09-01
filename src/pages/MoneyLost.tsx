@@ -5,6 +5,7 @@ import { requestMoneyLost } from '@modules/moneylost/client'
 import { MoneyLostSummary } from '@/lib/validation'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { logger } from '@/lib/logger'
 
 export default function MoneyLost() {
   const navigate = useNavigate()
@@ -12,7 +13,31 @@ export default function MoneyLost() {
   
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['moneylost', vertical, answers],
-    queryFn: () => requestMoneyLost(vertical || 'dental', answers),
+    queryFn: async () => {
+      logger.event('moneylost_request_start', {
+        vertical,
+        answersCount: Object.keys(answers).length
+      });
+      
+      try {
+        const result = await requestMoneyLost(vertical || 'dental', answers);
+        
+        logger.event('moneylost_request_success', {
+          vertical,
+          dailyUsd: result.dailyUsd,
+          monthlyUsd: result.monthlyUsd,
+          areasCount: result.areas?.length || 0
+        });
+        
+        return result;
+      } catch (error) {
+        logger.event('moneylost_request_error', {
+          vertical,
+          error: error.message
+        });
+        throw error;
+      }
+    },
     retry: false,
   });
 
@@ -57,9 +82,9 @@ export default function MoneyLost() {
 
       {/* Summary Card */}
       <MoneyLostSummaryCard 
-        dailyUsd={validatedData.total.dailyUsd}
-        monthlyUsd={validatedData.total.monthlyUsd}
-        annualUsd={validatedData.total.annualUsd}
+        dailyUsd={validatedData.total?.dailyUsd || 0}
+        monthlyUsd={validatedData.total?.monthlyUsd || 0}
+        annualUsd={validatedData.total?.annualUsd || 0}
       />
 
       {/* Disclaimer */}
@@ -78,7 +103,7 @@ export default function MoneyLost() {
       )}
 
       {/* Critical Areas */}
-      {validatedData.areas.length > 0 && (
+      {validatedData.areas && validatedData.areas.length > 0 && (
         <div className="space-y-6">
           <div className="text-center">
             <h2 className="text-2xl font-bold">Critical Areas Identified</h2>
@@ -91,13 +116,13 @@ export default function MoneyLost() {
             {validatedData.areas.map((area, index) => (
               <LossAreaCard 
                 key={`${area.key}-${index}`}
-                title={area.title}
-                dailyUsd={area.dailyUsd}
-                monthlyUsd={area.monthlyUsd}
-                annualUsd={area.annualUsd}
-                recoverablePct={[area.recoverablePctRange.min || 0, area.recoverablePctRange.max || 0]}
+                title={area.title || 'Unknown Area'}
+                dailyUsd={area.dailyUsd || 0}
+                monthlyUsd={area.monthlyUsd || 0}
+                annualUsd={area.annualUsd || 0}
+                recoverablePct={[area.recoverablePctRange?.min || 0, area.recoverablePctRange?.max || 0]}
                 severity="low"
-                rationale={area.rationale.join(' ')}
+                rationale={area.rationale?.join(' ') || 'No details available'}
               />
             ))}
           </div>
@@ -114,7 +139,7 @@ export default function MoneyLost() {
           View your personalized report
         </Button>
         <p className="text-xs text-muted-foreground mt-2">
-          Version: {validatedData.version} • Calculations use conservative industry benchmarks
+          Version: {validatedData.version || 'unknown'} • Calculations use conservative industry benchmarks
         </p>
       </div>
     </div>

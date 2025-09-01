@@ -16,7 +16,8 @@ export interface NeedAgentIQInput {
       assumptions?: string[];
     }>;
   };
-  kb: {
+  // KB slices are added automatically by the client
+  kb?: {
     services: Array<{
       name: string;
       target: 'Dental' | 'HVAC' | 'Both';

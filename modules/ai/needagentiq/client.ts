@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { NeedAgentIQInput, NeedAgentIQInsight } from './types';
+import { getKBSlicesForVertical } from '@/lib/kbClient';
 
 // Track in-flight requests to handle race conditions
 const inFlightRequests = new Map<string, AbortController>();
@@ -24,13 +25,20 @@ export async function requestNeedAgentIQ(payload: NeedAgentIQInput): Promise<Nee
       throw new Error('Authentication required');
     }
 
+    // Enrich payload with KB slices
+    const kbSlices = getKBSlicesForVertical(payload.auditType);
+    const enrichedPayload = {
+      ...payload,
+      kb: kbSlices
+    };
+
     const res = await fetch('/functions/v1/ai_needagentiq', {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${session.access_token}`
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(enrichedPayload),
       signal: abortController.signal
     });
 

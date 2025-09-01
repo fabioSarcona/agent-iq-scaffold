@@ -1,0 +1,12 @@
+{
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "noImplicitReturns": true,
+    "strictFunctionTypes": true,
+    "noUncheckedIndexedAccess": true
+  },
+  "exclude": ["supabase/functions/**", "node_modules/**", "dist/**"]
+}

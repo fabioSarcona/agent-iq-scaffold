@@ -8,18 +8,23 @@ export const ApiResponseSchema = z.object({
   error: z.string().optional(),
 })
 
-export const MoneyLostResponseSchema = z.object({
-  dailyUsd: z.number().min(0),
-  monthlyUsd: z.number().min(0), 
-  annualUsd: z.number().min(0),
+export const MoneyLostSummary = z.object({
+  total: z.object({
+    dailyUsd: z.number().min(0),
+    monthlyUsd: z.number().min(0),
+    annualUsd: z.number().min(0),
+  }),
   areas: z.array(z.object({
+    key: z.string().min(1),
     title: z.string().min(1),
     dailyUsd: z.number().min(0),
     monthlyUsd: z.number().min(0),
     annualUsd: z.number().min(0),
-    recoverablePct: z.tuple([z.number().min(0).max(100), z.number().min(0).max(100)]),
-    severity: z.enum(['low', 'medium', 'high', 'critical']),
-    rationale: z.string().min(1),
+    recoverablePctRange: z.object({
+      min: z.number().min(0).max(1),
+      max: z.number().min(0).max(1),
+    }),
+    rationale: z.array(z.string().min(1)),
   })),
   assumptions: z.array(z.string()).optional(),
   version: z.string().min(1),
@@ -65,7 +70,7 @@ export function validateApiResponse(data: unknown): { success: boolean; data?: u
 }
 
 export function validateMoneyLostResponse(data: unknown) {
-  return MoneyLostResponseSchema.parse(data)
+  return MoneyLostSummary.parse(data)
 }
 
 export function validateVoiceFitReport(data: unknown) {

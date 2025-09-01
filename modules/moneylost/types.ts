@@ -1,7 +1,5 @@
 export type Vertical = 'dental' | 'hvac';
 
-export type Severity = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
-
 export interface RecoverableRange {
   min: number; // 0..1
   max: number; // 0..1
@@ -13,17 +11,17 @@ export interface LossArea {
   dailyUsd: number;
   monthlyUsd: number;
   annualUsd: number;
-  severity: Severity;
-  recoverablePctRange: RecoverableRange; // conservative range
-  rationale: string[]; // short bullet points explaining the math
+  recoverablePctRange: RecoverableRange;
+  rationale: string[];
 }
 
 export interface MoneyLostSummary {
-  vertical: Vertical;
-  dailyTotalUsd: number;
-  monthlyTotalUsd: number;
-  annualTotalUsd: number;
+  total: {
+    dailyUsd: number;
+    monthlyUsd: number;
+    annualUsd: number;
+  };
   areas: LossArea[];
-  assumptions: string[]; // any assumptions & fallbacks applied
-  version: string;       // bump when formulas change
+  assumptions?: string[];
+  version: string;
 }

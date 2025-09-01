@@ -53,6 +53,14 @@ export default tseslint.config(
             {
               "group": ["../../modules/**", "../../../modules/**"],
               "message": "Use @modules alias instead of relative imports to modules/ directory."
+            },
+            {
+              "group": ["**/index.ts", "**/index.tsx"],
+              "message": "Do not import from index files. Import directly from the source file."
+            },
+            {
+              "group": ["@modules"],
+              "message": "Avoid barrel imports. Import directly from specific files for better tree-shaking and performance."
             }
           ]
         }

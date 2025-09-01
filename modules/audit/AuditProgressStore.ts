@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { AuditConfig, AuditSection, AuditQuestion, ScoreSummary } from './types';
+import type { NeedAgentIQInsight } from '@modules/ai/needagentiq/types';
 import { computeScores } from './scoring';
 
 interface AuditProgressState {
@@ -13,6 +14,11 @@ interface AuditProgressState {
   logsEnabled: boolean;
   vertical: 'dental' | 'hvac';
   scoreSummary: ScoreSummary;
+  
+  // NeedAgentIQ insights
+  insights: NeedAgentIQInsight[];
+  lastEmittedKeys: string[];
+  iqError?: string | null;
   
   // Config
   config: AuditConfig | null;
@@ -29,12 +35,18 @@ interface AuditProgressState {
   restart: () => void;
   toggleLogs: () => void;
   
+  // NeedAgentIQ actions
+  appendInsights: (newInsights: NeedAgentIQInsight[]) => void;
+  clearIqError: () => void;
+  setIqError: (error: string) => void;
+  
   // Computed helpers
   getTotalQuestions: () => number;
   getCurrentQuestionNumber: () => number;
   getProgressPercentage: () => number;
   isAtEnd: () => boolean;
   canGoBack: () => boolean;
+  isSectionComplete: (sectionIndex: number) => boolean;
 }
 
 const logEvent = (logsEnabled: boolean, event: string, data?: Record<string, unknown>) => {
@@ -53,6 +65,9 @@ export const useAuditProgressStore = create<AuditProgressState>()(
       logsEnabled: false,
       vertical: 'dental',
       scoreSummary: { overall: 0, sections: [] },
+      insights: [],
+      lastEmittedKeys: [],
+      iqError: null,
       config: null,
       currentSection: null,
       currentQuestion: null,
@@ -237,6 +252,31 @@ export const useAuditProgressStore = create<AuditProgressState>()(
         console.log(`Audit logging ${newState.logsEnabled ? 'enabled' : 'disabled'}`);
       },
 
+      // NeedAgentIQ actions
+      appendInsights: (newInsights) => {
+        set((state) => {
+          const existingKeys = new Set(state.insights.map(i => i.key));
+          const dedupedInsights = newInsights.filter(insight => !existingKeys.has(insight.key));
+          const allInsights = [...state.insights, ...dedupedInsights];
+          
+          // Keep max 4 insights - remove oldest if over limit
+          const limitedInsights = allInsights.slice(-4);
+          
+          return {
+            insights: limitedInsights,
+            lastEmittedKeys: [...state.lastEmittedKeys, ...dedupedInsights.map(i => i.key)]
+          };
+        });
+      },
+      
+      clearIqError: () => {
+        set({ iqError: null });
+      },
+      
+      setIqError: (error) => {
+        set({ iqError: error });
+      },
+
       // Computed helpers
       getTotalQuestions: () => {
         const state = get();
@@ -278,6 +318,17 @@ export const useAuditProgressStore = create<AuditProgressState>()(
       canGoBack: () => {
         const state = get();
         return !(state.currentSectionIndex === 0 && state.currentQuestionIndex === 0);
+      },
+
+      isSectionComplete: (sectionIndex: number) => {
+        const state = get();
+        if (!state.config) return false;
+        
+        const section = state.config.sections[sectionIndex];
+        if (!section) return false;
+        
+        // Check if all questions in the section have answers
+        return section.questions.every(q => state.answers[q.id] !== undefined);
       }
     }),
     {
@@ -288,7 +339,10 @@ export const useAuditProgressStore = create<AuditProgressState>()(
         answers: state.answers,
         vertical: state.vertical,
         logsEnabled: state.logsEnabled,
-        scoreSummary: state.scoreSummary
+        scoreSummary: state.scoreSummary,
+        insights: state.insights,
+        lastEmittedKeys: state.lastEmittedKeys,
+        iqError: state.iqError
       })
     }
   )

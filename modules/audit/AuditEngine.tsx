@@ -37,7 +37,10 @@ export function AuditEngine({ industry }: AuditEngineProps) {
     isAtEnd,
     getProgressPercentage,
     getTotalQuestions,
-    scoreSummary
+    scoreSummary,
+    isSectionComplete,
+    appendInsights,
+    setIqError
   } = useAuditProgressStore();
 
   // Load audit configuration
@@ -68,16 +71,73 @@ export function AuditEngine({ industry }: AuditEngineProps) {
     }
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (isAtEnd()) {
       // Navigate to money lost page
       navigate('/moneylost');
     } else {
       setShowCurrentQuestion(false);
+      
+      // Check if this move will complete a section
+      const state = useAuditProgressStore.getState();
+      const willCompleteSection = currentSection && 
+        currentQuestionIndex === currentSection.questions.length - 1;
+      
+      if (willCompleteSection) {
+        await triggerNeedAgentIQIfReady();
+      }
+      
       setTimeout(() => {
         next();
         setShowCurrentQuestion(true);
       }, 200);
+    }
+  };
+
+  const triggerNeedAgentIQIfReady = async () => {
+    const state = useAuditProgressStore.getState();
+    const { 
+      config, currentSectionIndex, isSectionComplete, 
+      vertical, answers, appendInsights, setIqError 
+    } = state;
+    
+    if (!config || !currentSection) return;
+    
+    // Check if foundation sections (S1-S2) are complete
+    const foundationSectionsComplete = [0, 1].every(idx => isSectionComplete(idx));
+    if (!foundationSectionsComplete) return;
+    
+    // Import and call NeedAgentIQ
+    try {
+      const { requestNeedAgentIQ } = await import('@modules/ai/needagentiq/client');
+      
+      // Get completed sections
+      const completedSections = config.sections
+        .map((section, idx) => ({ section, idx }))
+        .filter(({ idx }) => isSectionComplete(idx))
+        .map(({ section }) => section.id);
+      
+      // Create minimal payload
+      const payload = {
+        auditId: `audit-${Date.now()}`,
+        auditType: vertical,
+        sectionId: currentSection.id,
+        completedSections,
+        timestamp: new Date().toISOString(),
+        answers,
+        kb: {
+          services: [], // Will be populated by edge function from KB
+          approved_claims: [] // Will be populated by edge function from KB  
+        }
+      };
+      
+      const insights = await requestNeedAgentIQ(payload);
+      if (insights.length > 0) {
+        appendInsights(insights);
+      }
+    } catch (error) {
+      console.error('NeedAgentIQ request failed:', error);
+      setIqError(error.message || 'Failed to generate insights');
     }
   };
 

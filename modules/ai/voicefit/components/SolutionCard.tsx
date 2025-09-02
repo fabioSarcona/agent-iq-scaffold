@@ -3,13 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { Bot, Phone, Calendar, Shield, Users, Settings, Info } from "lucide-react"
-import { SkillScopeModal } from "./SkillScopeModal"
 
 interface SolutionCardProps extends React.HTMLAttributes<HTMLDivElement> {
   skillId: string;
   title: string;
   rationale: string;
   estimatedRecoveryPct?: [number, number];
+  onLearnMore?: () => void;
+  // Legacy props for backward compatibility
   auditContext?: {
     auditId: string;
     auditType: "dental" | "hvac";
@@ -34,7 +35,6 @@ interface SolutionCardProps extends React.HTMLAttributes<HTMLDivElement> {
       tags?: string[];
     }>;
   };
-  // Legacy prop for backward compatibility
   solution?: {
     skillId?: string;
     title?: string;
@@ -55,8 +55,7 @@ const iconMap = {
 }
 
 const SolutionCard = React.forwardRef<HTMLDivElement, SolutionCardProps>(
-  ({ className, skillId, title, rationale, estimatedRecoveryPct, auditContext, kb, solution, ...props }, ref) => {
-    const [isSkillScopeOpen, setIsSkillScopeOpen] = React.useState(false);
+  ({ className, skillId, title, rationale, estimatedRecoveryPct, onLearnMore, auditContext, kb, solution, ...props }, ref) => {
     
     // Support both old and new prop patterns
     const actualSkillId = skillId || solution?.skillId || '';
@@ -66,24 +65,10 @@ const SolutionCard = React.forwardRef<HTMLDivElement, SolutionCardProps>(
     
     const IconComponent = iconMap[actualTitle as keyof typeof iconMap] || iconMap.default;
 
-    // Create skill data for SkillScope
-    const skillData = React.useMemo(() => {
-      // Try to find the skill in KB first, or create a minimal version
-      const kbSkill = kb?.services.find(s => s.name === actualSkillId || s.name === actualTitle);
-      
-      return {
-        id: actualSkillId,
-        name: actualTitle,
-        target: (auditContext?.auditType === "dental" ? "Dental" : "HVAC") as "Dental" | "HVAC",
-        problem: kbSkill?.problem || actualRationale,
-        how: kbSkill?.how || "AI-powered automation solution",
-        roiRangeMonthly: kbSkill?.roiRangeMonthly,
-        tags: kbSkill?.tags || [actualSkillId.toLowerCase().replace(/\s+/g, '-')],
-      };
-    }, [actualSkillId, actualTitle, actualRationale, auditContext?.auditType, kb]);
-
     const handleLearnMore = () => {
-      setIsSkillScopeOpen(true);
+      if (onLearnMore) {
+        onLearnMore();
+      }
     };
 
     return (
@@ -117,30 +102,21 @@ const SolutionCard = React.forwardRef<HTMLDivElement, SolutionCardProps>(
                 </p>
               </div>
             )}
-            <div className="pt-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={handleLearnMore}
-                className="w-full"
-                disabled={!auditContext}
-              >
-                <Info className="h-4 w-4 mr-2" />
-                Learn More
-              </Button>
-            </div>
+            {onLearnMore && (
+              <div className="pt-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={handleLearnMore}
+                  className="w-full"
+                >
+                  <Info className="h-4 w-4 mr-2" />
+                  Learn More
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
-
-        {auditContext && (
-          <SkillScopeModal
-            isOpen={isSkillScopeOpen}
-            onClose={() => setIsSkillScopeOpen(false)}
-            skillData={skillData}
-            context={auditContext}
-            kb={kb}
-          />
-        )}
       </>
     );
   }

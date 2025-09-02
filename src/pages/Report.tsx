@@ -15,9 +15,18 @@ import {
   type VoiceFitReportData
 } from '@modules/ai/voicefit'
 
+// Import SkillScope components and utils  
+import { SkillScopeOverlay } from '../../modules/skillscope/components/SkillScopeOverlay'
+import { getKBSlicesForVertical } from '@/lib/kbClient'
+import type { SkillScopePayload } from '../../modules/skillscope/types'
+
 export default function Report() {
   const { vertical, answers } = useAuditProgressStore()
   const currentVertical = (vertical || 'dental') as 'dental' | 'hvac'
+  
+  // SkillScope overlay state
+  const [selectedSkill, setSelectedSkill] = React.useState<string | null>(null)
+  const [isSkillScopeOpen, setIsSkillScopeOpen] = React.useState(false)
   
   const { data: reportData, isLoading, error } = useQuery({
     queryKey: ['voicefit-report', currentVertical, JSON.stringify(answers)],
@@ -45,29 +54,46 @@ export default function Report() {
     },
   }), [currentVertical, answers])
 
-  // Create basic KB context from report data
-  const kbContext = React.useMemo(() => {
-    if (!reportData?.solutions) return undefined;
+  // Create SkillScope payload
+  const createSkillScopePayload = React.useCallback((skillId: string, skillTitle: string): SkillScopePayload => {
+    const solution = reportData?.solutions.find(s => s.skillId === skillId)
+    const kbSlices = getKBSlicesForVertical(currentVertical)
     
     return {
-      approved_claims: [
-        "Reduces missed calls by up to 80%",
-        "Improves appointment scheduling efficiency",
-        "Increases treatment plan acceptance rates",
-        "Enhances customer satisfaction scores"
-      ],
-      services: reportData.solutions.map(solution => ({
-        name: solution.skillId,
+      context: auditContext,
+      skill: {
+        id: skillId,
+        name: skillTitle,
         target: (currentVertical === 'dental' ? "Dental" : "HVAC") as "Dental" | "HVAC",
-        problem: solution.rationale,
+        problem: solution?.rationale || "Identified business challenge",
         how: "AI-powered automation that integrates with your existing systems",
-        roiRangeMonthly: solution.estimatedRecoveryPct ? 
+        roiRangeMonthly: solution?.estimatedRecoveryPct ? 
           [solution.estimatedRecoveryPct[0] * 100, solution.estimatedRecoveryPct[1] * 100] as [number, number] :
           undefined,
-        tags: [solution.skillId.toLowerCase().replace(/\s+/g, '-')],
-      })),
-    };
-  }, [reportData, currentVertical])
+      },
+      audit: {
+        responses: Object.entries(answers || {}).map(([key, value]) => ({ key, value })),
+        aiReadinessScore: reportData?.score,
+      },
+      kb: {
+        approved_claims: [...kbSlices.approved_claims],
+        services: kbSlices.services.map(s => ({ ...s })),
+      },
+    }
+  }, [reportData, currentVertical, auditContext, answers])
+
+  // Handle learn more click
+  const handleLearnMore = React.useCallback((skillId: string, skillTitle: string) => {
+    setSelectedSkill(skillId)
+    setIsSkillScopeOpen(true)
+  }, [])
+
+  // Current skill scope payload
+  const skillScopePayload = React.useMemo(() => {
+    if (!selectedSkill || !reportData) return null
+    const solution = reportData.solutions.find(s => s.skillId === selectedSkill)
+    return solution ? createSkillScopePayload(selectedSkill, solution.title) : null
+  }, [selectedSkill, reportData, createSkillScopePayload])
   
   if (isLoading) {
     return (
@@ -178,7 +204,7 @@ export default function Report() {
                 title={solution.title}
                 rationale={solution.rationale}
                 estimatedRecoveryPct={solution.estimatedRecoveryPct}
-                {...({ auditContext, kb: kbContext } as any)}
+                {...({ onLearnMore: () => handleLearnMore(solution.skillId, solution.title) } as any)}
               />
             ))}
           </div>
@@ -206,6 +232,18 @@ export default function Report() {
           addons={reportData.plan.addons}
         />
       </div>
+
+      {/* SkillScope Overlay */}
+      {skillScopePayload && (
+        <SkillScopeOverlay
+          isOpen={isSkillScopeOpen}
+          onClose={() => {
+            setIsSkillScopeOpen(false)
+            setSelectedSkill(null)
+          }}
+          payload={skillScopePayload}
+        />
+      )}
     </div>
   )
 }

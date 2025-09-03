@@ -1,6 +1,6 @@
 import { supabase } from '@/integrations/supabase/client'
 import type { LLMOutput, VoiceFitReportData } from './report.types'
-import type { MoneyLostSummary } from '../shared/types'
+import type { MoneyLostSummary } from '../../../supabase/functions/_shared/types'
 
 export async function requestVoiceFitReport(
   vertical: string, 

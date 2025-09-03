@@ -7,7 +7,23 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { InputOTPEnhanced } from '@/components/ui/input-otp-enhanced'
-import { calculateTypingDelay } from '@/lib/typingUtils'
+/**
+ * Calculate typing delay based on message length
+ * ≤20 chars: 100+20ms/char
+ * 21–60 chars: 300+15ms/char  
+ * >60 chars: 500+10ms/char
+ */
+function calculateTypingDelay(message: string): number {
+  const length = message.length
+  
+  if (length <= 20) {
+    return 100 + (20 * length)
+  } else if (length <= 60) {
+    return 300 + (15 * length)
+  } else {
+    return 500 + (10 * length)
+  }
+}
 import { REGISTRATION_FIELDS, type RegistrationField, type Phone } from '../types'
 import { validateRegistrationField, formatE164Phone } from '../validation'
 import { PhoneInput } from '@/components/registration/PhoneInput'

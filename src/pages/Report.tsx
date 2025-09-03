@@ -17,7 +17,7 @@ import {
 
 // Import SkillScope components and utils  
 import { SkillScopeOverlay } from '../../modules/skillscope/components/SkillScopeOverlay'
-import { getKBSlicesForVertical } from '@/lib/kbClient'
+// KB utilities are now handled by edge functions
 import type { SkillScopePayload } from '../../modules/skillscope/types'
 
 export default function Report() {
@@ -54,10 +54,19 @@ export default function Report() {
     },
   }), [currentVertical, answers])
 
-  // Create SkillScope payload
+  // Create SkillScope payload with hardcoded KB slices
   const createSkillScopePayload = React.useCallback((skillId: string, skillTitle: string): SkillScopePayload => {
     const solution = reportData?.solutions.find(s => s.skillId === skillId)
-    const kbSlices = getKBSlicesForVertical(currentVertical)
+    
+    // Hardcode KB slices (to be handled by edge functions)
+    const kbSlices = {
+      approved_claims: [
+        "Increase revenue by 15-40% through better patient retention",
+        "Reduce no-shows by up to 80% with automated reminders", 
+        "Save 2-4 hours daily on administrative tasks"
+      ],
+      services: []
+    }
     
     return {
       context: auditContext,

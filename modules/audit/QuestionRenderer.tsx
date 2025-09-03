@@ -53,12 +53,12 @@ export function QuestionRenderer({
           <RadioGroup
             value={value as string || ''}
             onValueChange={onValueChange}
-            className="space-y-3"
+            className="space-y-4"
           >
             {question.options?.map((option) => (
-              <div key={option.value} className="flex items-center space-x-2">
-                <RadioGroupItem value={option.value} id={option.value} />
-                <Label htmlFor={option.value} className="flex-1 cursor-pointer">
+              <div key={option.value} className="flex items-center space-x-3 p-3 rounded-lg glass-card hover-lift transition-all duration-300">
+                <RadioGroupItem value={option.value} id={option.value} className="min-w-[20px] min-h-[20px]" />
+                <Label htmlFor={option.value} className="flex-1 cursor-pointer font-medium text-sm md:text-base leading-relaxed">
                   {option.label}
                 </Label>
               </div>
@@ -76,14 +76,14 @@ export function QuestionRenderer({
             min={question.min}
             max={question.max}
             step={question.step}
-            className="max-w-xs"
+            className="max-w-sm"
           />
         );
 
       case 'currency':
         return (
-          <div className="relative max-w-xs">
-            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
+          <div className="relative max-w-sm">
+            <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-muted-foreground font-medium">
               $
             </span>
             <Input
@@ -94,7 +94,7 @@ export function QuestionRenderer({
               min={question.min || 0}
               max={question.max}
               step="0.01"
-              className="pl-8"
+              className="pl-10"
             />
           </div>
         );
@@ -105,57 +105,64 @@ export function QuestionRenderer({
             value={value as string || ''}
             onChange={(e) => onValueChange(e.target.value)}
             placeholder={question.placeholder || "Type your answer here..."}
-            className="min-h-[100px] resize-none"
+            className="min-h-[120px] resize-none"
           />
         );
 
       default:
-        return <div>Unsupported question type</div>;
+        return <div className="text-muted-foreground">Unsupported question type</div>;
     }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Question */}
-      <div className="space-y-2">
-        <h3 className="text-lg font-medium text-foreground">
-          {question.label}
-        </h3>
-        {question.description && (
-          <p className="text-sm text-muted-foreground">
-            {question.description}
-          </p>
-        )}
-      </div>
+    <div className="max-w-4xl mx-auto">
+      <div className="glass-card rounded-2xl p-6 md:p-8 space-y-8 animate-fade-in-scale">
+        {/* Question Header */}
+        <div className="space-y-3">
+          <h3 className="text-xl md:text-2xl font-semibold text-foreground leading-tight">
+            {question.label}
+          </h3>
+          {question.description && (
+            <p className="text-base text-muted-foreground leading-relaxed">
+              {question.description}
+            </p>
+          )}
+        </div>
 
-      {/* Input */}
-      <div className="space-y-2">
-        {renderInput()}
-        {validationError && (
-          <p className="text-sm text-destructive">
-            {validationError}
-          </p>
-        )}
-      </div>
+        {/* Input Area */}
+        <div className="space-y-4">
+          {renderInput()}
+          {validationError && (
+            <div className="flex items-start space-x-2 p-4 rounded-lg bg-destructive/10 border border-destructive/20">
+              <div className="w-2 h-2 bg-destructive rounded-full mt-2 flex-shrink-0" />
+              <p className="text-sm text-destructive font-medium">
+                {validationError}
+              </p>
+            </div>
+          )}
+        </div>
 
-      {/* Controls */}
-      <div className="flex justify-between items-center pt-4">
-        <Button
-          variant="outline"
-          onClick={onBack}
-          disabled={!canGoBack}
-          className={!canGoBack ? 'invisible' : ''}
-        >
-          Back
-        </Button>
-        
-        <Button
-          onClick={handleNext}
-          disabled={!isValid}
-          className="bg-brand-gradient hover:opacity-90 text-white"
-        >
-          Next
-        </Button>
+        {/* Navigation Controls */}
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-6 border-t border-border/50">
+          <Button
+            variant="outline"
+            onClick={onBack}
+            disabled={!canGoBack}
+            size="lg"
+            className={!canGoBack ? 'invisible' : 'flex-1 sm:flex-none min-w-[120px]'}
+          >
+            ← Back
+          </Button>
+          
+          <Button
+            onClick={handleNext}
+            disabled={!isValid}
+            size="lg"
+            className="flex-1 sm:flex-none min-w-[120px] font-semibold"
+          >
+            Next →
+          </Button>
+        </div>
       </div>
     </div>
   );

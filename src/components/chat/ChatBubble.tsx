@@ -13,35 +13,40 @@ export function ChatBubble({ message, isUser, timestamp, className, avatar }: Ch
   return (
     <div
       className={cn(
-        'flex w-full mb-4 animate-slide-in',
+        'flex w-full mb-6 animate-fade-in-scale group',
         isUser ? 'justify-end' : 'justify-start',
         className
       )}
     >
       {!isUser && avatar && (
-        <Avatar className="h-6 w-6 mr-3 mt-1 flex-shrink-0">
+        <Avatar className="h-8 w-8 mr-4 mt-1 flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
           <AvatarImage src={avatar} alt="Bot avatar" />
-          <AvatarFallback className="text-xs">F</AvatarFallback>
+          <AvatarFallback className="text-xs bg-gradient-glow text-primary-foreground font-medium">
+            AI
+          </AvatarFallback>
         </Avatar>
       )}
       <div
         className={cn(
-          'max-w-[80%] rounded-2xl px-4 py-3 shadow-sm',
+          'max-w-[85%] md:max-w-[70%] rounded-2xl px-5 py-4 glass-card hover-lift',
+          'backdrop-blur-md border border-white/10',
           isUser
-            ? 'bg-chat-bubble-user text-chat-bubble-user-text ml-4'
-            : 'bg-chat-bubble-bot text-chat-bubble-bot-text',
+            ? 'bg-gradient-glow text-primary-foreground ml-4 shadow-lg'
+            : 'bg-card/80 text-card-foreground backdrop-blur-sm',
           !isUser && !avatar && 'mr-4'
         )}
       >
-        <p className="text-sm leading-relaxed">{message}</p>
+        <p className="text-sm md:text-base leading-relaxed font-medium">{message}</p>
         {timestamp && (
-          <p className="text-xs opacity-70 mt-1">{timestamp}</p>
+          <p className="text-xs opacity-75 mt-2 font-light">{timestamp}</p>
         )}
       </div>
       {isUser && avatar && (
-        <Avatar className="h-6 w-6 ml-3 mt-1 flex-shrink-0">
+        <Avatar className="h-8 w-8 ml-4 mt-1 flex-shrink-0 group-hover:scale-110 transition-transform duration-300">
           <AvatarImage src={avatar} alt="User avatar" />
-          <AvatarFallback className="text-xs">U</AvatarFallback>
+          <AvatarFallback className="text-xs bg-secondary text-secondary-foreground font-medium">
+            U
+          </AvatarFallback>
         </Avatar>
       )}
     </div>

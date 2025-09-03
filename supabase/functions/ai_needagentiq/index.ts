@@ -11,7 +11,7 @@ import type { NeedAgentIQInput, NeedAgentIQOutput, ErrorResponse } from '../_sha
 // Configuration
 const NEEDAGENTIQ_MODEL = "claude-sonnet-4-20250514" as const;
 const NEEDAGENTIQ_PARAMS = {
-  maxTokens: 1200,
+  maxCompletionTokens: 1200,
   retry: {
     attempts: 2,
     backoffMs: 300
@@ -145,7 +145,7 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           model: NEEDAGENTIQ_MODEL,
-          max_tokens: NEEDAGENTIQ_PARAMS.maxTokens,
+          max_completion_tokens: NEEDAGENTIQ_PARAMS.maxCompletionTokens,
           messages: [
             {
               role: 'user',

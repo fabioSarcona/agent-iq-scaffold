@@ -1,7 +1,7 @@
 project_id = "ayplztujgpctozgmdxqy"
 
 [functions.ai_generate_report]
-verify_jwt = false
+verify_jwt = true
 
 [functions.ai_skillscope]
 verify_jwt = false

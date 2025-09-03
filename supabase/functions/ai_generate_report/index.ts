@@ -8,23 +8,16 @@ import { VoiceFitInputSchema, VoiceFitOutputSchema } from '../_shared/validation
 import { validateKBSlice } from '../_shared/kb.ts';
 import type { VoiceFitInput, VoiceFitOutput, ErrorResponse } from '../_shared/types.ts';
 
-// Load system prompt at module level  
-let SYSTEM_PROMPT: string;
-try {
-  SYSTEM_PROMPT = await Deno.readTextFile(
-    new URL('./system-prompt-voicefit.md', import.meta.url)
-  );
-  logger.info('VoiceFit system prompt loaded', { length: SYSTEM_PROMPT.length });
-} catch (error) {
-  logger.error('Failed to load VoiceFit system prompt', { error: error.message });
-  SYSTEM_PROMPT = '';
+// Environment variables validation and system prompt loading
+const SYSTEM_PROMPT = Deno.env.get('VOICEFIT_SYSTEM_PROMPT');
+const AI_MODEL = Deno.env.get('AI_MODEL') || 'claude-sonnet-4-20250514';
+
+if (!SYSTEM_PROMPT || SYSTEM_PROMPT.length < 2000) {
+  logger.error('VoiceFit SYSTEM_PROMPT environment variable missing or too short');
+  throw new Error('VOICEFIT_SYSTEM_PROMPT_NOT_SET');
 }
 
-// Guard against truncated system prompt
-if (!SYSTEM_PROMPT || SYSTEM_PROMPT.length < 2000) {
-  logger.error('VoiceFit SYSTEM_PROMPT load error: content too short or missing');
-  throw new Error('SYSTEM_PROMPT_NOT_LOADED');
-}
+logger.info('VoiceFit system prompt loaded from environment', { length: SYSTEM_PROMPT.length });
 
 // Cache for KB data
 let kbCache: { approved_claims: string[], services: any[] } | null = null;
@@ -143,9 +136,8 @@ async function callClaude(systemPrompt: string, llmInput: VoiceFitInput): Promis
       'anthropic-version': '2023-06-01'
     },
     body: JSON.stringify({
-      model: env.AI_MODEL,
-      max_tokens: 1800,
-      temperature: 0.2,
+      model: AI_MODEL,
+      max_completion_tokens: 1800,
       system: systemPrompt,
       messages: [{
         role: 'user',

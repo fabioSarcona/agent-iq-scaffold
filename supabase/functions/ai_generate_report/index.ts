@@ -21,9 +21,18 @@ logger.info('VoiceFit system prompt loaded from environment', { length: SYSTEM_P
 
 // Cache for KB data
 let kbCache: { approved_claims: string[], services: any[] } | null = null;
+let kbCacheTimestamp = 0;
+const KB_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
-async function loadKB(): Promise<{ approved_claims: string[], services: any[] }> {
-  if (kbCache) return kbCache;
+// Response cache
+const responseCache = new Map<string, { data: any; timestamp: number }>();
+const RESPONSE_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+
+async function getCachedKB(): Promise<{ approved_claims: string[], services: any[] }> {
+  const now = Date.now();
+  if (kbCache && (now - kbCacheTimestamp) < KB_CACHE_TTL) {
+    return kbCache;
+  }
   
   try {
     const [claimsText, servicesText] = await Promise.all([
@@ -35,10 +44,16 @@ async function loadKB(): Promise<{ approved_claims: string[], services: any[] }>
       approved_claims: JSON.parse(claimsText),
       services: JSON.parse(servicesText)
     };
-    logger.info('KB files loaded successfully');
+    kbCacheTimestamp = now;
+    
+    logger.info('VoiceFit KB cache refreshed', { 
+      claims: kbCache.approved_claims.length, 
+      services: kbCache.services.length 
+    });
+    
     return kbCache;
   } catch (error) {
-    logger.error('Failed to load KB files', { error: error.message });
+    logger.error('Failed to load VoiceFit KB data', { error: error.message });
     return { approved_claims: [], services: [] };
   }
 }
@@ -48,13 +63,15 @@ function buildLLMInput({
   answers, 
   scoreSummary, 
   moneylost, 
-  benchmarks 
+  benchmarks,
+  kb 
 }: {
   vertical: string;
   answers: Record<string, unknown>;
   scoreSummary?: any;
   moneylost?: any;
   benchmarks?: string[];
+  kb: { approved_claims: string[], services: any[] };
 }): VoiceFitInput {
   const auditId = `audit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   
@@ -116,7 +133,7 @@ function buildLLMInput({
       totalMonthly: moneylost?.monthlyUsd || 0
     },
     insights,
-    kb: kbCache || { approved_claims: [], services: [] },
+    kb,
     history: {
       previousInsightsKeys: [],
       previousReports: []
@@ -181,17 +198,35 @@ serve(async (req) => {
     const request = await req.json();
     logger.info('Processing VoiceFit report request', { vertical: request.vertical });
 
-    // Load KB into cache
-    await loadKB();
+    // Load KB data
+    const kb = await getCachedKB();
 
-    // Build LLM input from request format
-    const llmInput = buildLLMInput(request);
+    // Build LLM input from request format  
+    const llmInput = buildLLMInput({ ...request, kb });
     
     // Validate input
     const validatedInput = VoiceFitInputSchema.parse(llmInput);
     
+    // Check response cache
+    const cacheKey = JSON.stringify(validatedInput);
+    const cached = responseCache.get(cacheKey);
+    if (cached && (Date.now() - cached.timestamp) < RESPONSE_CACHE_TTL) {
+      logger.info('Cache hit for VoiceFit');
+      return new Response(JSON.stringify(cached.data), {
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json',
+          'X-Processing-Time': `${Date.now() - startTime}ms`,
+          'X-Cache': 'HIT'
+        }
+      });
+    }
+    
     // Call Claude with system prompt
     const llmOutput = await callClaude(SYSTEM_PROMPT, validatedInput);
+    
+    // Cache successful response
+    responseCache.set(cacheKey, { data: llmOutput, timestamp: Date.now() });
     
     const processingTime = Date.now() - startTime;
     logger.info('Report generated successfully', { processingTime });

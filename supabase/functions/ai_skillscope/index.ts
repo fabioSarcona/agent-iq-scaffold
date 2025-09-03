@@ -19,39 +19,35 @@ logger.info('SkillScope system prompt loaded from environment', { length: SYSTEM
 
 // Cache for KB data
 let kbCache: { approved_claims: string[], services: any[] } | null = null;
-let cacheTimestamp = 0;
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+let kbCacheTimestamp = 0;
+const KB_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 async function getCachedKB() {
   const now = Date.now();
-  if (kbCache && (now - cacheTimestamp) < CACHE_TTL) {
+  if (kbCache && (now - kbCacheTimestamp) < KB_CACHE_TTL) {
     return kbCache;
   }
 
   try {
-    const [claimsResponse, servicesResponse] = await Promise.all([
-      fetch(new URL('./kb/approved_claims.json', import.meta.url)),
-      fetch(new URL('./kb/services.json', import.meta.url))
+    const [claimsText, servicesText] = await Promise.all([
+      Deno.readTextFile(new URL('./kb/approved_claims.json', import.meta.url)),
+      Deno.readTextFile(new URL('./kb/services.json', import.meta.url))
     ]);
 
-    if (!claimsResponse.ok || !servicesResponse.ok) {
-      throw new Error('Failed to load KB files');
-    }
-
-    const approved_claims = await claimsResponse.json();
-    const services = await servicesResponse.json();
-
-    kbCache = { approved_claims, services };
-    cacheTimestamp = now;
+    kbCache = {
+      approved_claims: JSON.parse(claimsText),
+      services: JSON.parse(servicesText)
+    };
+    kbCacheTimestamp = now;
     
-    logger.info('KB cache refreshed', { 
-      claims: approved_claims.length, 
-      services: services.length 
+    logger.info('SkillScope KB cache refreshed', { 
+      claims: kbCache.approved_claims.length, 
+      services: kbCache.services.length 
     });
     
     return kbCache;
   } catch (error) {
-    logger.error('Failed to load KB data', { error: error.message });
+    logger.error('Failed to load SkillScope KB data', { error: error.message });
     throw new Error('KB_LOAD_FAILED');
   }
 }
@@ -155,8 +151,8 @@ Services: ${JSON.stringify(kb.services, null, 2)}`;
   }
 }
 
-// In-memory response cache
-const responseCache = new Map<string, { data: SkillScopeOutput; timestamp: number }>();
+// Response cache
+const responseCache = new Map<string, { data: any; timestamp: number }>();
 const RESPONSE_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 
 serve(async (req) => {
@@ -203,13 +199,18 @@ serve(async (req) => {
       });
     }
 
-    // Check cache
+    // Check response cache
     const cacheKey = JSON.stringify(input);
     const cached = responseCache.get(cacheKey);
     if (cached && (Date.now() - cached.timestamp) < RESPONSE_CACHE_TTL) {
-      logger.info('Returning cached SkillScope response');
+      logger.info('Cache hit for SkillScope');
       return new Response(JSON.stringify(cached.data), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json',
+          'X-Processing-Time': `${Date.now() - startTime}ms`,
+          'X-Cache': 'HIT'
+        }
       });
     }
 
@@ -228,7 +229,12 @@ serve(async (req) => {
     });
 
     return new Response(JSON.stringify(result), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      headers: { 
+        ...corsHeaders, 
+        'Content-Type': 'application/json',
+        'X-Processing-Time': `${Date.now() - startTime}ms`,
+        'X-Cache': 'MISS'
+      }
     });
 
   } catch (error) {

@@ -121,13 +121,14 @@ serve(async (req) => {
     // Check response cache first
     const cached = responseCache.get(cacheKey);
     if (cached && (Date.now() - cached.timestamp) < RESPONSE_CACHE_TTL) {
-      logger.info('NeedAgentIQ cache hit', { cacheKey });
+      logger.info('Cache hit for NeedAgentIQ', { cacheKey });
       return new Response(JSON.stringify(cached.data), {
         status: 200,
         headers: { 
           ...corsHeaders, 
           'Content-Type': 'application/json',
-          'X-NeedAgentIQ-Cache': 'HIT'
+          'X-Processing-Time': `${Date.now() - startTime}ms`,
+          'X-Cache': 'HIT'
         }
       });
     }
@@ -220,8 +221,8 @@ serve(async (req) => {
       headers: { 
         ...corsHeaders, 
         'Content-Type': 'application/json',
-        'X-Processing-Time-Ms': processingTime.toString(),
-        'X-NeedAgentIQ-Status': 'ACTIVE'
+        'X-Processing-Time': `${processingTime}ms`,
+        'X-Cache': 'MISS'
       }
     });
 

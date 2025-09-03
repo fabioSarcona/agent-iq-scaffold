@@ -51,11 +51,21 @@
     --glass-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
     --glass-backdrop: blur(8px) saturate(180%);
     
-    /* Enhanced Shadow System */
-    --shadow-glass: 0 8px 32px rgba(31, 38, 135, 0.37);
-    --shadow-floating: 0 10px 40px rgba(0, 0, 0, 0.12);
-    --shadow-elevated: 0 20px 60px rgba(0, 0, 0, 0.15);
-    --shadow-glow: 0 0 40px hsl(var(--brand-secondary) / 0.3);
+    /* Enhanced Shadow System - Lighter & Natural */
+    --shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-medium: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+    --shadow-elevated: 0 8px 24px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.06);
+    --shadow-glass: 0 4px 16px rgba(255, 255, 255, 0.1), 0 1px 4px rgba(0, 0, 0, 0.05);
+    --shadow-glow: 0 0 20px hsl(var(--brand-secondary) / 0.15);
+    
+    /* Spacing System - 8px Grid */
+    --space-xs: 0.25rem;    /* 4px */
+    --space-sm: 0.5rem;     /* 8px */
+    --space-base: 1rem;     /* 16px */
+    --space-lg: 1.5rem;     /* 24px */
+    --space-xl: 2rem;       /* 32px */
+    --space-2xl: 3rem;      /* 48px */
+    --space-3xl: 4rem;      /* 64px */
     
     /* Animation Variables */
     --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -121,11 +131,12 @@
     --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
     --glass-backdrop: blur(12px) saturate(180%);
     
-    /* Dark Enhanced Shadows */
-    --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.4);
-    --shadow-floating: 0 10px 40px rgba(0, 0, 0, 0.3);
-    --shadow-elevated: 0 20px 60px rgba(0, 0, 0, 0.4);
-    --shadow-glow: 0 0 40px hsl(var(--brand-secondary) / 0.4);
+    /* Dark Enhanced Shadows - Lighter */
+    --shadow-subtle: 0 2px 8px rgba(0, 0, 0, 0.15), 0 1px 4px rgba(0, 0, 0, 0.1);
+    --shadow-medium: 0 4px 16px rgba(0, 0, 0, 0.2), 0 2px 8px rgba(0, 0, 0, 0.15);
+    --shadow-elevated: 0 8px 32px rgba(0, 0, 0, 0.3), 0 4px 16px rgba(0, 0, 0, 0.2);
+    --shadow-glass: 0 4px 16px rgba(0, 0, 0, 0.2), 0 1px 4px rgba(0, 0, 0, 0.1);
+    --shadow-glow: 0 0 20px hsl(var(--brand-secondary) / 0.2);
 
     --chat-bubble-user: 225 64% 47%;
     --chat-bubble-bot: 217.2 32.6% 17.5%;
@@ -144,7 +155,7 @@
 }
 
 @layer components {
-  /* Glass Morphism Utilities */
+  /* Glass Morphism Utilities - Refined */
   .glass-card {
     background: rgba(var(--glass-bg));
     backdrop-filter: var(--glass-backdrop);
@@ -153,11 +164,17 @@
     box-shadow: var(--shadow-glass);
   }
   
+  .glass-subtle {
+    @apply bg-card/60 border-border/30 backdrop-blur-sm;
+    box-shadow: var(--shadow-subtle);
+  }
+  
   .glass-nav {
     background: rgba(var(--glass-bg));
     backdrop-filter: var(--glass-backdrop);
     -webkit-backdrop-filter: var(--glass-backdrop);
     border-bottom: 1px solid rgba(var(--glass-border));
+    box-shadow: var(--shadow-subtle);
   }
   
   .glass-input {
@@ -178,19 +195,30 @@
     box-shadow: var(--shadow-glow);
   }
 
-  /* Interactive Effects */
+  /* Interactive Effects - Refined */
   .hover-lift {
     transition: var(--transition-smooth);
+    transform: translateY(0);
   }
   
   .hover-lift:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-floating);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-medium);
+  }
+  
+  .hover-glow {
+    transition: var(--transition-smooth);
   }
   
   .hover-glow:hover {
     box-shadow: var(--shadow-glow);
   }
+  
+  /* Container System */
+  .container-sm { max-width: 640px; margin: 0 auto; }
+  .container-md { max-width: 768px; margin: 0 auto; }
+  .container-lg { max-width: 1024px; margin: 0 auto; }
+  .container-xl { max-width: 1280px; margin: 0 auto; }
   
   .button-ripple {
     position: relative;

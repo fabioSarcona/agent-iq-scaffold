@@ -28,11 +28,10 @@ export function ChatBubble({ message, isUser, timestamp, className, avatar }: Ch
       )}
       <div
         className={cn(
-          'max-w-[85%] md:max-w-[70%] rounded-2xl px-5 py-4 glass-card hover-lift',
-          'backdrop-blur-md border border-white/10',
+          'max-w-[85%] md:max-w-[70%] rounded-2xl px-5 py-4 transition-all duration-300',
           isUser
-            ? 'bg-gradient-glow text-primary-foreground ml-4 shadow-lg'
-            : 'bg-card/80 text-card-foreground backdrop-blur-sm',
+            ? 'bg-primary text-primary-foreground ml-4 shadow-[var(--shadow-medium)]'
+            : 'bg-card text-card-foreground shadow-[var(--shadow-subtle)] hover:shadow-[var(--shadow-medium)]',
           !isUser && !avatar && 'mr-4'
         )}
       >

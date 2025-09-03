@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client"
+import { logger } from '@/lib/logger'
 
 interface OtpRequestResponse {
   ok?: boolean
@@ -24,7 +25,7 @@ export async function requestOtp(email: string): Promise<OtpRequestResponse> {
     
     return data
   } catch (err) {
-    console.error('OTP request error:', err)
+    logger.error('OTP request error', { error: err.message })
     return { error: 'Failed to send verification code' }
   }
 }
@@ -41,7 +42,7 @@ export async function verifyOtp(email: string, code: string): Promise<OtpVerifyR
     
     return data
   } catch (err) {
-    console.error('OTP verify error:', err)
+    logger.error('OTP verify error', { error: err.message })
     return { verified: false, error: 'Failed to verify code' }
   }
 }

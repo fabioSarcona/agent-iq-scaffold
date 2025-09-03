@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
-import { useAuditProgressStore } from '../../modules/audit/AuditProgressStore'
+import { useAuditProgressStore } from '@modules/audit/AuditProgressStore'
 import { ChatBubble } from '@/components/chat/ChatBubble'
 import { TypingDots } from '@/components/chat/TypingDots'
 import { Button } from '@/components/ui/button'

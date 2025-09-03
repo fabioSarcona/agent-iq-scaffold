@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { SkillScopeOutputSchema, type SkillScopeOutput } from "@/lib/schemas/skillscope";
 import type { SkillScopePayload } from "./types";
+import { logger } from '@/lib/logger';
 
 export async function requestSkillScope(
   payload: SkillScopePayload,
@@ -12,7 +13,7 @@ export async function requestSkillScope(
     });
 
     if (error) {
-      console.error('SkillScope API error:', error);
+      logger.error('SkillScope API error', { error: error.message });
       
       if (error.message?.includes('401')) {
         return {
@@ -38,7 +39,7 @@ export async function requestSkillScope(
     try {
       return SkillScopeOutputSchema.parse(data);
     } catch (validationError) {
-      console.error('SkillScope validation error:', validationError);
+      logger.error('SkillScope validation error', { error: validationError.message });
       return {
         success: false,
         error: { message: "We couldn't generate a valid brief. Please try again." }
@@ -53,7 +54,7 @@ export async function requestSkillScope(
       };
     }
 
-    console.error('SkillScope request failed:', error);
+    logger.error('SkillScope request failed', { error: error.message });
     return {
       success: false,
       error: { message: "Network error. Please check your connection and try again." }

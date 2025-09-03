@@ -1,5 +1,5 @@
 import type { VoiceFitReportData } from './report.types';
-import { buildMockMoneyLost } from '../../moneylost/moneylost.mock';
+import { buildMockMoneyLost } from '@modules/moneylost/moneylost.mock';
 
 // Loss Area to Voice Skill mapping
 export const LOSS_AREA_TO_SKILL = {

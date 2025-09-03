@@ -16,9 +16,9 @@ import {
 } from '@modules/ai/voicefit'
 
 // Import SkillScope components and utils  
-import { SkillScopeOverlay } from '../../modules/skillscope/components/SkillScopeOverlay'
+import { SkillScopeOverlay } from '@modules/skillscope/components/SkillScopeOverlay'
 // KB utilities are now handled by edge functions
-import type { SkillScopePayload } from '../../modules/skillscope/types'
+import type { SkillScopePayload } from '@modules/skillscope/types'
 
 export default function Report() {
   const { vertical, answers } = useAuditProgressStore()

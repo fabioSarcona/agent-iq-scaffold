@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client'
-import type { LLMOutput, VoiceFitReportData } from './report.types'
-import type { MoneyLostSummary } from '../../../supabase/functions/_shared/types'
+import type { LLMOutput, VoiceFitReportData } from './report.types'  
+import type { MoneyLostSummary } from 'supabase/functions/_shared/types'
+import { logger } from '@/lib/logger'
 
 export async function requestVoiceFitReport(
   vertical: string, 
@@ -14,7 +15,7 @@ export async function requestVoiceFitReport(
   })
 
   if (error) {
-    console.error('Error generating VoiceFit report:', error)
+    logger.error('Error generating VoiceFit report', { error: error.message })
     throw new Error(`Failed to generate report: ${error.message}`)
   }
 

@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import type { AuditConfig, AuditSection, AuditQuestion, ScoreSummary } from './types';
 import type { NeedAgentIQInsight } from 'supabase/functions/_shared/types';
 import { computeScores } from './scoring';
+import { logger } from '@/lib/logger';
 
 interface AuditProgressState {
   // Current position
@@ -51,7 +52,7 @@ interface AuditProgressState {
 
 const logEvent = (logsEnabled: boolean, event: string, data?: Record<string, unknown>) => {
   if (logsEnabled) {
-    console.log(`[AUDIT LOG] ${event}:`, data || '');
+    logger.info(`[AUDIT LOG] ${event}`, data || {});
   }
 };
 
@@ -249,7 +250,7 @@ export const useAuditProgressStore = create<AuditProgressState>()(
       toggleLogs: () => {
         set((state) => ({ logsEnabled: !state.logsEnabled }));
         const newState = get();
-        console.log(`Audit logging ${newState.logsEnabled ? 'enabled' : 'disabled'}`);
+        logger.info(`Audit logging ${newState.logsEnabled ? 'enabled' : 'disabled'}`);
       },
 
       // NeedAgentIQ actions

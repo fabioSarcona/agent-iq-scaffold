@@ -74,7 +74,7 @@ export function AuditEngine({ industry }: AuditEngineProps) {
           setShowCurrentQuestion(true);
         }, 500);
       } catch (error) {
-        console.error('Failed to load audit config:', error);
+        logger.error('Failed to load audit config', { error: error.message });
         setIsLoading(false);
       }
     };
@@ -188,7 +188,7 @@ export function AuditEngine({ industry }: AuditEngineProps) {
         sectionId: currentSection.id,
         error: error.message
       });
-      console.error('NeedAgentIQ request failed:', error);
+      logger.error('NeedAgentIQ request failed', { error: error.message });
       setIqError(error.message || 'Failed to generate insights');
     }
   };

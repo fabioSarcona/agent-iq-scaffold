@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { logger } from '@/lib/logger'
 
 // Runtime validation boundaries for API responses and critical data flows
 
@@ -107,7 +108,7 @@ export function createValidationBoundary<T>(
       return schema.parse(data)
     } catch (error) {
       if (error instanceof z.ZodError) {
-        console.error('Validation failed:', error.errors)
+        logger.error('Validation failed', { errors: error.errors })
         if (fallbackValue !== undefined) {
           return fallbackValue
         }

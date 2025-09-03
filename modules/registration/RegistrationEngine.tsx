@@ -1,10 +1,10 @@
 import { lazy, Suspense } from 'react'
-import { useAuditProgressStore } from '../../modules/audit/AuditProgressStore'
+import { useAuditProgressStore } from '@modules/audit/AuditProgressStore'
 import { TypingDots } from '@/components/chat/TypingDots'
 import { Welcome } from './steps/Welcome'
 import { Registration } from './steps/Registration'
 
-const AuditEngine = lazy(() => import('../audit/AuditEngine').then(module => ({ default: module.AuditEngine })))
+const AuditEngine = lazy(() => import('@modules/audit/AuditEngine').then(module => ({ default: module.AuditEngine })))
 
 interface RegistrationEngineProps {
   industry: 'dental' | 'hvac'

@@ -1,5 +1,5 @@
 import type { VoiceFitReportData } from './report.types'
-import type { MoneyLostSummary } from '../../moneylost/moneylost.types'
+import type { MoneyLostSummary } from '@modules/moneylost/moneylost.types'
 
 export type Vertical = 'dental' | 'hvac'
 

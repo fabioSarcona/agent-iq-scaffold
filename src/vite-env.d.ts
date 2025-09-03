@@ -67,6 +67,23 @@ declare module '@modules/registration/types' {
   }
 }
 
+declare module '@modules/skillscope/components/SkillScopeOverlay' {
+  export const SkillScopeOverlay: React.ComponentType<{
+    isOpen: boolean;
+    onClose: () => void;
+    payload: any;
+  }>;
+}
+
+declare module '@modules/skillscope/types' {
+  export interface SkillScopePayload {
+    context: any;
+    skill: any;
+    audit: any;
+    kb: any;
+  }
+}
+
 declare module '@modules/ai/voicefit' {
   export const ScoreGauge: React.ComponentType<{ score: number; band: string }>;
   export const BenchmarkNote: React.ComponentType<{ benchmarks?: string[] }>;

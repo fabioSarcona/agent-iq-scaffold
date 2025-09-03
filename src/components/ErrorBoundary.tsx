@@ -3,6 +3,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertTriangle, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ValidationError } from '@/lib/validation'
+import { logger } from '@/lib/logger'
 
 interface ErrorBoundaryState {
   hasError: boolean
@@ -25,11 +26,15 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('Error boundary caught an error:', error, errorInfo)
+    logger.error('Error boundary caught an error', { 
+      error: error.message, 
+      stack: error.stack,
+      componentStack: errorInfo.componentStack 
+    })
     
     // Log validation errors differently
     if (error instanceof ValidationError) {
-      console.error('Validation error details:', error.validationErrors)
+      logger.error('Validation error details', { validationErrors: error.validationErrors })
     }
   }
 

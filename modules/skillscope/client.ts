@@ -7,7 +7,7 @@ export async function requestSkillScope(
   signal?: AbortSignal
 ): Promise<SkillScopeOutput> {
   try {
-    const { data, error } = await supabase.functions.invoke('ai_skillscope_generate', {
+    const { data, error } = await supabase.functions.invoke('ai_skillscope', {
       body: payload,
     });
 

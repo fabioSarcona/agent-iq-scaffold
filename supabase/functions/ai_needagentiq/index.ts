@@ -5,13 +5,12 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/env.ts';
 import { logger } from '../_shared/logger.ts';
 import { NeedAgentIQInputSchema, NeedAgentIQOutputSchema } from '../_shared/validation.ts';
-import { validateKBSlice } from '../_shared/kb.ts';
 import type { NeedAgentIQInput, NeedAgentIQOutput, ErrorResponse } from '../_shared/types.ts';
 
 // Configuration
 const NEEDAGENTIQ_MODEL = "claude-sonnet-4-20250514" as const;
 const NEEDAGENTIQ_PARAMS = {
-  maxCompletionTokens: 1200,
+  maxCompletionTokens: 1800,
   retry: {
     attempts: 2,
     backoffMs: 300
@@ -19,31 +18,47 @@ const NEEDAGENTIQ_PARAMS = {
 } as const;
 const NEEDAGENTIQ_TIMEOUT_MS = 1200;
 
-// Simple in-memory cache
-const cache = new Map<string, { data: any; timestamp: number; ttl: number }>();
+// Cache for KB data
+let kbCache: { approved_claims: string[], services: any[] } | null = null;
+let kbCacheTimestamp = 0;
+const KB_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
+// Response cache
+const responseCache = new Map<string, { data: any; timestamp: number }>();
+const RESPONSE_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
+
+async function getCachedKB() {
+  const now = Date.now();
+  if (kbCache && (now - kbCacheTimestamp) < KB_CACHE_TTL) {
+    return kbCache;
+  }
+
+  try {
+    const [claimsText, servicesText] = await Promise.all([
+      Deno.readTextFile(new URL('./kb/approved_claims.json', import.meta.url)),
+      Deno.readTextFile(new URL('./kb/services.json', import.meta.url))
+    ]);
+    
+    kbCache = {
+      approved_claims: JSON.parse(claimsText),
+      services: JSON.parse(servicesText)
+    };
+    kbCacheTimestamp = now;
+    
+    logger.info('NeedAgentIQ KB cache refreshed', { 
+      claims: kbCache.approved_claims.length, 
+      services: kbCache.services.length 
+    });
+    
+    return kbCache;
+  } catch (error) {
+    logger.error('Failed to load NeedAgentIQ KB data', { error: error.message });
+    return { approved_claims: [], services: [] };
+  }
+}
 
 function getCacheKey(auditId: string, sectionId: string): string {
   return `${auditId}::${sectionId}`;
-}
-
-function getFromCache(key: string): any | null {
-  const entry = cache.get(key);
-  if (!entry) return null;
-  
-  if (Date.now() > entry.timestamp + entry.ttl) {
-    cache.delete(key);
-    return null;
-  }
-  
-  return entry.data;
-}
-
-function setCache(key: string, data: any, ttlMs: number = 300000): void { // 5min default
-  cache.set(key, {
-    data,
-    timestamp: Date.now(),
-    ttl: ttlMs
-  });
 }
 
 serve(async (req) => {
@@ -95,7 +110,7 @@ serve(async (req) => {
     const body = await req.json();
     const input = NeedAgentIQInputSchema.parse(body);
     
-    const { context, audit, moneyLost, kb } = input;
+    const { context, audit, moneyLost } = input;
     const cacheKey = getCacheKey(context.auditId, context.sectionId);
     
     logger.info('Processing NeedAgentIQ request', { 
@@ -103,11 +118,11 @@ serve(async (req) => {
       sectionId: context.sectionId 
     });
     
-    // Check cache first
-    const cached = getFromCache(cacheKey);
-    if (cached) {
-      logger.info('Cache hit', { cacheKey });
-      return new Response(JSON.stringify(cached), {
+    // Check response cache first
+    const cached = responseCache.get(cacheKey);
+    if (cached && (Date.now() - cached.timestamp) < RESPONSE_CACHE_TTL) {
+      logger.info('NeedAgentIQ cache hit', { cacheKey });
+      return new Response(JSON.stringify(cached.data), {
         status: 200,
         headers: { 
           ...corsHeaders, 
@@ -117,8 +132,8 @@ serve(async (req) => {
       });
     }
 
-    // Validate KB slice
-    validateKBSlice(kb);
+    // Load KB data from local files
+    const kb = await getCachedKB();
 
     // Load system prompt from environment
     const systemPrompt = Deno.env.get('NEEDAGENT_IQ_SYSTEM_PROMPT');
@@ -131,6 +146,12 @@ serve(async (req) => {
     if (!anthropicApiKey) {
       throw new Error('ANTHROPIC_API_KEY environment variable not found');
     }
+
+    // Build enhanced input with KB data
+    const enhancedInput = {
+      ...input,
+      kb
+    };
 
     // Call Anthropic API
     let insights: NeedAgentIQOutput = [];
@@ -149,7 +170,7 @@ serve(async (req) => {
           messages: [
             {
               role: 'user',
-              content: JSON.stringify(input)
+              content: JSON.stringify(enhancedInput)
             }
           ],
           system: systemPrompt
@@ -186,7 +207,7 @@ serve(async (req) => {
     const processingTime = Date.now() - startTime;
     
     // Cache the response
-    setCache(cacheKey, insights);
+    responseCache.set(cacheKey, { data: insights, timestamp: Date.now() });
     
     logger.info('NeedAgentIQ processed successfully', { 
       auditId: context.auditId, 

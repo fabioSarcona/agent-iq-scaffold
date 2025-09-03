@@ -11,7 +11,7 @@ import { calculateTypingDelay } from '@/lib/typingUtils';
 import { LogsToggle } from './LogsToggle';
 import { loadAuditConfig } from './config.loader';
 import { logger } from '@/lib/logger';
-import type { AuditConfig } from './types';
+import { supabase } from '@/integrations/supabase/client';
 
 interface AuditEngineProps {
   industry: 'dental' | 'hvac';
@@ -121,36 +121,50 @@ export function AuditEngine({ industry }: AuditEngineProps) {
         completedSectionsCount: config.sections.filter((_, idx) => isSectionComplete(idx)).length
       });
 
-      const { requestNeedAgentIQ } = await import('@modules/ai/needagentiq/client');
-      
       // Get completed sections
       const completedSections = config.sections
         .map((section, idx) => ({ section, idx }))
         .filter(({ idx }) => isSectionComplete(idx))
         .map(({ section }) => section.id);
       
-      // Create minimal payload
+      // Create payload for NeedAgentIQ
       const payload = {
-        auditId: `audit-${Date.now()}`,
-        auditType: vertical,
-        sectionId: currentSection.id,
-        completedSections,
-        timestamp: new Date().toISOString(),
-        answers,
-        kb: {
-          services: [], // Will be populated by edge function from KB
-          approved_claims: [] // Will be populated by edge function from KB  
-        }
+        context: {
+          auditId: `audit-${Date.now()}`,
+          auditType: vertical,
+          sectionId: currentSection.id,
+          business: {
+            name: String(answers.business_name || "Business"),
+            location: String(answers.location || "Unknown")
+          },
+          settings: {
+            currency: "USD" as const,
+            locale: "en-US" as const
+          }
+        },
+        audit: {
+          responses: Object.entries(answers).map(([key, value]) => ({
+            key,
+            value
+          }))
+        },
+        moneyLost: undefined // Will be calculated by server if needed
       };
       
-      const insights = await requestNeedAgentIQ(payload);
+      const { data: insights, error } = await supabase.functions.invoke('ai_needagentiq', {
+        body: payload,
+      });
+      
+      if (error) {
+        throw new Error(error.message || 'Failed to generate insights');
+      }
       
       logger.event('iq_request_success', {
         sectionId: currentSection.id,
-        insightsCount: insights.length
+        insightsCount: Array.isArray(insights) ? insights.length : 0
       });
       
-      if (insights.length > 0) {
+      if (Array.isArray(insights) && insights.length > 0) {
         appendInsights(insights);
       }
     } catch (error) {

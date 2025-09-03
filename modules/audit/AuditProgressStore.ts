@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { AuditConfig, AuditSection, AuditQuestion, ScoreSummary } from './types';
-import type { NeedAgentIQInsight } from '@modules/ai/needagentiq/types';
+import type { NeedAgentIQInsight } from 'supabase/functions/_shared/types';
 import { computeScores } from './scoring';
 
 interface AuditProgressState {

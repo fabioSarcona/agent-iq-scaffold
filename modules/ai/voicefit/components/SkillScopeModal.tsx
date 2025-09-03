@@ -6,8 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Loader2, ExternalLink, CheckCircle, Clock, DollarSign, Zap } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { requestSkillScope, type SkillScopeResponse } from "@modules/ai/skillscope/client";
-import type { SkillScopeInput } from "@modules/ai/skillscope/types";
+import { requestSkillScope, type SkillScopeOutput } from "@modules/skillscope/client";
+import type { SkillScopePayload } from "@modules/skillscope/types";
 
 interface SkillScopeModalProps {
   isOpen: boolean;
@@ -60,7 +60,7 @@ export function SkillScopeModal({
   context,
   kb 
 }: SkillScopeModalProps) {
-  const skillScopeInput: SkillScopeInput = React.useMemo(() => ({
+  const skillScopeInput: SkillScopePayload = React.useMemo(() => ({
     context,
     skill: skillData,
     kb: kb || {

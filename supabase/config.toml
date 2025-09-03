@@ -4,3 +4,7 @@ project_id = "ayplztujgpctozgmdxqy"
 verify_jwt = false
 
 [functions.ai_skillscope]
+verify_jwt = false
+
+[functions.ai_needagentiq]
+verify_jwt = true

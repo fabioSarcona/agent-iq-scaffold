@@ -147,7 +147,7 @@ serve(async (req) => {
         },
         body: JSON.stringify({
           model: NEEDAGENTIQ_MODEL,
-          max_completion_tokens: NEEDAGENTIQ_PARAMS.maxCompletionTokens,
+          max_tokens: NEEDAGENTIQ_PARAMS.maxCompletionTokens,
           messages: [
             {
               role: 'user',

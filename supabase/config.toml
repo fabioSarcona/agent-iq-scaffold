@@ -7,7 +7,10 @@ verify_jwt = true
 verify_jwt = true
 
 [functions.ai_needagentiq]
-verify_jwt = true
+verify_jwt = false
+
+[functions.moneylost_compute]
+verify_jwt = false
 
 [functions.stripe_create_customer]
 verify_jwt = true

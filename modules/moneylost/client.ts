@@ -2,16 +2,10 @@ import type { Vertical, MoneyLostSummary } from './types';
 import { supabase } from '@/integrations/supabase/client';
 
 export async function requestMoneyLost(vertical: Vertical, answers: Record<string, unknown>): Promise<MoneyLostSummary> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session?.access_token) {
-    throw new Error('Authentication required');
-  }
-
   const res = await fetch('/functions/v1/moneylost_compute', {
     method: 'POST',
     headers: { 
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${session.access_token}`
+      'Content-Type': 'application/json'
     },
     body: JSON.stringify({ vertical, answers })
   });

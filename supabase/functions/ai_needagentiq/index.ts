@@ -69,28 +69,8 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // JWT Authentication Check
-  const auth = req.headers.get('Authorization');
-  if (!auth) {
-    return new Response('Unauthorized', { 
-      status: 401, 
-      headers: { ...corsHeaders, 'Content-Type': 'text/plain' }
-    });
-  }
-
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-  const sb = createClient(supabaseUrl, supabaseAnonKey, { 
-    global: { headers: { Authorization: auth } } 
-  });
-
-  const { data: { user }, error } = await sb.auth.getUser();
-  if (error || !user) {
-    return new Response('Unauthorized', { 
-      status: 401, 
-      headers: { ...corsHeaders, 'Content-Type': 'text/plain' }
-    });
-  }
+  // Anonymous logging for public access
+  logger.info('Processing anonymous NeedAgentIQ request');
 
   if (req.method !== 'POST') {
     const errorResponse: ErrorResponse = {

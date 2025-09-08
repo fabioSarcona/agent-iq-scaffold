@@ -1,19 +1,23 @@
 import { Button } from '@/components/ui/button'
 import { Moon, Sun } from 'lucide-react'
 import { useTheme } from '@/providers/ThemeProvider'
+import { LanguageSwitcher } from './LanguageSwitcher'
+import { useTranslation } from '@/hooks/useTranslation'
 
 export function TopBar() {
   const { theme, setTheme } = useTheme()
+  const { t } = useTranslation()
 
   return (
     <header className="h-16 glass-nav sticky top-0 z-50 px-6 flex items-center justify-between animate-fade-in-scale">
       <div className="flex items-center space-x-4">
         <h1 className="text-xl md:text-2xl font-bold bg-gradient-glow bg-clip-text text-transparent animate-shimmer">
-          NeedAgent Business Audit
+          {t('app.title')}
         </h1>
       </div>
 
       <div className="flex items-center space-x-2">
+        <LanguageSwitcher />
         <Button
           variant="ghost"
           size="icon"

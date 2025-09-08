@@ -1,0 +1,28 @@
+{
+  "app": {
+    "title": "NeedAgent Business Audit",
+    "start": "Start Audit",
+    "next": "Next",
+    "previous": "Previous",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success"
+  },
+  "navigation": {
+    "home": "Home",
+    "audit": "Audit",
+    "report": "Report",
+    "admin": "Admin"
+  },
+  "audit": {
+    "dental": "Dental Practice Audit",
+    "hvac": "HVAC Business Audit",
+    "startAudit": "Start Your Audit",
+    "description": "Discover how AI-powered voice skills can transform your business"
+  },
+  "language": {
+    "switch": "Switch Language",
+    "english": "English",
+    "italian": "Italiano"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "app": {
+    "title": "Audit Aziendale NeedAgent",
+    "start": "Inizia l'Audit",
+    "next": "Avanti",
+    "previous": "Indietro",
+    "loading": "Caricamento...",
+    "error": "Errore",
+    "success": "Successo"
+  },
+  "navigation": {
+    "home": "Home",
+    "audit": "Audit",
+    "report": "Rapporto",
+    "admin": "Admin"
+  },
+  "audit": {
+    "dental": "Audit Studio Dentistico",
+    "hvac": "Audit Azienda HVAC",
+    "startAudit": "Inizia il Tuo Audit",
+    "description": "Scopri come le competenze vocali basate su AI possono trasformare la tua azienda"
+  },
+  "language": {
+    "switch": "Cambia Lingua",
+    "english": "English",
+    "italian": "Italiano"
+  }
+}

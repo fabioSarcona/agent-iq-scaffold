@@ -2,9 +2,11 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useNavigate } from 'react-router-dom'
 import { Stethoscope, Wrench } from 'lucide-react'
+import { useTranslation } from '@/hooks/useTranslation'
 
 export default function Landing() {
   const navigate = useNavigate()
+  const { t } = useTranslation()
 
   return (
     <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center p-6">
@@ -17,8 +19,7 @@ export default function Landing() {
             </span>
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Get a comprehensive business audit tailored to your industry. 
-            Discover opportunities, identify pain points, and accelerate growth.
+            {t('audit.description')}
           </p>
         </div>
 
@@ -28,7 +29,7 @@ export default function Landing() {
               <div className="w-16 h-16 bg-brand-gradient rounded-full flex items-center justify-center mx-auto mb-4">
                 <Stethoscope className="h-8 w-8 text-white" />
               </div>
-              <CardTitle>Dental Practice</CardTitle>
+              <CardTitle>{t('audit.dental')}</CardTitle>
               <CardDescription>
                 Comprehensive audit for dental offices, clinics, and practices
               </CardDescription>
@@ -38,7 +39,7 @@ export default function Landing() {
                 className="w-full bg-brand-gradient hover:opacity-90" 
                 onClick={() => navigate('/audit/dental')}
               >
-                Start Dental Audit
+                {t('audit.startAudit')}
               </Button>
             </CardContent>
           </Card>
@@ -48,7 +49,7 @@ export default function Landing() {
               <div className="w-16 h-16 bg-brand-gradient rounded-full flex items-center justify-center mx-auto mb-4">
                 <Wrench className="h-8 w-8 text-white" />
               </div>
-              <CardTitle>HVAC Business</CardTitle>
+              <CardTitle>{t('audit.hvac')}</CardTitle>
               <CardDescription>
                 Tailored insights for HVAC contractors and service providers
               </CardDescription>
@@ -58,7 +59,7 @@ export default function Landing() {
                 className="w-full bg-brand-gradient hover:opacity-90"
                 onClick={() => navigate('/audit/hvac')}
               >
-                Start HVAC Audit
+                {t('audit.startAudit')}
               </Button>
             </CardContent>
           </Card>

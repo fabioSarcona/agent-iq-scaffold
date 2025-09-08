@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { Bot, Phone, Calendar, Shield, Users, Settings, Info } from "lucide-react"
+import { useTranslation } from '@/hooks/useTranslation'
 
 interface SolutionCardProps extends React.HTMLAttributes<HTMLDivElement> {
   skillId: string;
@@ -62,6 +63,7 @@ const SolutionCard = React.forwardRef<HTMLDivElement, SolutionCardProps>(
     const actualTitle = title || solution?.title || '';
     const actualRationale = rationale || solution?.rationale || '';
     const actualRecoveryPct = estimatedRecoveryPct || solution?.estimatedRecoveryPct;
+    const { t } = useTranslation('report');
     
     const IconComponent = iconMap[actualTitle as keyof typeof iconMap] || iconMap.default;
 
@@ -98,7 +100,7 @@ const SolutionCard = React.forwardRef<HTMLDivElement, SolutionCardProps>(
             {actualRecoveryPct && (
               <div className="pt-2 border-t border-border/50">
                 <p className="text-xs font-medium text-primary">
-                  Estimated recovery: {actualRecoveryPct[0]}–{actualRecoveryPct[1]}%
+                  {t('solution.estimated_recovery')}: {actualRecoveryPct[0]}–{actualRecoveryPct[1]}%
                 </p>
               </div>
             )}
@@ -111,7 +113,7 @@ const SolutionCard = React.forwardRef<HTMLDivElement, SolutionCardProps>(
                   className="w-full"
                 >
                   <Info className="h-4 w-4 mr-2" />
-                  Learn More
+                  {t('solution.learn_more')}
                 </Button>
               </div>
             )}

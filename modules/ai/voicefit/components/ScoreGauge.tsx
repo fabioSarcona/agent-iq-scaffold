@@ -1,5 +1,6 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
+import { useTranslation } from '@/hooks/useTranslation'
 
 interface ScoreGaugeProps {
   score: number
@@ -14,13 +15,14 @@ const ScoreGauge = React.forwardRef<HTMLDivElement, ScoreGaugeProps>(
     const circumference = normalizedRadius * 2 * Math.PI
     const strokeDasharray = `${circumference} ${circumference}`
     const strokeDashoffset = circumference - (score / 100) * circumference
+    const { t } = useTranslation('report')
 
     // Determine band and color based on score
     const getBand = (score: number) => {
-      if (score <= 25) return { band: 'Crisis', color: 'hsl(var(--destructive))' }
-      if (score <= 50) return { band: 'Optimization Needed', color: 'hsl(45, 93%, 47%)' }
-      if (score <= 75) return { band: 'Growth Ready', color: 'hsl(225, 64%, 47%)' }
-      return { band: 'AI-Optimized', color: 'hsl(120, 60%, 50%)' }
+      if (score <= 25) return { band: t('score.band_crisis'), color: 'hsl(var(--destructive))' }
+      if (score <= 50) return { band: t('score.band_optimization'), color: 'hsl(45, 93%, 47%)' }
+      if (score <= 75) return { band: t('score.band_growth'), color: 'hsl(225, 64%, 47%)' }
+      return { band: t('score.band_optimized'), color: 'hsl(120, 60%, 50%)' }
     }
 
     const { band, color } = getBand(score)
@@ -59,13 +61,13 @@ const ScoreGauge = React.forwardRef<HTMLDivElement, ScoreGaugeProps>(
           {/* Score text centered */}
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <span className="text-4xl font-bold text-foreground">{score}</span>
-            <span className="text-sm text-muted-foreground">/ 100</span>
+            <span className="text-sm text-muted-foreground">{t('score.out_of')}</span>
           </div>
         </div>
         {/* Band label */}
         <div className="text-center">
           <div className="text-lg font-semibold text-foreground">{band}</div>
-          <div className="text-sm text-muted-foreground">Business Readiness</div>
+          <div className="text-sm text-muted-foreground">{t('score.readiness')}</div>
         </div>
       </div>
     )

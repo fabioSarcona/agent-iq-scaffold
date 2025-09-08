@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { validateQuestion } from './validators';
 import type { AuditQuestion } from './types';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface QuestionRendererProps {
   question: AuditQuestion;
@@ -26,6 +27,7 @@ export function QuestionRenderer({
 }: QuestionRendererProps) {
   const [validationError, setValidationError] = useState<string>();
   const [isValid, setIsValid] = useState(false);
+  const { t } = useTranslation('audit');
 
   // Validate whenever value changes
   useEffect(() => {
@@ -72,7 +74,7 @@ export function QuestionRenderer({
             type="number"
             value={value as number || ''}
             onChange={(e) => onValueChange(e.target.value ? Number(e.target.value) : '')}
-            placeholder={question.placeholder || "Enter a number"}
+            placeholder={question.placeholder || t('questions.placeholder_number')}
             min={question.min}
             max={question.max}
             step={question.step}
@@ -90,7 +92,7 @@ export function QuestionRenderer({
               type="number"
               value={value as number || ''}
               onChange={(e) => onValueChange(e.target.value ? Number(e.target.value) : '')}
-              placeholder={question.placeholder || "0.00"}
+              placeholder={question.placeholder || t('questions.placeholder_currency')}
               min={question.min || 0}
               max={question.max}
               step="0.01"
@@ -104,13 +106,13 @@ export function QuestionRenderer({
           <Textarea
             value={value as string || ''}
             onChange={(e) => onValueChange(e.target.value)}
-            placeholder={question.placeholder || "Type your answer here..."}
+            placeholder={question.placeholder || t('questions.placeholder_text')}
             className="min-h-[120px] resize-none"
           />
         );
 
       default:
-        return <div className="text-muted-foreground">Unsupported question type</div>;
+        return <div className="text-muted-foreground">{t('questions.unsupported_type')}</div>;
     }
   };
 
@@ -151,7 +153,7 @@ export function QuestionRenderer({
             size="lg"
             className={!canGoBack ? 'invisible' : 'flex-1 sm:flex-none min-w-[120px]'}
           >
-            ← Back
+            {t('questions.back')}
           </Button>
           
           <Button
@@ -160,7 +162,7 @@ export function QuestionRenderer({
             size="lg"
             className="flex-1 sm:flex-none min-w-[120px] font-semibold"
           >
-            Next →
+            {t('questions.next')}
           </Button>
         </div>
       </div>

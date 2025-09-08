@@ -1,5 +1,6 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface ScoreIndicatorProps {
   sectionTitle: string;
@@ -17,6 +18,7 @@ export function ScoreIndicator({
   const isComplete = questionsAnswered === totalQuestions;
   const progressText = `${questionsAnswered}/${totalQuestions} questions`;
   const progressPercentage = (questionsAnswered / totalQuestions) * 100;
+  const { t } = useTranslation('audit');
 
   return (
     <Card className="w-full">
@@ -45,7 +47,7 @@ export function ScoreIndicator({
                 variant={isComplete ? "success" : "outline"}
                 size="default"
               >
-                {isComplete ? "Complete" : "In Progress"}
+                {isComplete ? t('score_indicator.complete') : t('score_indicator.in_progress')}
               </Badge>
             )}
           </div>

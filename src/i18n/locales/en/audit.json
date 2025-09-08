@@ -1,0 +1,34 @@
+{
+  "progress": {
+    "section": "Section",
+    "question": "Q",
+    "overall_score": "Overall Score",
+    "restart_audit": "Restart audit",
+    "restart_title": "Restart audit?",
+    "restart_description": "This will clear all your answers and start the audit from the beginning. This action cannot be undone.",
+    "cancel": "Cancel",
+    "yes_restart": "Yes, restart"
+  },
+  "questions": {
+    "back": "← Back",
+    "next": "Next →",
+    "placeholder_number": "Enter a number",
+    "placeholder_currency": "0.00",
+    "placeholder_text": "Type your answer here...",
+    "unsupported_type": "Unsupported question type"
+  },
+  "completion": {
+    "title": "Great! You've completed the audit.",
+    "description": "Let's see how much money you could be losing and how our AI assistant can help.",
+    "button": "See how much you're losing"
+  },
+  "errors": {
+    "failed_to_load": "Failed to load audit questions",
+    "retry": "Retry"
+  },
+  "loading": "Loading...",
+  "score_indicator": {
+    "complete": "Complete",
+    "in_progress": "In Progress"
+  }
+}

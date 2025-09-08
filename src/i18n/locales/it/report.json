@@ -1,0 +1,41 @@
+{
+  "header": {
+    "title": "Valutazione Finale — Report VoiceFit™",
+    "subtitle": "Analisi aziendale completa con raccomandazioni basate su AI"
+  },
+  "score": {
+    "title": "Il Tuo Punteggio di Preparazione AI Aziendale",
+    "out_of": "/ 100",
+    "band_crisis": "Crisi",
+    "band_optimization": "Necessita Ottimizzazione",
+    "band_growth": "Pronto per la Crescita",
+    "band_optimized": "Ottimizzato per AI",
+    "readiness": "Preparazione Aziendale"
+  },
+  "sections": {
+    "diagnosis": "Diagnosi",
+    "diagnosis_description": "Risultati chiave dall'analisi aziendale",
+    "consequences": "Conseguenze",
+    "consequences_description": "Impatto quantificato delle inefficienze",
+    "solutions": "Soluzioni Vocali AI",
+    "solutions_description": "Capacità di automazione raccomandate per la tua azienda",
+    "faq": "Domande Frequenti",
+    "faq_description": "Preoccupazioni comuni sull'implementazione AI",
+    "plan": "Piano Raccomandato"
+  },
+  "solution": {
+    "learn_more": "Scopri di Più",
+    "estimated_recovery": "Recupero stimato"
+  },
+  "plan": {
+    "per_month": "/mese",
+    "included_features": "Funzionalità Incluse",
+    "available_addons": "Add-on Disponibili",
+    "get_started": "Inizia"
+  },
+  "loading": "Generazione del tuo Report VoiceFit...",
+  "error": {
+    "title": "Errore nella Generazione del Report",
+    "message": "Si è verificato un errore imprevisto"
+  }
+}

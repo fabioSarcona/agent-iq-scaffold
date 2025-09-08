@@ -1,0 +1,41 @@
+{
+  "header": {
+    "title": "Final Evaluation — VoiceFit Report™",
+    "subtitle": "Comprehensive business analysis with AI-powered recommendations"
+  },
+  "score": {
+    "title": "Your Business AI Readiness Score",
+    "out_of": "/ 100",
+    "band_crisis": "Crisis",
+    "band_optimization": "Optimization Needed",
+    "band_growth": "Growth Ready",
+    "band_optimized": "AI-Optimized",
+    "readiness": "Business Readiness"
+  },
+  "sections": {
+    "diagnosis": "Diagnosis",
+    "diagnosis_description": "Key findings from your business analysis",
+    "consequences": "Consequences",
+    "consequences_description": "Quantified impact of inefficiencies",
+    "solutions": "AI Voice Solutions",
+    "solutions_description": "Recommended automation capabilities for your business",
+    "faq": "Frequently Asked Questions",
+    "faq_description": "Common concerns about AI implementation",
+    "plan": "Recommended Plan"
+  },
+  "solution": {
+    "learn_more": "Learn More",
+    "estimated_recovery": "Estimated recovery"
+  },
+  "plan": {
+    "per_month": "/month",
+    "included_features": "Included Features",
+    "available_addons": "Available Add-ons",
+    "get_started": "Get Started"
+  },
+  "loading": "Generating your VoiceFit Report...",
+  "error": {
+    "title": "Error Generating Report",
+    "message": "An unexpected error occurred"
+  }
+}

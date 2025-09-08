@@ -4,13 +4,19 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { CheckCircle, ArrowRight } from "lucide-react"
 import type { RecommendedPlan } from "../report.types"
+import { useTranslation } from '@/hooks/useTranslation'
 
 interface PlanCardProps extends React.HTMLAttributes<HTMLDivElement> {
-  plan: RecommendedPlan
+  name: string;
+  priceMonthlyUsd: number;
+  inclusions: string[];
+  addons?: string[];
 }
 
 const PlanCard = React.forwardRef<HTMLDivElement, PlanCardProps>(
-  ({ className, plan, ...props }, ref) => {
+  ({ className, name, priceMonthlyUsd, inclusions, addons, ...props }, ref) => {
+    const { t } = useTranslation('report');
+    
     const formatPrice = (price: number) => {
       return new Intl.NumberFormat('en-US', { 
         style: 'currency', 
@@ -29,10 +35,10 @@ const PlanCard = React.forwardRef<HTMLDivElement, PlanCardProps>(
         {...props}
       >
         <CardHeader className="text-center pb-6">
-          <CardTitle className="text-2xl font-bold text-foreground">{plan.name}</CardTitle>
+          <CardTitle className="text-2xl font-bold text-foreground">{name}</CardTitle>
           <div className="flex items-baseline justify-center space-x-1 mt-2">
-            <span className="text-4xl font-bold text-primary">{formatPrice(plan.priceMonthlyUsd)}</span>
-            <span className="text-muted-foreground font-medium">/month</span>
+            <span className="text-4xl font-bold text-primary">{formatPrice(priceMonthlyUsd)}</span>
+            <span className="text-muted-foreground font-medium">{t('plan.per_month')}</span>
           </div>
         </CardHeader>
         
@@ -40,9 +46,9 @@ const PlanCard = React.forwardRef<HTMLDivElement, PlanCardProps>(
           <div className="grid gap-6 md:grid-cols-2">
             {/* Inclusions */}
             <div>
-              <h4 className="font-semibold text-foreground mb-4">Included Features</h4>
+              <h4 className="font-semibold text-foreground mb-4">{t('plan.included_features')}</h4>
               <ul className="space-y-3">
-                {plan.inclusions.map((inclusion, index) => (
+                {inclusions.map((inclusion, index) => (
                   <li key={index} className="flex items-start space-x-3 text-sm">
                     <CheckCircle className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
                     <span className="text-foreground leading-relaxed">{inclusion}</span>
@@ -52,11 +58,11 @@ const PlanCard = React.forwardRef<HTMLDivElement, PlanCardProps>(
             </div>
             
             {/* Add-ons */}
-            {plan.addons && plan.addons.length > 0 && (
+            {addons && addons.length > 0 && (
               <div>
-                <h4 className="font-semibold text-foreground mb-4">Available Add-ons</h4>
+                <h4 className="font-semibold text-foreground mb-4">{t('plan.available_addons')}</h4>
                 <ul className="space-y-3">
-                  {plan.addons.map((addon, index) => (
+                  {addons.map((addon, index) => (
                     <li key={index} className="flex items-start space-x-3 text-sm">
                       <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-0.5" />
                       <span className="text-muted-foreground leading-relaxed">{addon}</span>
@@ -69,7 +75,7 @@ const PlanCard = React.forwardRef<HTMLDivElement, PlanCardProps>(
           
           <div className="text-center pt-6">
             <Button size="lg" className="bg-brand-gradient text-white hover:opacity-90 transition-opacity">
-              Get Started
+              {t('plan.get_started')}
             </Button>
           </div>
         </CardContent>

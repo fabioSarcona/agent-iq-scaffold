@@ -11,6 +11,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface ProgressBarProps {
   currentSection: number;
@@ -29,36 +30,37 @@ export function ProgressBar({
   overallScore,
   onRestart
 }: ProgressBarProps) {
+  const { t } = useTranslation('audit');
+  
   return (
     <div className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
       <div className="container max-w-4xl mx-auto px-4 py-3">
         <div className="flex items-center justify-between mb-3">
           <div className="text-sm font-medium text-foreground">
-            Section {currentSection + 1} · Q {currentQuestion + 1}/{totalQuestionsInSection}
+            {t('progress.section')} {currentSection + 1} · {t('progress.question')} {currentQuestion + 1}/{totalQuestionsInSection}
           </div>
           
           <div className="flex items-center gap-3">
             <div className="text-xs font-medium text-muted-foreground">
-              Overall Score: <span className="text-primary">{overallScore}/100</span>
+              {t('progress.overall_score')}: <span className="text-primary">{overallScore}/100</span>
             </div>
             <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button variant="outline" size="sm">
-                Restart audit
+                {t('progress.restart_audit')}
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Restart audit?</AlertDialogTitle>
+                <AlertDialogTitle>{t('progress.restart_title')}</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will clear all your answers and start the audit from the beginning. 
-                  This action cannot be undone.
+                  {t('progress.restart_description')}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogCancel>{t('progress.cancel')}</AlertDialogCancel>
                 <AlertDialogAction onClick={onRestart}>
-                  Yes, restart
+                  {t('progress.yes_restart')}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>

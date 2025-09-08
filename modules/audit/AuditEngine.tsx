@@ -7,6 +7,7 @@ import { useAuditProgressStore } from './AuditProgressStore';
 import { QuestionRenderer } from './QuestionRenderer';
 import { ProgressBar } from './ProgressBar';
 import { ScoreIndicator } from './ScoreIndicator';
+import { useTranslation } from '@/hooks/useTranslation';
 /**
  * Calculate typing delay based on message length
  * ≤20 chars: 100+20ms/char
@@ -37,6 +38,7 @@ export function AuditEngine({ industry }: AuditEngineProps) {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(true);
   const [showCurrentQuestion, setShowCurrentQuestion] = useState(false);
+  const { t } = useTranslation('audit');
   
   const {
     setVertical,
@@ -218,9 +220,9 @@ export function AuditEngine({ industry }: AuditEngineProps) {
       <div className="min-h-screen bg-background">
         <div className="container max-w-4xl mx-auto px-4 py-20">
           <div className="text-center">
-            <p className="text-destructive">Failed to load audit questions</p>
+            <p className="text-destructive">{t('errors.failed_to_load')}</p>
             <Button onClick={() => window.location.reload()} className="mt-4">
-              Retry
+              {t('errors.retry')}
             </Button>
           </div>
         </div>
@@ -290,17 +292,17 @@ export function AuditEngine({ industry }: AuditEngineProps) {
           {isAtEnd() && answers[currentQuestion.id] && (
             <div className="text-center pt-6 border-t">
               <h3 className="text-lg font-medium mb-2">
-                Great! You've completed the audit.
+                {t('completion.title')}
               </h3>
               <p className="text-muted-foreground mb-4">
-                Let's see how much money you could be losing and how our AI assistant can help.
+                {t('completion.description')}
               </p>
               <Button 
                 onClick={() => navigate('/moneylost')}
                 size="lg"
                 className="bg-brand-gradient hover:opacity-90 text-white"
               >
-                See how much you're losing
+                {t('completion.button')}
               </Button>
             </div>
           )}

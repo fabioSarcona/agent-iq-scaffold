@@ -1,0 +1,34 @@
+{
+  "progress": {
+    "section": "Sezione",
+    "question": "D",
+    "overall_score": "Punteggio Generale",
+    "restart_audit": "Riavvia audit",
+    "restart_title": "Riavviare l'audit?",
+    "restart_description": "Questo cancellerà tutte le tue risposte e ricomincerà l'audit dall'inizio. Questa azione non può essere annullata.",
+    "cancel": "Annulla",
+    "yes_restart": "Sì, riavvia"
+  },
+  "questions": {
+    "back": "← Indietro",
+    "next": "Avanti →",
+    "placeholder_number": "Inserisci un numero",
+    "placeholder_currency": "0,00",
+    "placeholder_text": "Scrivi la tua risposta qui...",
+    "unsupported_type": "Tipo di domanda non supportato"
+  },
+  "completion": {
+    "title": "Ottimo! Hai completato l'audit.",
+    "description": "Vediamo quanto denaro potresti star perdendo e come il nostro assistente AI può aiutarti.",
+    "button": "Vedi quanto stai perdendo"
+  },
+  "errors": {
+    "failed_to_load": "Impossibile caricare le domande dell'audit",
+    "retry": "Riprova"
+  },
+  "loading": "Caricamento...",
+  "score_indicator": {
+    "complete": "Completato",
+    "in_progress": "In Corso"
+  }
+}

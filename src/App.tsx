@@ -15,6 +15,7 @@ import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 import SkillScopePage from "./pages/SkillScope";
 import { DevConsole } from "./pages/DevConsole";
+import { Billing } from "./pages/Billing";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -38,6 +39,7 @@ const App = () => (
                 <Route path="audit/hvac" element={<AuditHVAC />} />
                 <Route path="moneylost" element={<MoneyLost />} />
                 <Route path="report" element={<Report />} />
+                <Route path="billing" element={<Billing />} />
                 <Route path="admin" element={<Admin />} />
                 <Route path="skills/:id" element={<SkillScopePage />} />
                 {process.env.NODE_ENV !== 'production' && <Route path="dev" element={<DevConsole />} />}

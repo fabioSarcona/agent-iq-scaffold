@@ -255,7 +255,7 @@ export const NeedAgentIQInputSchema = z.object({
   kb: z.object({
     approved_claims: z.array(z.string()),
     services: z.array(KBServiceSchema)
-  }),
+  }).optional(),
   history: z.object({
     previousInsights: z.array(z.string()).optional(),
     lastTriggered: z.string().optional()

@@ -6,7 +6,7 @@ export { MoneyLostSummaryCard, LossAreaCard, DisclaimerNote } from './components
 
 // Types
 export type * from './types'
-export type * from './moneylost.types'
+// export type * from './moneylost.types' // Legacy types - causes collision with types.ts
 
 // Utilities
 export { calculateMoneyLost } from './moneylost'

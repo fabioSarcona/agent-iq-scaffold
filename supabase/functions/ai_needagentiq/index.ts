@@ -34,6 +34,8 @@ async function getCachedKB() {
   }
 
   try {
+    logger.info('Loading KB files from path', { importMetaUrl: import.meta.url });
+    
     const [claimsText, servicesText] = await Promise.all([
       Deno.readTextFile(new URL('./kb/approved_claims.json', import.meta.url)),
       Deno.readTextFile(new URL('./kb/services.json', import.meta.url))
@@ -170,15 +172,24 @@ serve(async (req) => {
       const anthropicData = await anthropicResponse.json();
       const content = anthropicData.content?.[0]?.text;
       
+      logger.info('Anthropic response received', { 
+        hasContent: !!content,
+        contentLength: content?.length || 0,
+        responseStructure: Object.keys(anthropicData)
+      });
+      
       if (content) {
         try {
           insights = JSON.parse(content);
+          logger.info('Parsed insights', { insightsCount: insights.length });
           // Validate output
           NeedAgentIQOutputSchema.parse(insights);
         } catch (parseError) {
           logger.error('Failed to parse LLM response', { content, parseError });
           insights = []; // Fallback to empty array
         }
+      } else {
+        logger.warn('No content in Anthropic response', { anthropicData });
       }
     } catch (llmError) {
       logger.error('LLM processing failed', { error: llmError.message });

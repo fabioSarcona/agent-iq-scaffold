@@ -107,3 +107,65 @@ export function useROICalculation(totals: SimulationTotals) {
     roiColor,
   }
 }
+
+/**
+ * Hook for saving simulation data
+ */
+export function useSaveSimulation() {
+  const [isSaving, setIsSaving] = useState(false)
+  const [isSuccess, setIsSuccess] = useState(false)
+  
+  const saveSimulation = useCallback(async (data: any) => {
+    setIsSaving(true)
+    
+    try {
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 1500))
+      
+      // Save to localStorage (simulate backend)
+      const simulationId = `sim_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      const simulationData = {
+        id: simulationId,
+        ...data,
+        saved_at: new Date().toISOString()
+      }
+      
+      // Store in localStorage
+      const existingSimulations = JSON.parse(localStorage.getItem('revenue_simulations') || '[]')
+      existingSimulations.push(simulationData)
+      localStorage.setItem('revenue_simulations', JSON.stringify(existingSimulations))
+      
+      // Log analytics event (anonymized)
+      console.log('Analytics Event: revenue_simulation_saved', {
+        simulation_id: simulationId,
+        vertical: data.metadata.vertical,
+        business_size: data.metadata.business_size,
+        active_skills: data.totals.activeSkillsCount,
+        net_roi: data.totals.netROI,
+        roi_percentage: data.totals.roiPercentage,
+        timestamp: data.metadata.timestamp
+        // Note: email is NOT logged for privacy
+      })
+      
+      setIsSuccess(true)
+      
+    } catch (error) {
+      console.error('Error saving simulation:', error)
+      throw error
+    } finally {
+      setIsSaving(false)
+    }
+  }, [])
+  
+  const resetState = useCallback(() => {
+    setIsSaving(false)
+    setIsSuccess(false)
+  }, [])
+  
+  return {
+    saveSimulation,
+    isSaving,
+    isSuccess,
+    resetState
+  }
+}

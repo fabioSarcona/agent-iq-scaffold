@@ -8,6 +8,9 @@ import { DollarSign, TrendingUp, Calculator, BarChart3 } from 'lucide-react'
 import type { RevenueSimulatorProps } from './types'
 import { useSimulator, useROICalculation } from './hooks'
 import { formatCurrency, formatPercentage } from './utils'
+import { CTA } from './CTA'
+import { SaveForm } from './SaveForm'
+import { ROIChart } from './Chart'
 
 export function RevenueSimulator({ 
   insights, 
@@ -23,6 +26,9 @@ export function RevenueSimulator({
   })
 
   const { roiColor, hasActiveSkills } = useROICalculation(totals)
+  
+  // Save form state
+  const [isSaveFormOpen, setIsSaveFormOpen] = React.useState(false)
 
   // Show empty state if no insights
   if (insights.length === 0) {
@@ -208,6 +214,9 @@ export function RevenueSimulator({
         </div>
       </div>
 
+      {/* ROI Chart */}
+      <ROIChart skills={skills} />
+
       {/* Summary Note */}
       <Card>
         <CardContent className="p-4">
@@ -223,6 +232,22 @@ export function RevenueSimulator({
           </div>
         </CardContent>
       </Card>
+
+      {/* Conversion CTA */}
+      <CTA 
+        totals={totals} 
+        onGetPlan={() => setIsSaveFormOpen(true)} 
+      />
+
+      {/* Save Form Modal */}
+      <SaveForm
+        isOpen={isSaveFormOpen}
+        onClose={() => setIsSaveFormOpen(false)}
+        totals={totals}
+        skills={skills}
+        vertical={vertical}
+        businessSize={businessSize}
+      />
     </div>
   )
 }

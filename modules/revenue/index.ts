@@ -1,4 +1,7 @@
 export { RevenueSimulator } from './RevenueSimulator'
+export { CTA } from './CTA'
+export { SaveForm } from './SaveForm'
+export { ROIChart } from './Chart'
 export type { 
   RevenueSimulatorProps, 
   Insight, 

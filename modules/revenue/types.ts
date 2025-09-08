@@ -55,6 +55,20 @@ export const SimulationTotalsSchema = z.object({
 
 export type SimulationTotals = z.infer<typeof SimulationTotalsSchema>
 
+// Save simulation types
+export const SaveSimulationDataSchema = z.object({
+  email: z.string().email(),
+  totals: SimulationTotalsSchema,
+  skills: z.array(SimulatableSkillSchema),
+  metadata: z.object({
+    vertical: z.string(),
+    businessSize: z.string(),
+    timestamp: z.string(),
+  })
+})
+
+export type SaveSimulationData = z.infer<typeof SaveSimulationDataSchema>
+
 // Component props
 export const RevenueSimulatorPropsSchema = z.object({
   insights: z.array(InsightSchema),

@@ -20,6 +20,10 @@ import { SkillScopeOverlay } from '@modules/skillscope/components/SkillScopeOver
 // KB utilities are now handled by edge functions
 import type { SkillScopePayload } from '@modules/skillscope/types'
 
+// Import Revenue Simulator
+import { RevenueSimulator, mapSolutionToInsight } from '../../modules/revenue'
+import type { MoneyLostSummary } from '../../modules/moneylost/types'
+
 export default function Report() {
   const { vertical, answers } = useAuditProgressStore()
   const currentVertical = (vertical || 'dental') as 'dental' | 'hvac'
@@ -103,6 +107,33 @@ export default function Report() {
     const solution = reportData.solutions.find(s => s.skillId === selectedSkill)
     return solution ? createSkillScopePayload(selectedSkill, solution.title) : null
   }, [selectedSkill, reportData, createSkillScopePayload])
+
+  // Revenue Simulator data preparation
+  const revenueSimulatorData = React.useMemo(() => {
+    if (!reportData) return null
+
+    // Create mock money lost data structure for simulator
+    const mockMoneyLost = {
+      dailyUsd: 250,
+      monthlyUsd: 5500,
+      annualUsd: 66000,
+      areas: []
+    }
+
+    // Convert solutions to insights with base monthly impact
+    const baseMonthlyImpact = mockMoneyLost.monthlyUsd / reportData.solutions.length
+    const insights = reportData.solutions.map(solution => 
+      mapSolutionToInsight(solution, baseMonthlyImpact)
+    )
+
+    return {
+      insights,
+      moneyLost: mockMoneyLost,
+      pricing: { setup: 2500, monthly: 299 },
+      vertical: (currentVertical === 'dental' ? 'dental' : 'hvac') as 'dental' | 'hvac',
+      businessSize: 'Medium' as const,
+    }
+  }, [reportData, currentVertical])
   
   if (isLoading) {
     return (
@@ -219,6 +250,11 @@ export default function Report() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Revenue Simulator Section */}
+      {revenueSimulatorData && (
+        <RevenueSimulator {...revenueSimulatorData} />
+      )}
 
       {/* FAQ Section */}
       <Card>

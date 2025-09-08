@@ -10,5 +10,5 @@ export type * from './types'
 
 // Utilities
 export { calculateMoneyLost } from './moneylost'
-export { getSeverityColor, getSeverityLabel } from './severity'
+export { getSeverityColor, getSeverityLabel, severityFromDaily } from './severity'
 export { BENCHMARKS } from './benchmarks'

@@ -1,30 +1,35 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { BillingStatusCard, PricingPlans } from '../../modules/billing';
 import type { PricingPlan } from '../../modules/billing';
+import { useToast } from '@/hooks/use-toast';
 
-// Sample pricing plans - these would typically come from your backend/Stripe
-const SAMPLE_PLANS: PricingPlan[] = [
+// Pricing plans with actual Stripe price IDs
+const PRICING_PLANS: PricingPlan[] = [
   {
-    id: 'basic',
-    name: 'Basic',
+    id: 'starter',
+    name: 'Starter',
     description: 'Perfect for small businesses getting started',
-    price: 2900, // $29.00 in cents
-    currency: 'usd',
-    interval: 'month',
-    features: [
-      'Up to 5 audits per month',
-      'Basic AI insights',
-      'Email support',
-      'Standard reports'
-    ]
-  },
-  {
-    id: 'professional',
-    name: 'Professional',
-    description: 'Ideal for growing businesses',
     price: 4900, // $49.00 in cents
     currency: 'usd',
     interval: 'month',
+    stripe_price_id: 'price_starter_monthly', // Replace with actual Stripe price ID
+    features: [
+      'Up to 50 audits per month',
+      'Basic AI insights',
+      'Email support',
+      'Standard reports',
+      'Dashboard analytics'
+    ]
+  },
+  {
+    id: 'growth',
+    name: 'Growth',
+    description: 'Ideal for growing businesses',
+    price: 9900, // $99.00 in cents
+    currency: 'usd',
+    interval: 'month',
+    stripe_price_id: 'price_growth_monthly', // Replace with actual Stripe price ID
     recommended: true,
     features: [
       'Unlimited audits',
@@ -32,23 +37,26 @@ const SAMPLE_PLANS: PricingPlan[] = [
       'Priority support',
       'Custom reports',
       'API access',
-      'Team collaboration'
+      'Team collaboration',
+      'White-label options'
     ]
   },
   {
-    id: 'enterprise',
-    name: 'Enterprise',
+    id: 'elite',
+    name: 'Elite',
     description: 'For large organizations with custom needs',
-    price: 9900, // $99.00 in cents
+    price: 19900, // $199.00 in cents
     currency: 'usd',
     interval: 'month',
+    stripe_price_id: 'price_elite_monthly', // Replace with actual Stripe price ID
     features: [
-      'Everything in Professional',
+      'Everything in Growth',
       'Custom AI training',
-      'Dedicated support',
+      'Dedicated support manager',
       'SLA guarantee',
       'Custom integrations',
-      'Advanced analytics'
+      'Advanced analytics',
+      'Multi-tenant deployment'
     ]
   }
 ];
@@ -56,19 +64,48 @@ const SAMPLE_PLANS: PricingPlan[] = [
 export function Billing() {
   const [selectedPlan, setSelectedPlan] = useState<string | undefined>();
   const [loading, setLoading] = useState(false);
+  const { toast } = useToast();
+
+  // Check for success/cancel URL parameters
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('success') === 'true') {
+      toast({
+        title: "Subscription successful!",
+        description: "Your subscription has been activated.",
+      });
+      // Clean up URL parameters
+      window.history.replaceState({}, document.title, window.location.pathname);
+    } else if (urlParams.get('canceled') === 'true') {
+      toast({
+        title: "Subscription canceled",
+        description: "You can try again anytime.",
+        variant: "destructive",
+      });
+      // Clean up URL parameters
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [toast]);
 
   const handleSelectPlan = async (planId: string) => {
     setLoading(true);
     try {
-      // TODO: Implement checkout flow
-      console.log('Selected plan:', planId);
-      setSelectedPlan(planId);
-      
-      // This is where you would create a Stripe checkout session
-      // await createCheckoutSession(planId);
+      const plan = PRICING_PLANS.find(p => p.id === planId);
+      if (!plan) throw new Error('Plan not found');
+
+      const { data, error } = await supabase.functions.invoke('stripe_checkout', {
+        body: { price_id: plan.stripe_price_id }
+      });
+
+      if (error) throw error;
+
+      // Open Stripe checkout in a new tab
+      if (data?.checkout_url) {
+        window.open(data.checkout_url, '_blank');
+      }
       
     } catch (error) {
-      console.error('Error selecting plan:', error);
+      console.error('Error creating checkout session:', error);
     } finally {
       setLoading(false);
     }
@@ -96,7 +133,7 @@ export function Billing() {
         </div>
         
         <PricingPlans 
-          plans={SAMPLE_PLANS}
+          plans={PRICING_PLANS}
           currentPlanId={selectedPlan}
           onSelectPlan={handleSelectPlan}
           loading={loading}

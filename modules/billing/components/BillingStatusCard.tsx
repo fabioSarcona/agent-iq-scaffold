@@ -2,9 +2,15 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, CreditCard, Calendar, User } from 'lucide-react';
+import { Loader2, CreditCard, Calendar, User, ExternalLink } from 'lucide-react';
 import { billingClient } from '../client';
 import type { BillingCustomer, SubscriptionStatus } from '../types';
+
+const PLAN_NAMES: Record<string, string> = {
+  'price_starter_monthly': 'Starter',
+  'price_growth_monthly': 'Growth', 
+  'price_elite_monthly': 'Elite',
+};
 
 export function BillingStatusCard() {
   const [billingCustomer, setBillingCustomer] = useState<BillingCustomer | null>(null);
@@ -142,6 +148,15 @@ export function BillingStatusCard() {
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid gap-4">
+          {billingCustomer.stripe_price_id && (
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Current Plan:</span>
+              <Badge variant="default">
+                {PLAN_NAMES[billingCustomer.stripe_price_id] || 'Unknown Plan'}
+              </Badge>
+            </div>
+          )}
+          
           <div className="flex items-center justify-between">
             <span className="text-sm font-medium">Status:</span>
             <Badge variant={getStatusColor(billingCustomer.status)}>
@@ -193,10 +208,13 @@ export function BillingStatusCard() {
           >
             Refresh
           </Button>
-          {billingCustomer.stripe_subscription_id && (
-            <Button size="sm" disabled>
-              Manage Subscription
-              <span className="text-xs ml-1">(Coming Soon)</span>
+          {billingCustomer.stripe_customer_id && (
+            <Button 
+              size="sm" 
+              onClick={() => console.log('Open customer portal')}
+            >
+              <ExternalLink className="h-4 w-4 mr-1" />
+              Manage Billing
             </Button>
           )}
         </div>

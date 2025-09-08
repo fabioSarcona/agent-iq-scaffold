@@ -12,5 +12,8 @@ verify_jwt = true
 [functions.stripe_create_customer]
 verify_jwt = true
 
+[functions.stripe_checkout]
+verify_jwt = true
+
 [functions.stripe_webhooks]
 verify_jwt = false

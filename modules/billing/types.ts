@@ -34,6 +34,7 @@ export interface PricingPlan {
   price: number;
   currency: string;
   interval: 'month' | 'year';
+  stripe_price_id: string;
   features: string[];
   recommended?: boolean;
 }

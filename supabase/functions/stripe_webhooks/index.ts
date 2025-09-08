@@ -49,6 +49,10 @@ serve(async (req) => {
 
     // Handle different webhook events
     switch (event.type) {
+      case 'checkout.session.completed':
+        await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session, supabase);
+        break;
+        
       case 'customer.subscription.created':
       case 'customer.subscription.updated':
         await handleSubscriptionChange(event.data.object as Stripe.Subscription, supabase);
@@ -155,6 +159,33 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice, supabase: any) {
     if (!error) {
       logStep("Payment success updated in database");
     }
+  }
+}
+
+async function handleCheckoutCompleted(session: Stripe.Checkout.Session, supabase: any) {
+  logStep("Handling checkout completion", { sessionId: session.id });
+  
+  const customerId = session.customer as string;
+  const subscriptionId = session.subscription as string;
+  
+  if (subscriptionId) {
+    // Get subscription details to update the billing record
+    const stripe = getStripeClient();
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+    const priceId = subscription.items.data[0]?.price.id;
+    
+    await upsertBillingCustomer({
+      userId: session.metadata?.user_id || '',
+      email: session.customer_email || '',
+      stripeCustomerId: customerId,
+      subscriptionId,
+      priceId,
+      status: subscription.status,
+      currentPeriodStart: new Date(subscription.current_period_start * 1000),
+      currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+    });
+    
+    logStep("Checkout completion updated in database");
   }
 }
 

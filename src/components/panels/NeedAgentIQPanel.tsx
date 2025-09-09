@@ -147,7 +147,7 @@ export function NeedAgentIQPanel() {
   // Render insights
   return <Card>
       <CardHeader className="pb-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           <Lightbulb className="h-4 w-4 text-primary" />
           <CardTitle className="text-sm">AI Insights</CardTitle>
           <Badge variant="secondary" className="text-xs">

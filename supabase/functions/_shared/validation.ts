@@ -285,7 +285,23 @@ export const NeedAgentIQInsightSchema = z.object({
   }).optional()
 });
 
-export const NeedAgentIQOutputSchema = z.array(NeedAgentIQInsightSchema);
+// NeedAgentIQ Simple Input (new format)
+export const NeedAgentIQSimpleInputSchema = z.object({
+  vertical: z.enum(['dental', 'hvac']),
+  sectionId: z.string(),
+  answersSection: z.record(z.string(), z.unknown())
+});
+
+// NeedAgentIQ Simple Insight Output (new format)
+export const NeedAgentIQSimpleInsightSchema = z.object({
+  key: z.string(),
+  title: z.string(),
+  rationale: z.array(z.string()),
+  monthlyImpactUsd: z.number(),
+  priority: z.enum(['high', 'medium', 'low'])
+});
+
+export const NeedAgentIQSimpleOutputSchema = z.array(NeedAgentIQSimpleInsightSchema);
 
 // MoneyLost Input
 export const MoneyLostInputSchema = z.object({

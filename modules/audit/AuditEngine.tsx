@@ -192,7 +192,7 @@ export function AuditEngine({ industry }: AuditEngineProps) {
       }
     } catch (error: any) {
       const errorMsg = error?.message?.slice(0, 160) || 'NeedAgentIQ failed';
-      setIqError(errorMsg);
+      setIqError(currentSection.id, errorMsg);
       logger.error('needagentiq_request_error', { 
         sectionId: currentSection.id, 
         msg: errorMsg 

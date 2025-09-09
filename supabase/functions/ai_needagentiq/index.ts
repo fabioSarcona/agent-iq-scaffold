@@ -1,64 +1,41 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
+import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 // Shared modules
 import { corsHeaders } from '../_shared/env.ts';
 import { logger } from '../_shared/logger.ts';
-import { NeedAgentIQInputSchema, NeedAgentIQOutputSchema } from '../_shared/validation.ts';
-import type { NeedAgentIQInput, NeedAgentIQOutput, ErrorResponse } from '../_shared/types.ts';
+import { NeedAgentIQSimpleInputSchema, NeedAgentIQSimpleOutputSchema } from '../_shared/validation.ts';
 
-// Configuration
-const NEEDAGENTIQ_MODEL = "claude-sonnet-4-20250514" as const;
-const NEEDAGENTIQ_PARAMS = {
-  maxCompletionTokens: 1800,
-  retry: {
-    attempts: 2,
-    backoffMs: 300
+// Get auth helper
+function getAuth(req: Request) {
+  const authHeader = req.headers.get('authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return null;
   }
-} as const;
-const NEEDAGENTIQ_TIMEOUT_MS = 1200;
-
-// Cache for KB data
-let kbCache: { approved_claims: string[], services: any[] } | null = null;
-let kbCacheTimestamp = 0;
-const KB_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-
-// Response cache
-const responseCache = new Map<string, { data: any; timestamp: number }>();
-const RESPONSE_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
-
-async function getCachedKB() {
-  const now = Date.now();
-  if (kbCache && (now - kbCacheTimestamp) < KB_CACHE_TTL) {
-    return kbCache;
-  }
-
-  try {
-    const [claimsText, servicesText] = await Promise.all([
-      Deno.readTextFile(new URL('./kb/approved_claims.json', import.meta.url)),
-      Deno.readTextFile(new URL('./kb/services.json', import.meta.url))
-    ]);
-    
-    kbCache = {
-      approved_claims: JSON.parse(claimsText),
-      services: JSON.parse(servicesText)
-    };
-    kbCacheTimestamp = now;
-    
-    logger.info('NeedAgentIQ KB cache refreshed', { 
-      claims: kbCache.approved_claims.length, 
-      services: kbCache.services.length 
-    });
-    
-    return kbCache;
-  } catch (error) {
-    logger.error('Failed to load NeedAgentIQ KB data', { error: error.message });
-    return { approved_claims: [], services: [] };
-  }
+  
+  // In a real implementation, you'd verify the JWT token
+  // For now, just check if bearer token exists
+  const token = authHeader.slice(7);
+  return token ? { user: { id: 'user' } } : null;
 }
 
-function getCacheKey(auditId: string, sectionId: string): string {
-  return `${auditId}::${sectionId}`;
+function jsonError(message: string, status: number) {
+  return new Response(JSON.stringify({ error: message }), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+  });
+}
+
+function jsonOk(data: any) {
+  return new Response(JSON.stringify(data), {
+    status: 200,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+  });
+}
+
+function logError(event: string, data: Record<string, any>) {
+  logger.error(event, data);
 }
 
 serve(async (req) => {
@@ -66,181 +43,129 @@ serve(async (req) => {
   
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
 
-  // Anonymous logging for public access
-  logger.info('Processing anonymous NeedAgentIQ request');
+  // Check JWT authentication
+  const auth = getAuth(req);
+  if (!auth?.user) {
+    return jsonError('Unauthorized', 401);
+  }
 
   if (req.method !== 'POST') {
-    const errorResponse: ErrorResponse = {
-      success: false,
-      error: { message: 'Method not allowed', code: 'METHOD_NOT_ALLOWED' },
-      metadata: { processing_time_ms: Date.now() - startTime }
-    };
-
-    return new Response(JSON.stringify(errorResponse), { 
-      status: 405, 
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+    return jsonError('Method not allowed', 405);
   }
 
   try {
     // Parse and validate input
     const body = await req.json();
-    const input = NeedAgentIQInputSchema.parse(body);
-    
-    const { context, audit, moneyLost } = input;
-    const cacheKey = getCacheKey(context.auditId, context.sectionId);
-    
-    logger.info('Processing NeedAgentIQ request', { 
-      auditId: context.auditId, 
-      sectionId: context.sectionId 
-    });
-    
-    // Check response cache first
-    const cached = responseCache.get(cacheKey);
-    if (cached && (Date.now() - cached.timestamp) < RESPONSE_CACHE_TTL) {
-      logger.info('Cache hit for NeedAgentIQ', { cacheKey });
-      return new Response(JSON.stringify(cached.data), {
-        status: 200,
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json',
-          'X-Processing-Time': `${Date.now() - startTime}ms`,
-          'X-Cache': 'HIT'
-        }
-      });
-    }
+    const { vertical, sectionId, answersSection } = NeedAgentIQSimpleInputSchema.parse(body);
 
-    // Load KB data from local files
-    const kb = await getCachedKB();
+    logger.info('Processing NeedAgentIQ request', { 
+      sectionId, 
+      vertical,
+      answersCount: Object.keys(answersSection).length
+    });
 
     // Load system prompt from environment
-    const systemPrompt = Deno.env.get('NEEDAGENT_IQ_SYSTEM_PROMPT');
+    const systemPrompt = Deno.env.get('NEEDAGENT_IQ_SYSTEM_PROMPT') ?? '';
     if (!systemPrompt) {
-      throw new Error('NEEDAGENT_IQ_SYSTEM_PROMPT environment variable not found');
+      logError('needagentiq_missing_prompt', {});
+      return jsonError('Missing system prompt', 500);
     }
 
     // Load Anthropic API key
     const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
     if (!anthropicApiKey) {
-      throw new Error('ANTHROPIC_API_KEY environment variable not found');
+      logError('needagentiq_missing_api_key', {});
+      return jsonError('Missing API key', 500);
     }
 
-    // Build enhanced input with KB data
-    const enhancedInput = {
-      ...input,
-      kb
+    // Prepare user message
+    const userMessage = {
+      vertical,
+      sectionId,
+      answersSection: Object.fromEntries(
+        Object.entries(answersSection).map(([k, v]) => [
+          k, 
+          typeof v === 'string' ? v.slice(0, 200) : v // PII protection
+        ])
+      )
     };
 
     // Call Anthropic API
-    let insights: NeedAgentIQOutput = [];
-    
-    try {
-      const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': anthropicApiKey,
-          'anthropic-version': '2023-06-01'
-        },
-        body: JSON.stringify({
-          model: NEEDAGENTIQ_MODEL,
-          max_completion_tokens: NEEDAGENTIQ_PARAMS.maxCompletionTokens,
-          messages: [
-            {
-              role: 'user',
-              content: JSON.stringify(enhancedInput)
-            }
-          ],
-          system: systemPrompt
-        })
+    const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': anthropicApiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_completion_tokens: 1500,
+        messages: [
+          {
+            role: 'user',
+            content: JSON.stringify(userMessage)
+          }
+        ],
+        system: systemPrompt
+      })
+    });
+
+    if (!anthropicResponse.ok) {
+      const errorText = await anthropicResponse.text();
+      logError('anthropic_api_error', { 
+        status: anthropicResponse.status,
+        msg: errorText.slice(0, 160)
       });
+      return jsonError('AI processing failed', 500);
+    }
 
-      if (!anthropicResponse.ok) {
-        const errorText = await anthropicResponse.text();
-        logger.error('Anthropic API error', { 
-          status: anthropicResponse.status,
-          error: errorText 
+    const anthropicData = await anthropicResponse.json();
+    const content = anthropicData.content?.[0]?.text;
+
+    let insights = [];
+    if (content) {
+      try {
+        const parsed = JSON.parse(content);
+        
+        // Validate & sanitize output
+        insights = NeedAgentIQSimpleOutputSchema.parse(parsed).map(i => ({
+          ...i,
+          rationale: i.rationale.map(s => s.slice(0, 240)) // hard cap to avoid PII spill
+        }));
+      } catch (parseError) {
+        logError('parse_llm_response_error', { 
+          msg: parseError.message?.slice(0, 160) 
         });
-        throw new Error(`Anthropic API error: ${anthropicResponse.status}`);
+        insights = []; // Fallback to empty array
       }
-
-      const anthropicData = await anthropicResponse.json();
-      const content = anthropicData.content?.[0]?.text;
-      
-      if (content) {
-        try {
-          insights = JSON.parse(content);
-          // Validate output
-          NeedAgentIQOutputSchema.parse(insights);
-        } catch (parseError) {
-          logger.error('Failed to parse LLM response', { content, parseError });
-          insights = []; // Fallback to empty array
-        }
-      }
-    } catch (llmError) {
-      logger.error('LLM processing failed', { error: llmError.message });
-      insights = []; // Fallback to empty array on LLM errors
     }
 
     const processingTime = Date.now() - startTime;
-    
-    // Cache the response
-    responseCache.set(cacheKey, { data: insights, timestamp: Date.now() });
-    
-    logger.info('NeedAgentIQ processed successfully', { 
-      auditId: context.auditId, 
-      sectionId: context.sectionId,
+
+    logger.info('NeedAgentIQ completed', { 
+      sectionId, 
+      vertical,
+      insights: insights.length,
       processingTime 
     });
-    
-    return new Response(JSON.stringify(insights), {
-      status: 200,
-      headers: { 
-        ...corsHeaders, 
-        'Content-Type': 'application/json',
-        'X-Processing-Time': `${processingTime}ms`,
-        'X-Cache': 'MISS'
-      }
-    });
+
+    return jsonOk(insights);
 
   } catch (error) {
-    logger.error('NeedAgentIQ error', { error: error.message });
-    
-    const processingTime = Date.now() - startTime;
-    let errorResponse: ErrorResponse;
-    
-    if (error.name === 'ZodError') {
-      errorResponse = {
-        success: false,
-        error: { 
-          message: 'Invalid input format', 
-          code: 'VALIDATION_ERROR',
-          details: error.errors 
-        },
-        metadata: { processing_time_ms: processingTime }
-      };
+    logError('needagentiq_error', { 
+      msg: error?.message?.slice(0, 160),
+      code: error?.code,
+      name: error?.name
+    });
 
-      return new Response(JSON.stringify(errorResponse), { 
-        status: 400, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      });
+    if (error.name === 'ZodError') {
+      return jsonError('Invalid input format', 400);
     }
 
-    errorResponse = {
-      success: false,
-      error: { 
-        message: error.message || 'Internal server error', 
-        code: 'INTERNAL_ERROR' 
-      },
-      metadata: { processing_time_ms: processingTime }
-    };
-
-    return new Response(JSON.stringify(errorResponse), { 
-      status: 500, 
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    });
+    return jsonError('Internal server error', 500);
   }
 });

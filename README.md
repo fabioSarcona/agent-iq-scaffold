@@ -74,6 +74,16 @@ To connect a domain, navigate to Project > Settings > Domains and click Connect 
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
 
-### Env
-- VITE_SUPABASE_URL
-- VITE_SUPABASE_ANON_KEY
+## Environment Variables / Secrets
+
+### Frontend (Vite)
+- `VITE_SUPABASE_URL` - Supabase project URL (required for frontend app)
+- `VITE_SUPABASE_ANON_KEY` - Supabase anonymous key (required for frontend app)
+
+### Edge Functions / AI Services
+- `ANTHROPIC_API_KEY` - Claude API key for AI-powered features (required for AI functions)
+- `NEEDAGENT_IQ_SYSTEM_PROMPT` - System prompt for NeedAgent IQ analysis (required for ai_needagentiq function)
+- `SKILLSCOPE_SYSTEM_PROMPT` - System prompt for SkillScope insights (required for ai_skillscope function)  
+- `VOICEFIT_SYSTEM_PROMPT` - System prompt for VoiceFit report generation (required for ai_generate_report function)
+
+Note: Edge functions will return 500 error if required environment variables are missing.

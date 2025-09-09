@@ -272,11 +272,37 @@ Generate meaningful business insights now:`;
             throw new Error(`Zod validation failed: ${JSON.stringify(validationResult.error.issues)}`);
           }
           
-          // Validate & sanitize output
-          insights = validationResult.data.map(i => ({
-            ...i,
-            rationale: i.rationale.map(s => s.slice(0, 240)) // hard cap to avoid PII spill
-          }));
+          // Enrich and validate output
+          insights = validationResult.data.map(insight => {
+            // Auto-generate key if missing
+            const key = insight.key || `${sectionId}_${insight.title.toLowerCase().replace(/[^a-z0-9]/g, '_').substring(0, 30)}`;
+            
+            // Extract monthly impact from description if missing
+            let monthlyImpactUsd = insight.monthlyImpactUsd || 0;
+            if (!insight.monthlyImpactUsd && insight.description) {
+              // Try to extract dollar amounts from description
+              const dollarMatches = insight.description.match(/\$([0-9,]+)/g);
+              if (dollarMatches) {
+                const amounts = dollarMatches.map(m => parseInt(m.replace(/[\$,]/g, '')));
+                monthlyImpactUsd = Math.max(...amounts) || 0;
+              }
+            }
+            
+            // Normalize priority to valid enum values
+            const normalizedPriority = insight.priority === 'urgent' ? 'high' : insight.priority;
+            
+            return {
+              ...insight,
+              key,
+              monthlyImpactUsd,
+              priority: normalizedPriority,
+              rationale: insight.rationale.map(s => s.slice(0, 240)), // hard cap to avoid PII spill
+              skill: insight.skill || {
+                name: insight.category || 'Business Optimization',
+                id: key
+              }
+            };
+          });
         }
         
         console.log('🐛 DEBUG: Final insights:', {

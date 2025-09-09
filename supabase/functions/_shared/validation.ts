@@ -292,13 +292,25 @@ export const NeedAgentIQSimpleInputSchema = z.object({
   answersSection: z.record(z.string(), z.unknown())
 });
 
-// NeedAgentIQ Simple Insight Output (new format)
+// NeedAgentIQ Simple Insight Output (enriched format)
 export const NeedAgentIQSimpleInsightSchema = z.object({
-  key: z.string(),
+  // Required fields from Claude output
   title: z.string(),
+  description: z.string(),
+  impact: z.enum(['high', 'medium', 'low']),
+  priority: z.enum(['high', 'medium', 'low', 'urgent']), // Added 'urgent' as valid priority
   rationale: z.array(z.string()),
-  monthlyImpactUsd: z.number(),
-  priority: z.enum(['high', 'medium', 'low'])
+  category: z.string(),
+  
+  // Optional/derivable fields
+  key: z.string().optional(), // Will be auto-generated from title if missing
+  monthlyImpactUsd: z.number().optional(), // Will be extracted from description if missing
+  
+  // Additional metadata for frontend compatibility
+  skill: z.object({
+    name: z.string(),
+    id: z.string().optional()
+  }).optional()
 });
 
 export const NeedAgentIQSimpleOutputSchema = z.array(NeedAgentIQSimpleInsightSchema);

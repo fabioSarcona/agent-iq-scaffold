@@ -85,7 +85,7 @@ export function NeedAgentIQPanel() {
       <CardContent className="space-y-3">
         {insights.map((insight) => (
           <div 
-            key={insight.id}
+            key={insight.key || insight.title}
             className="border rounded-lg p-3 space-y-2"
           >
             <div className="flex items-start justify-between gap-2">
@@ -96,9 +96,14 @@ export function NeedAgentIQPanel() {
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <DollarSign className="h-3 w-3" />
                   <span>
-                    {formatCurrency(insight.monthlyImpact, insight.currency)}/mo
+                    {formatCurrency(insight.monthlyImpactUsd || 0)}/mo
                   </span>
                 </div>
+                {insight.description && (
+                  <p className="text-xs text-muted-foreground leading-relaxed mt-1">
+                    {insight.description}
+                  </p>
+                )}
               </div>
               <Badge 
                 variant={getImpactBadgeVariant(insight.impact)}
@@ -110,7 +115,7 @@ export function NeedAgentIQPanel() {
             
             <div className="space-y-1">
               <p className="text-xs text-muted-foreground leading-relaxed">
-                {insight.skill.name}
+                {insight.skill?.name || insight.category}
               </p>
               <Button 
                 variant="ghost" 

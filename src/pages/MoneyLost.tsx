@@ -121,9 +121,9 @@ export default function MoneyLost() {
                 dailyUsd={area.dailyUsd || 0}
                 monthlyUsd={area.monthlyUsd || 0}
                 annualUsd={area.annualUsd || 0}
-                recoverablePctRange={area.recoverablePctRange || {min: 0, max: 0}}
-                severity={severityFromDaily(area.dailyUsd || 0)}
-                rationale={area.rationale || []}
+                recoverablePct={[area.recoverablePctRange?.min || 0, area.recoverablePctRange?.max || 0]}
+                severity={severityFromDaily(area.dailyUsd || 0).toLowerCase() as "low" | "medium" | "high" | "critical"}
+                rationale={area.rationale?.join(' ') || 'No details available'}
               />
             ))}
           </div>

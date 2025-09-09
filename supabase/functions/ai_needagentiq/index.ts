@@ -7,18 +7,7 @@ import { corsHeaders } from '../_shared/env.ts';
 import { logger } from '../_shared/logger.ts';
 import { NeedAgentIQSimpleInputSchema, NeedAgentIQSimpleOutputSchema } from '../_shared/validation.ts';
 
-// Get auth helper
-function getAuth(req: Request) {
-  const authHeader = req.headers.get('authorization');
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return null;
-  }
-  
-  // In a real implementation, you'd verify the JWT token
-  // For now, just check if bearer token exists
-  const token = authHeader.slice(7);
-  return token ? { user: { id: 'user' } } : null;
-}
+// Helper functions for response formatting
 
 function jsonError(message: string, status: number) {
   return new Response(JSON.stringify({ error: message }), {
@@ -46,11 +35,7 @@ serve(async (req) => {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
 
-  // Check JWT authentication
-  const auth = getAuth(req);
-  if (!auth?.user) {
-    return jsonError('Unauthorized', 401);
-  }
+  // No authentication required for public access
 
   if (req.method !== 'POST') {
     return jsonError('Method not allowed', 405);

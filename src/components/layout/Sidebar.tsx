@@ -1,13 +1,10 @@
-import { Settings, PanelLeft, Sparkles, Terminal, CreditCard } from 'lucide-react'
-import { Link, useLocation } from 'react-router-dom'
-import { NeedAgentIQPanel } from '@/components/panels/NeedAgentIQPanel'
-
+import { Settings, PanelLeft, Sparkles, Terminal, CreditCard } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { NeedAgentIQPanel } from '@/components/panels/NeedAgentIQPanel';
 export function Sidebar() {
-  const location = useLocation()
-  const isAuditRoute = location.pathname.startsWith('/audit/')
-  
-  return (
-    <aside className="w-80 glass-card border-r border-border/30 flex flex-col animate-fade-in-scale">
+  const location = useLocation();
+  const isAuditRoute = location.pathname.startsWith('/audit/');
+  return <aside className="w-80 glass-card border-r border-border/30 flex flex-col animate-fade-in-scale">
       <div className="p-6 border-b border-border/30">
         <div className="flex items-center space-x-3 text-sidebar-foreground">
           <div className="p-2 rounded-lg bg-gradient-glow">
@@ -20,13 +17,10 @@ export function Sidebar() {
         </div>
       </div>
       
-      <div className="flex-1 p-6">
+      <div className="flex-1 p-2">
         <div className="space-y-6">
           {/* Show NeedAgentIQ Panel during audit, otherwise show coming soon */}
-          {isAuditRoute ? (
-            <NeedAgentIQPanel />
-          ) : (
-            <div className="glass-card p-6 rounded-xl border border-dashed border-border/50 text-center hover-lift group">
+          {isAuditRoute ? <NeedAgentIQPanel /> : <div className="glass-card p-6 rounded-xl border border-dashed border-border/50 text-center hover-lift group">
               <div className="w-16 h-16 mx-auto mb-4 glass-card rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                 <Sparkles className="h-8 w-8 text-brand-secondary animate-float" />
               </div>
@@ -39,13 +33,9 @@ export function Sidebar() {
                   Coming Soon
                 </span>
               </div>
-            </div>
-          )}
+            </div>}
           
-          <Link 
-            to="/billing" 
-            className="glass-card p-3 rounded-lg border border-dashed border-border/50 text-center hover-lift group block transition-all duration-300"
-          >
+          <Link to="/billing" className="glass-card p-3 rounded-lg border border-dashed border-border/50 text-center hover-lift group block transition-all duration-300">
             <div className="w-8 h-8 mx-auto mb-2 glass-card rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
               <CreditCard className="h-4 w-4 text-primary" />
             </div>
@@ -53,20 +43,14 @@ export function Sidebar() {
             <p className="text-xs text-muted-foreground mt-1">Subscriptions</p>
           </Link>
           
-          {process.env.NODE_ENV !== 'production' && (
-            <Link 
-              to="/dev" 
-              className="mt-4 glass-card p-3 rounded-lg border border-dashed border-border/50 text-center hover-lift group block transition-all duration-300"
-            >
+          {process.env.NODE_ENV !== 'production' && <Link to="/dev" className="mt-4 glass-card p-3 rounded-lg border border-dashed border-border/50 text-center hover-lift group block transition-all duration-300">
               <div className="w-8 h-8 mx-auto mb-2 glass-card rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                 <Terminal className="h-4 w-4 text-primary animate-pulse" />
               </div>
               <span className="text-xs font-medium text-foreground">Dev Console</span>
               <p className="text-xs text-muted-foreground mt-1">System Events</p>
-            </Link>
-          )}
+            </Link>}
         </div>
       </div>
-    </aside>
-  )
+    </aside>;
 }

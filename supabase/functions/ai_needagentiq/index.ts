@@ -28,10 +28,12 @@ function logError(event: string, data: Record<string, any>) {
 }
 
 serve(async (req) => {
+  console.log('🚀 NeedAgentIQ function called:', req.method, req.url);
   const startTime = Date.now();
   
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('✅ CORS preflight handled');
     return new Response(null, { status: 204, headers: corsHeaders });
   }
 
@@ -42,9 +44,12 @@ serve(async (req) => {
   }
 
   try {
+    console.log('📥 Parsing request body...');
     // Parse and validate input
     const body = await req.json();
+    console.log('📋 Body received:', JSON.stringify(body).slice(0, 200));
     const { vertical, sectionId, answersSection } = NeedAgentIQSimpleInputSchema.parse(body);
+    console.log('✅ Input validated successfully');
 
     logger.info('Processing NeedAgentIQ request', { 
       sectionId, 
@@ -141,6 +146,7 @@ serve(async (req) => {
     return jsonOk(insights);
 
   } catch (error) {
+    console.error('❌ Error in NeedAgentIQ:', error);
     logError('needagentiq_error', { 
       msg: error?.message?.slice(0, 160),
       code: error?.code,
@@ -148,6 +154,7 @@ serve(async (req) => {
     });
 
     if (error.name === 'ZodError') {
+      console.log('🔍 Zod validation error:', error.issues);
       return jsonError('Invalid input format', 400);
     }
 

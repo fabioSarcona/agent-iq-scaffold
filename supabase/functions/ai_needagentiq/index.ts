@@ -241,7 +241,6 @@ Generate meaningful business insights now:`;
           insights = fallbackInsight;
           console.log('🐛 DEBUG: Using fallback insights:', insights);
         } else {
-        } else {
           console.log('🐛 DEBUG: After cleaning:', {
             length: cleanContent.length,
             firstChars: cleanContent.slice(0, 100),

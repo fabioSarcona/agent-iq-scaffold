@@ -18,11 +18,11 @@ const getImpactBadgeVariant = (impact: string) => {
     case 'critical':
       return 'destructive';
     case 'high':
-      return 'default';
+      return 'destructive';
     case 'medium':
-      return 'secondary';
+      return 'warning';
     case 'low':
-      return 'outline';
+      return 'success';
     default:
       return 'outline';
   }
@@ -155,7 +155,7 @@ export function NeedAgentIQPanel() {
           </Badge>
         </div>
       </CardHeader>
-      <CardContent className="space-y-1">
+      <CardContent className="p-2 space-y-3">
         {insights.map(insight => <InsightCard key={insight.key || insight.title} insight={insight} />)}
       </CardContent>
     </Card>;

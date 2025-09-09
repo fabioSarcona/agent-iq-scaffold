@@ -9,6 +9,6 @@ export type * from './types'
 // export type * from './moneylost.types' // Legacy types - causes collision with types.ts
 
 // Utilities
-export { calculateMoneyLost } from './moneylost'
+export { computeMoneyLost } from './moneylost'
 export { getSeverityColor, getSeverityLabel, severityFromDaily } from './severity'
 export { BENCHMARKS } from './benchmarks'

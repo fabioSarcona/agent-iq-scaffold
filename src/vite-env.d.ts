@@ -16,7 +16,7 @@ declare module '@modules/audit' {
   export const ScoreIndicator: React.ComponentType<{ score: number }>;
   export const validateQuestion: (question: any, value: unknown) => { valid: boolean; error?: string };
   export const loadAuditConfig: (industry: string) => Promise<any>;
-  export type * from './modules/audit/types';
+  export type * from '@modules/audit/types';
 }
 
 declare module '@modules/audit/AuditProgressStore' {

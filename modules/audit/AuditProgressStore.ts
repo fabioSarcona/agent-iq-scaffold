@@ -20,6 +20,8 @@ interface AuditProgressState {
   insights: NeedAgentIQInsight[];
   lastEmittedKeys: string[];
   iqError?: string | null;
+  insightsBySection: Record<string, NeedAgentIQInsight[]>;
+  iqErrorBySection: Record<string, string | null>;
   
   // Config
   config: AuditConfig | null;
@@ -39,7 +41,7 @@ interface AuditProgressState {
   // NeedAgentIQ actions
   appendInsights: (sectionId: string, newInsights: NeedAgentIQInsight[]) => void;
   clearIqError: () => void;
-  setIqError: (error: string) => void;
+  setIqError: (sectionId: string, error: string | null) => void;
   
   // Computed helpers
   getTotalQuestions: () => number;
@@ -69,6 +71,8 @@ export const useAuditProgressStore = create<AuditProgressState>()(
       insights: [],
       lastEmittedKeys: [],
       iqError: null,
+      insightsBySection: {},
+      iqErrorBySection: {},
       config: null,
       currentSection: null,
       currentQuestion: null,
@@ -256,14 +260,26 @@ export const useAuditProgressStore = create<AuditProgressState>()(
       // NeedAgentIQ actions
       appendInsights: (sectionId, newInsights) => {
         set((state) => {
+          const prev = state.insightsBySection[sectionId] ?? [];
+          const seen = new Set(prev.map(i => i.key.trim().toLowerCase()));
+          const merged = [
+            ...prev,
+            ...newInsights.filter(insight => {
+              const k = insight.key.trim().toLowerCase();
+              if (seen.has(k)) return false;
+              seen.add(k);
+              return true;
+            })
+          ];
+          
+          // Also update legacy insights array for backward compatibility
           const existingKeys = new Set(state.insights.map(i => i.key));
           const dedupedInsights = newInsights.filter(insight => !existingKeys.has(insight.key));
           const allInsights = [...state.insights, ...dedupedInsights];
-          
-          // Keep max 4 insights - remove oldest if over limit
           const limitedInsights = allInsights.slice(-4);
           
           return {
+            insightsBySection: { ...state.insightsBySection, [sectionId]: merged },
             insights: limitedInsights,
             lastEmittedKeys: [...state.lastEmittedKeys, ...dedupedInsights.map(i => i.key)]
           };
@@ -271,11 +287,14 @@ export const useAuditProgressStore = create<AuditProgressState>()(
       },
       
       clearIqError: () => {
-        set({ iqError: null });
+        set({ iqError: null, iqErrorBySection: {} });
       },
       
-      setIqError: (error) => {
-        set({ iqError: error });
+      setIqError: (sectionId, error) => {
+        set((state) => ({
+          iqError: error, // Keep legacy for backward compatibility
+          iqErrorBySection: { ...state.iqErrorBySection, [sectionId]: error }
+        }));
       },
 
       // Computed helpers
@@ -343,7 +362,9 @@ export const useAuditProgressStore = create<AuditProgressState>()(
         scoreSummary: state.scoreSummary,
         insights: state.insights,
         lastEmittedKeys: state.lastEmittedKeys,
-        iqError: state.iqError
+        iqError: state.iqError,
+        insightsBySection: state.insightsBySection,
+        iqErrorBySection: state.iqErrorBySection
       })
     }
   )

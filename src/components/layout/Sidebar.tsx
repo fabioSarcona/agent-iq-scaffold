@@ -7,7 +7,7 @@ export function Sidebar() {
   const isAuditRoute = location.pathname.startsWith('/audit/')
   
   return (
-    <aside className="w-64 glass-card border-r border-border/30 flex flex-col animate-fade-in-scale">
+    <aside className="w-80 glass-card border-r border-border/30 flex flex-col animate-fade-in-scale">
       <div className="p-6 border-b border-border/30">
         <div className="flex items-center space-x-3 text-sidebar-foreground">
           <div className="p-2 rounded-lg bg-gradient-glow">

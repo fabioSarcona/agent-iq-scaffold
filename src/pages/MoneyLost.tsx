@@ -26,7 +26,7 @@ export default function MoneyLost() {
           vertical,
           dailyUsd: result.dailyUsd,
           monthlyUsd: result.monthlyUsd,
-          areasCount: result.areas?.length || 0
+          areasCount: result.areas?.length ?? 0
         });
         
         return result;

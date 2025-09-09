@@ -8,8 +8,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { RefreshCw, Trash2, Search, Activity, DollarSign, AlertTriangle, Settings } from 'lucide-react';
-import { useLogEvents, useEventFilter, useAutoRefresh } from './hooks';
+import { RefreshCw, Trash2, Search, Activity, DollarSign, AlertTriangle, Settings, RotateCcw } from 'lucide-react';
+import { useLogEvents, useEventFilter, useAutoRefresh, useIQErrors } from './hooks';
 import { EventCategory, LogEntry } from './types';
 import { cn } from '@/lib/utils';
 
@@ -75,6 +75,7 @@ export function DevConsolePanel() {
   const { isEnabled: autoRefresh, toggle: toggleAutoRefresh } = useAutoRefresh();
   const { events, refreshEvents, clearEvents } = useLogEvents(autoRefresh);
   const { filteredEvents, eventCounts, tabConfigs } = useEventFilter(events, selectedTab, searchQuery);
+  const { sectionsWithErrors, retrySection, hasErrors } = useIQErrors();
 
   return (
     <div className="space-y-6">
@@ -129,6 +130,46 @@ export function DevConsolePanel() {
           className="pl-9"
         />
       </div>
+
+      {/* IQ Errors Panel - Only show if there are errors */}
+      {hasErrors && (
+        <Card className="glass-card border border-destructive/20 bg-destructive/5">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-4 w-4" />
+              NeedAgentIQ Section Errors
+              <Badge variant="destructive" className="ml-auto">
+                {sectionsWithErrors.length}
+              </Badge>
+            </CardTitle>
+            <CardDescription>
+              Sections with failed AI insight generation. Click retry to attempt again.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {sectionsWithErrors.map(({ sectionId, error, sectionName }) => (
+                <div key={sectionId} className="flex items-center justify-between p-3 bg-background/50 rounded-md border border-destructive/10">
+                  <div className="flex-1">
+                    <div className="font-medium text-sm">{sectionName}</div>
+                    <div className="text-xs text-destructive/80 mt-1">{error}</div>
+                    <div className="text-xs text-muted-foreground mt-1">Section ID: {sectionId}</div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => retrySection(sectionId)}
+                    className="gap-2 ml-3"
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                    Retry
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Tabs value={selectedTab} onValueChange={(v) => setSelectedTab(v as EventCategory)}>
         <TabsList className="grid w-full grid-cols-4 glass-card border border-border/30">

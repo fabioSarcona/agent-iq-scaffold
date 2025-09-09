@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { logger } from '@/lib/logger';
 import { LogEntry, EventCategory, TabConfig } from './types';
+import { useAuditProgressStore } from '@modules/audit/AuditProgressStore';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useLogEvents = (autoRefresh = false) => {
   const [events, setEvents] = useState<LogEntry[]>([]);
@@ -34,7 +36,7 @@ export const useEventFilter = (events: LogEntry[], category: EventCategory, sear
       id: 'insights',
       label: 'AI Insights',
       description: 'AI system requests and responses',
-      filter: (event) => event.name.includes('iq_request') || event.name.includes('ai_request') || event.name.includes('insight')
+      filter: (event) => event.name.includes('iq_request') || event.name.includes('needagentiq') || event.name.includes('ai_request') || event.name.includes('insight')
     },
     {
       id: 'moneylost', 
@@ -90,4 +92,91 @@ export const useAutoRefresh = () => {
   const toggle = useCallback(() => setIsEnabled(prev => !prev), []);
   
   return { isEnabled, toggle };
+};
+
+export const useIQErrors = () => {
+  const iqErrorBySection = useAuditProgressStore(state => state.iqErrorBySection);
+  const { appendInsights, setIqError, vertical, config } = useAuditProgressStore();
+  
+  const sectionsWithErrors = useMemo(() => {
+    return Object.entries(iqErrorBySection)
+      .filter(([_, error]) => error !== null)
+      .map(([sectionId, error]) => ({
+        sectionId,
+        error,
+        sectionName: config?.sections.find(s => s.id === sectionId)?.headline || sectionId
+      }));
+  }, [iqErrorBySection, config]);
+
+  const retrySection = useCallback(async (sectionId: string) => {
+    if (!config) return;
+    
+    const section = config.sections.find(s => s.id === sectionId);
+    if (!section) return;
+    
+    const { answers } = useAuditProgressStore.getState();
+    
+    // Get answers for this section only
+    const sectionAnswers = section.questions.reduce((acc, question) => {
+      const answer = answers[question.id];
+      if (answer !== undefined && answer !== null && answer !== '') {
+        acc[question.id] = answer;
+      }
+      return acc;
+    }, {} as Record<string, unknown>);
+    
+    const meaningfulCount = Object.keys(sectionAnswers).length;
+    if (meaningfulCount < 3) {
+      logger.event('needagentiq_retry_skip', { 
+        sectionId, 
+        meaningfulCount,
+        reason: 'insufficient_answers'
+      });
+      return;
+    }
+    
+    try {
+      // Clear existing error first
+      setIqError(sectionId, null);
+      
+      logger.event('needagentiq_retry_start', { sectionId, meaningfulCount });
+      
+      const { data, error } = await supabase.functions.invoke('ai_needagentiq', {
+        body: {
+          vertical: vertical || 'dental',
+          sectionId,
+          answersSection: sectionAnswers
+        }
+      });
+      
+      if (error) throw new Error(error.message || 'NeedAgentIQ retry failed');
+      
+      if (Array.isArray(data) && data.length > 0) {
+        const enrichedInsights = data.map(insight => ({
+          ...insight,
+          sectionId,
+          key: insight.key || `section_${sectionId}_retry`
+        }));
+        
+        appendInsights(sectionId, enrichedInsights);
+        logger.event('needagentiq_retry_success', { 
+          sectionId, 
+          insights: data.length 
+        });
+      }
+    } catch (error: any) {
+      const errorMsg = error?.message?.slice(0, 160) || 'NeedAgentIQ retry failed';
+      setIqError(sectionId, errorMsg);
+      logger.error('needagentiq_retry_error', { 
+        sectionId, 
+        msg: errorMsg 
+      });
+    }
+  }, [config, vertical, appendInsights, setIqError]);
+
+  return {
+    sectionsWithErrors,
+    retrySection,
+    hasErrors: sectionsWithErrors.length > 0
+  };
 };

@@ -56,8 +56,14 @@ serve(async (req) => {
       answersCount: Object.keys(answersSection).length
     });
 
-    // Load system prompt from environment
+    // 🐛 DEBUG: System prompt validation
     const systemPrompt = Deno.env.get('NEEDAGENT_IQ_SYSTEM_PROMPT') ?? '';
+    console.log('🐛 DEBUG: System prompt check:', {
+      exists: !!systemPrompt,
+      length: systemPrompt.length,
+      preview: systemPrompt.slice(0, 200) + (systemPrompt.length > 200 ? '...' : '')
+    });
+    
     if (!systemPrompt) {
       logError('needagentiq_missing_prompt', {});
       return jsonError('Missing system prompt', 500);
@@ -70,7 +76,7 @@ serve(async (req) => {
       return jsonError('Missing API key', 500);
     }
 
-    // Prepare user message
+    // 🐛 DEBUG: User message preparation
     const userMessage = {
       vertical,
       sectionId,
@@ -81,6 +87,34 @@ serve(async (req) => {
         ])
       )
     };
+    
+    console.log('🐛 DEBUG: User message:', {
+      vertical: userMessage.vertical,
+      sectionId: userMessage.sectionId,
+      answersCount: Object.keys(userMessage.answersSection).length,
+      answerKeys: Object.keys(userMessage.answersSection),
+      fullMessage: JSON.stringify(userMessage).slice(0, 500) + '...'
+    });
+
+    // 🐛 DEBUG: Anthropic request body
+    const anthropicRequest = {
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1500,
+      messages: [
+        {
+          role: 'user',
+          content: JSON.stringify(userMessage)
+        }
+      ],
+      system: systemPrompt
+    };
+    
+    console.log('🐛 DEBUG: Anthropic request:', {
+      model: anthropicRequest.model,
+      max_tokens: anthropicRequest.max_tokens,
+      messageLength: anthropicRequest.messages[0].content.length,
+      systemPromptLength: anthropicRequest.system.length
+    });
 
     // Call Anthropic API
     const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
@@ -90,21 +124,17 @@ serve(async (req) => {
         'x-api-key': anthropicApiKey,
         'anthropic-version': '2023-06-01'
       },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1500,
-        messages: [
-          {
-            role: 'user',
-            content: JSON.stringify(userMessage)
-          }
-        ],
-        system: systemPrompt
-      })
+      body: JSON.stringify(anthropicRequest)
     });
 
     if (!anthropicResponse.ok) {
       const errorText = await anthropicResponse.text();
+      console.log('🐛 DEBUG: Anthropic API error:', {
+        status: anthropicResponse.status,
+        statusText: anthropicResponse.statusText,
+        errorText: errorText.slice(0, 500)
+      });
+      
       logError('anthropic_api_error', { 
         status: anthropicResponse.status,
         msg: errorText.slice(0, 160)
@@ -113,32 +143,114 @@ serve(async (req) => {
     }
 
     const anthropicData = await anthropicResponse.json();
+    console.log('🐛 DEBUG: Anthropic response structure:', {
+      hasContent: !!anthropicData.content,
+      contentLength: anthropicData.content?.length || 0,
+      contentType: Array.isArray(anthropicData.content) ? 'array' : typeof anthropicData.content,
+      usage: anthropicData.usage,
+      model: anthropicData.model
+    });
+    
     const content = anthropicData.content?.[0]?.text;
+    console.log('🐛 DEBUG: Raw Claude content:', {
+      hasText: !!content,
+      textLength: content?.length || 0,
+      firstChars: content?.slice(0, 100),
+      lastChars: content?.slice(-50),
+      startsWithBackticks: content?.startsWith('```'),
+      endsWithBackticks: content?.endsWith('```'),
+      fullText: content // Log full content for debugging
+    });
 
     let insights = [];
     if (content) {
       try {
-        // Remove markdown backticks if present
+        // 🐛 DEBUG: Content cleaning process
+        console.log('🐛 DEBUG: Starting content cleaning:', {
+          originalLength: content.length,
+          startsWithJson: content.toLowerCase().startsWith('```json'),
+          startsWithBackticks: content.startsWith('```'),
+          hasBackticks: content.includes('```')
+        });
+        
+        // Remove markdown backticks if present - Enhanced cleaning
         let cleanContent = content.trim();
-        if (cleanContent.startsWith('```json')) {
-          cleanContent = cleanContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+        console.log('🐛 DEBUG: After trim:', {
+          length: cleanContent.length,
+          firstChars: cleanContent.slice(0, 50),
+          lastChars: cleanContent.slice(-20)
+        });
+        
+        // More robust backtick removal
+        if (cleanContent.toLowerCase().startsWith('```json')) {
+          console.log('🐛 DEBUG: Removing ```json wrapper');
+          cleanContent = cleanContent.replace(/^```json\s*/i, '').replace(/\s*```$/, '');
         } else if (cleanContent.startsWith('```')) {
+          console.log('🐛 DEBUG: Removing ``` wrapper');
           cleanContent = cleanContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
         }
         
+        // Fallback: remove any remaining backticks at start/end
+        cleanContent = cleanContent.replace(/^`+/, '').replace(/`+$/, '');
+        
+        console.log('🐛 DEBUG: After cleaning:', {
+          length: cleanContent.length,
+          firstChars: cleanContent.slice(0, 100),
+          lastChars: cleanContent.slice(-50),
+          fullCleanContent: cleanContent
+        });
+        
+        // 🐛 DEBUG: JSON parsing attempt
+        console.log('🐛 DEBUG: Attempting JSON.parse...');
         const parsed = JSON.parse(cleanContent);
+        console.log('🐛 DEBUG: JSON.parse successful:', {
+          isArray: Array.isArray(parsed),
+          length: Array.isArray(parsed) ? parsed.length : 0,
+          type: typeof parsed,
+          keys: typeof parsed === 'object' ? Object.keys(parsed) : [],
+          parsed: parsed
+        });
+        
+        // 🐛 DEBUG: Zod validation attempt
+        console.log('🐛 DEBUG: Attempting Zod validation...');
+        const validationResult = NeedAgentIQSimpleOutputSchema.safeParse(parsed);
+        console.log('🐛 DEBUG: Zod validation result:', {
+          success: validationResult.success,
+          error: !validationResult.success ? validationResult.error.issues : null,
+          data: validationResult.success ? validationResult.data : null
+        });
+        
+        if (!validationResult.success) {
+          throw new Error(`Zod validation failed: ${JSON.stringify(validationResult.error.issues)}`);
+        }
         
         // Validate & sanitize output
-        insights = NeedAgentIQSimpleOutputSchema.parse(parsed).map(i => ({
+        insights = validationResult.data.map(i => ({
           ...i,
           rationale: i.rationale.map(s => s.slice(0, 240)) // hard cap to avoid PII spill
         }));
+        
+        console.log('🐛 DEBUG: Final insights:', {
+          count: insights.length,
+          insights: insights
+        });
+        
       } catch (parseError) {
+        console.log('🐛 DEBUG: Parse error details:', {
+          errorName: parseError.name,
+          errorMessage: parseError.message,
+          stack: parseError.stack?.slice(0, 300),
+          contentBeingParsed: content?.slice(0, 500) + (content?.length > 500 ? '...' : '')
+        });
+        
         logError('parse_llm_response_error', { 
-          msg: parseError.message?.slice(0, 160) 
+          msg: parseError.message?.slice(0, 160),
+          contentPreview: content?.slice(0, 100)
         });
         insights = []; // Fallback to empty array
       }
+    } else {
+      console.log('🐛 DEBUG: No content received from Claude');
     }
 
     const processingTime = Date.now() - startTime;

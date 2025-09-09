@@ -259,18 +259,42 @@ export const useAuditProgressStore = create<AuditProgressState>()(
 
       // NeedAgentIQ actions
       appendInsights: (sectionId, newInsights) => {
+        // 🐛 DEBUG: Frontend insights received
+        console.log('🐛 DEBUG: appendInsights called:', {
+          sectionId,
+          newInsightsCount: newInsights.length,
+          newInsights: newInsights,
+          timestamp: new Date().toISOString()
+        });
+        
         set((state) => {
           const prev = state.insightsBySection[sectionId] ?? [];
           const seen = new Set(prev.map(i => i.key.trim().toLowerCase()));
+          
+          console.log('🐛 DEBUG: Existing insights for section:', {
+            sectionId,
+            existingCount: prev.length,
+            existingKeys: prev.map(i => i.key)
+          });
+          
           const merged = [
             ...prev,
             ...newInsights.filter(insight => {
               const k = insight.key.trim().toLowerCase();
-              if (seen.has(k)) return false;
+              if (seen.has(k)) {
+                console.log('🐛 DEBUG: Filtering duplicate insight:', { key: insight.key, sectionId });
+                return false;
+              }
               seen.add(k);
               return true;
             })
           ];
+          
+          console.log('🐛 DEBUG: After deduplication:', {
+            sectionId,
+            mergedCount: merged.length,
+            addedCount: merged.length - prev.length
+          });
           
           // Also update legacy insights array for backward compatibility
           const existingKeys = new Set(state.insights.map(i => i.key));
@@ -278,11 +302,22 @@ export const useAuditProgressStore = create<AuditProgressState>()(
           const allInsights = [...state.insights, ...dedupedInsights];
           const limitedInsights = allInsights.slice(-4);
           
+          console.log('🐛 DEBUG: Legacy insights updated:', {
+            totalInsights: limitedInsights.length,
+            addedToLegacy: dedupedInsights.length
+          });
+          
           return {
             insightsBySection: { ...state.insightsBySection, [sectionId]: merged },
             insights: limitedInsights,
             lastEmittedKeys: [...state.lastEmittedKeys, ...dedupedInsights.map(i => i.key)]
           };
+        });
+        
+        logEvent(get().logsEnabled, 'insights_received', { 
+          sectionId, 
+          count: newInsights.length,
+          keys: newInsights.map(i => i.key)
         });
       },
       

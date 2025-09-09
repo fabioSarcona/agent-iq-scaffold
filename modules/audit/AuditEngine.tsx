@@ -127,7 +127,17 @@ export function AuditEngine({ industry }: AuditEngineProps) {
     const state = useAuditProgressStore.getState();
     const { vertical, answers, appendInsights, setIqError } = state;
     
-    if (!currentSection) return;
+    console.log('🐛 DEBUG: triggerNeedAgentIQIfReady called:', {
+      currentSectionId: currentSection?.id,
+      hasCurrentSection: !!currentSection,
+      vertical,
+      totalAnswers: Object.keys(answers).length
+    });
+    
+    if (!currentSection) {
+      console.log('🐛 DEBUG: No current section, returning');
+      return;
+    }
     
     // Get answers for current section only
     const sectionAnswers = currentSection.questions.reduce((acc, question) => {
@@ -140,8 +150,17 @@ export function AuditEngine({ industry }: AuditEngineProps) {
     
     const meaningfulCount = Object.keys(sectionAnswers).length;
     
+    console.log('🐛 DEBUG: Section answers analysis:', {
+      sectionId: currentSection.id,
+      totalQuestions: currentSection.questions.length,
+      meaningfulCount,
+      sectionAnswers,
+      questionIds: currentSection.questions.map(q => q.id)
+    });
+    
     // Only trigger if section has ≥3 meaningful answers
     if (meaningfulCount < 3) {
+      console.log('🐛 DEBUG: Insufficient answers, skipping NeedAgentIQ');
       logger.event('needagentiq_skip', { 
         sectionId: currentSection.id, 
         meaningfulCount,
@@ -156,7 +175,15 @@ export function AuditEngine({ industry }: AuditEngineProps) {
       insight.sectionId === currentSection.id
     );
     
+    console.log('🐛 DEBUG: Deduplication check:', {
+      sectionId: currentSection.id,
+      existingInsight: existingInsight ? existingInsight.key : 'none',
+      totalExistingInsights: state.insights.length,
+      allInsightKeys: state.insights.map(i => i.key)
+    });
+    
     if (existingInsight) {
+      console.log('🐛 DEBUG: Already has insight, skipping');
       logger.event('needagentiq_skip', { 
         sectionId: currentSection.id, 
         meaningfulCount,
@@ -166,22 +193,45 @@ export function AuditEngine({ industry }: AuditEngineProps) {
     }
     
     try {
+      console.log('🐛 DEBUG: Starting NeedAgentIQ request');
       logger.event('needagentiq_request_start', { 
         sectionId: currentSection.id, 
         meaningfulCount 
       });
       
+      const requestBody = {
+        vertical: vertical || 'dental',
+        sectionId: currentSection.id,
+        answersSection: sectionAnswers
+      };
+      
+      console.log('🐛 DEBUG: Request body:', requestBody);
+      
       const { data, error } = await supabase.functions.invoke('ai_needagentiq', {
-        body: {
-          vertical: vertical || 'dental',
-          sectionId: currentSection.id,
-          answersSection: sectionAnswers
-        }
+        body: requestBody
       });
       
-      if (error) throw new Error(error.message || 'NeedAgentIQ request failed');
+      console.log('🐛 DEBUG: Supabase function response:', {
+        hasData: !!data,
+        dataType: typeof data,
+        isArray: Array.isArray(data),
+        dataLength: Array.isArray(data) ? data.length : 'not-array',
+        data: data,
+        hasError: !!error,
+        error: error
+      });
+      
+      if (error) {
+        console.log('🐛 DEBUG: Supabase function error:', error);
+        throw new Error(error.message || 'NeedAgentIQ request failed');
+      }
       
       if (Array.isArray(data) && data.length > 0) {
+        console.log('🐛 DEBUG: Processing insights data:', {
+          count: data.length,
+          insights: data
+        });
+        
         // Add sectionId to insights for better deduplication
         const enrichedInsights = data.map(insight => ({
           ...insight,
@@ -189,13 +239,27 @@ export function AuditEngine({ industry }: AuditEngineProps) {
           key: insight.key || `section_${currentSection.id}`
         }));
         
+        console.log('🐛 DEBUG: Enriched insights:', enrichedInsights);
+        
         appendInsights(currentSection.id, enrichedInsights);
         logger.event('needagentiq_request_success', { 
           sectionId: currentSection.id, 
           insights: data.length 
         });
+      } else {
+        console.log('🐛 DEBUG: No insights returned or empty array:', {
+          data,
+          isArray: Array.isArray(data),
+          length: Array.isArray(data) ? data.length : 'not-array'
+        });
       }
     } catch (error: any) {
+      console.log('🐛 DEBUG: NeedAgentIQ error:', {
+        error,
+        message: error?.message,
+        stack: error?.stack?.slice(0, 300)
+      });
+      
       const errorMsg = error?.message?.slice(0, 160) || 'NeedAgentIQ failed';
       setIqError(currentSection.id, errorMsg);
       logger.error('needagentiq_request_error', { 

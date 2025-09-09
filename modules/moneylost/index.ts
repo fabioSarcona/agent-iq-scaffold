@@ -9,6 +9,6 @@ export type * from './types'
 export type * from './moneylost.types'
 
 // Utilities
-export { calculateMoneyLost } from './moneylost'
+export { computeMoneyLost } from './moneylost'
 export { getSeverityColor, getSeverityLabel } from './severity'
 export { BENCHMARKS } from './benchmarks'

@@ -7,8 +7,8 @@ import { validateKBSlice } from '../_shared/kb.ts';
 import type { SkillScopeInput, SkillScopeOutput, ErrorResponse } from '../_shared/types.ts';
 
 // Environment variables validation and system prompt loading
-const SYSTEM_PROMPT = Deno.env.get('SKILLSCOPE_SYSTEM_PROMPT');
-const AI_MODEL = Deno.env.get('AI_MODEL') || 'claude-sonnet-4-20250514';
+const SYSTEM_PROMPT = Deno.env.get('NEEDAGENT_SKILLSCOPE_SYS_PROMPT');
+const AI_MODEL = Deno.env.get('AI_MODEL') || 'claude-3-5-sonnet-20241022';
 
 if (!SYSTEM_PROMPT || SYSTEM_PROMPT.length < 2000) {
   logger.error('SkillScope SYSTEM_PROMPT environment variable missing or too short');

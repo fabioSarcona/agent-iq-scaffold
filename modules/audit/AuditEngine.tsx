@@ -120,78 +120,83 @@ export function AuditEngine({ industry }: AuditEngineProps) {
 
   const triggerNeedAgentIQIfReady = async () => {
     const state = useAuditProgressStore.getState();
-    const { 
-      config, currentSectionIndex, isSectionComplete, 
-      vertical, answers, appendInsights, setIqError 
-    } = state;
+    const { vertical, answers, appendInsights, setIqError } = state;
     
-    if (!config || !currentSection) return;
+    if (!currentSection) return;
     
-    // Check if foundation sections (S1-S2) are complete
-    const foundationSectionsComplete = [0, 1].every(idx => isSectionComplete(idx));
-    if (!foundationSectionsComplete) return;
+    // Get answers for current section only
+    const sectionAnswers = currentSection.questions.reduce((acc, question) => {
+      const answer = answers[question.id];
+      if (answer !== undefined && answer !== null && answer !== '') {
+        acc[question.id] = answer;
+      }
+      return acc;
+    }, {} as Record<string, unknown>);
     
-    // Import and call NeedAgentIQ
+    const meaningfulCount = Object.keys(sectionAnswers).length;
+    
+    // Only trigger if section has ≥3 meaningful answers
+    if (meaningfulCount < 3) {
+      logger.event('needagentiq_skip', { 
+        sectionId: currentSection.id, 
+        meaningfulCount,
+        reason: 'insufficient_answers'
+      });
+      return;
+    }
+    
+    // Check if we already have insights for this section (deduplication)
+    const existingInsight = state.insights.find(insight => 
+      insight.key === `section_${currentSection.id}` || 
+      insight.sectionId === currentSection.id
+    );
+    
+    if (existingInsight) {
+      logger.event('needagentiq_skip', { 
+        sectionId: currentSection.id, 
+        meaningfulCount,
+        reason: 'already_has_insight'
+      });
+      return;
+    }
+    
     try {
-      logger.event('iq_request_start', {
-        sectionId: currentSection.id,
-        foundationComplete: foundationSectionsComplete,
-        completedSectionsCount: config.sections.filter((_, idx) => isSectionComplete(idx)).length
+      logger.event('needagentiq_request_start', { 
+        sectionId: currentSection.id, 
+        meaningfulCount 
       });
-
-      // Get completed sections
-      const completedSections = config.sections
-        .map((section, idx) => ({ section, idx }))
-        .filter(({ idx }) => isSectionComplete(idx))
-        .map(({ section }) => section.id);
       
-      // Create payload for NeedAgentIQ
-      const payload = {
-        context: {
-          auditId: `audit-${Date.now()}`,
-          auditType: vertical,
+      const { data, error } = await supabase.functions.invoke('ai_needagentiq', {
+        body: {
+          vertical: vertical || 'dental',
           sectionId: currentSection.id,
-          business: {
-            name: String(answers.business_name || "Business"),
-            location: String(answers.location || "Unknown")
-          },
-          settings: {
-            currency: "USD" as const,
-            locale: "en-US" as const
-          }
-        },
-        audit: {
-          responses: Object.entries(answers).map(([key, value]) => ({
-            key,
-            value
-          }))
-        },
-        moneyLost: undefined // Will be calculated by server if needed
-      };
-      
-      const { data: insights, error } = await supabase.functions.invoke('ai_needagentiq', {
-        body: payload,
+          answersSection: sectionAnswers
+        }
       });
       
-      if (error) {
-        throw new Error(error.message || 'Failed to generate insights');
+      if (error) throw new Error(error.message || 'NeedAgentIQ request failed');
+      
+      if (Array.isArray(data) && data.length > 0) {
+        // Add sectionId to insights for better deduplication
+        const enrichedInsights = data.map(insight => ({
+          ...insight,
+          sectionId: currentSection.id,
+          key: insight.key || `section_${currentSection.id}`
+        }));
+        
+        appendInsights(currentSection.id, enrichedInsights);
+        logger.event('needagentiq_request_success', { 
+          sectionId: currentSection.id, 
+          insights: data.length 
+        });
       }
-      
-      logger.event('iq_request_success', {
-        sectionId: currentSection.id,
-        insightsCount: Array.isArray(insights) ? insights.length : 0
+    } catch (error: any) {
+      const errorMsg = error?.message?.slice(0, 160) || 'NeedAgentIQ failed';
+      setIqError(errorMsg);
+      logger.error('needagentiq_request_error', { 
+        sectionId: currentSection.id, 
+        msg: errorMsg 
       });
-      
-      if (Array.isArray(insights) && insights.length > 0) {
-        appendInsights(insights);
-      }
-    } catch (error) {
-      logger.event('iq_request_error', {
-        sectionId: currentSection.id,
-        error: error.message
-      });
-      logger.error('NeedAgentIQ request failed', { error: error.message });
-      setIqError(error.message || 'Failed to generate insights');
     }
   };
 

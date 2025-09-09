@@ -37,7 +37,7 @@ interface AuditProgressState {
   toggleLogs: () => void;
   
   // NeedAgentIQ actions
-  appendInsights: (newInsights: NeedAgentIQInsight[]) => void;
+  appendInsights: (sectionId: string, newInsights: NeedAgentIQInsight[]) => void;
   clearIqError: () => void;
   setIqError: (error: string) => void;
   
@@ -254,7 +254,7 @@ export const useAuditProgressStore = create<AuditProgressState>()(
       },
 
       // NeedAgentIQ actions
-      appendInsights: (newInsights) => {
+      appendInsights: (sectionId, newInsights) => {
         set((state) => {
           const existingKeys = new Set(state.insights.map(i => i.key));
           const dedupedInsights = newInsights.filter(insight => !existingKeys.has(insight.key));

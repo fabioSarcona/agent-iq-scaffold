@@ -115,17 +115,28 @@ serve(async (req) => {
     const anthropicData = await anthropicResponse.json();
     const content = anthropicData.content?.[0]?.text;
 
+    // 🔍 DEBUG: Log Claude's raw response
+    console.log('🤖 Claude raw response:', content?.slice(0, 500));
+
     let insights = [];
     if (content) {
       try {
         const parsed = JSON.parse(content);
+        
+        // 🔍 DEBUG: Log parsed JSON
+        console.log('📋 Parsed JSON:', JSON.stringify(parsed).slice(0, 300));
         
         // Validate & sanitize output
         insights = NeedAgentIQSimpleOutputSchema.parse(parsed).map(i => ({
           ...i,
           rationale: i.rationale.map(s => s.slice(0, 240)) // hard cap to avoid PII spill
         }));
+        
+        // 🔍 DEBUG: Log final insights
+        console.log('✅ Final insights count:', insights.length);
       } catch (parseError) {
+        // 🔍 DEBUG: Log parse error details
+        console.log('❌ Parse error details:', parseError.message, 'Content was:', content?.slice(0, 200));
         logError('parse_llm_response_error', { 
           msg: parseError.message?.slice(0, 160) 
         });

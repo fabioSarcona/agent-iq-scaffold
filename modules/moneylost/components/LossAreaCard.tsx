@@ -1,15 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { Severity, RecoverableRange } from "../types";
 
 interface LossAreaCardProps {
   title: string;
   dailyUsd: number;
   monthlyUsd: number;
   annualUsd: number;
-  recoverablePctRange: RecoverableRange;
-  severity: Severity;
-  rationale: string[];
+  recoverablePct: [number, number];
+  severity: "low" | "medium" | "high" | "critical";
+  rationale: string;
 }
 
 export function formatCurrency(amount: number): string {
@@ -22,17 +21,17 @@ export function formatCurrency(amount: number): string {
 }
 
 const severityColors = {
-  LOW: "bg-accent text-accent-foreground",
-  MEDIUM: "bg-secondary text-secondary-foreground",
-  HIGH: "bg-warning text-warning-foreground",
-  CRITICAL: "bg-destructive text-destructive-foreground"
+  low: "bg-accent text-accent-foreground",
+  medium: "bg-secondary text-secondary-foreground",
+  high: "bg-warning text-warning-foreground",
+  critical: "bg-destructive text-destructive-foreground"
 };
 
 const severityLabels = {
-  LOW: "Low Impact",
-  MEDIUM: "Medium Impact", 
-  HIGH: "High Impact",
-  CRITICAL: "Critical Impact"
+  low: "Low Impact",
+  medium: "Medium Impact", 
+  high: "High Impact",
+  critical: "Critical Impact"
 };
 
 export function LossAreaCard({ 
@@ -40,11 +39,11 @@ export function LossAreaCard({
   dailyUsd, 
   monthlyUsd, 
   annualUsd, 
-  recoverablePctRange, 
+  recoverablePct, 
   severity,
   rationale 
 }: LossAreaCardProps) {
-  const { min, max } = recoverablePctRange;
+  const [min, max] = recoverablePct;
   const recoverableText = `${Math.round(min * 100)}–${Math.round(max * 100)}%`;
 
   return (
@@ -56,11 +55,11 @@ export function LossAreaCard({
             {severityLabels[severity]}
           </Badge>
         </div>
-        <div className="mt-2 space-y-1">
-          {rationale.map((bullet, i) => (
-            <p key={i} className="text-xs text-muted-foreground">• {bullet}</p>
-          ))}
-        </div>
+        {rationale && (
+          <div className="mt-2">
+            <p className="text-xs text-muted-foreground">• {rationale}</p>
+          </div>
+        )}
       </CardHeader>
       <CardContent className="space-y-2">
         <div className="flex justify-between items-center">

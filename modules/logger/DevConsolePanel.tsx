@@ -152,7 +152,7 @@ export function DevConsolePanel() {
                 <div key={sectionId} className="flex items-center justify-between p-3 bg-background/50 rounded-md border border-destructive/10">
                   <div className="flex-1">
                     <div className="font-medium text-sm">{sectionName}</div>
-                    <div className="text-xs text-destructive/80 mt-1">{error}</div>
+                    <div className="text-xs text-destructive/80 mt-1">{String(error)}</div>
                     <div className="text-xs text-muted-foreground mt-1">Section ID: {sectionId}</div>
                   </div>
                   <Button

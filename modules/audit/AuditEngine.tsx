@@ -92,7 +92,12 @@ export function AuditEngine({ industry }: AuditEngineProps) {
 
   const handleNext = async () => {
     if (isAtEnd()) {
-      // Navigate to money lost page
+      logger.event('audit_complete', { 
+        industry, 
+        totalQuestions: getTotalQuestions(),
+        answeredQuestions: Object.keys(answers).length 
+      });
+      // Navigate to money lost page when audit is complete
       navigate('/moneylost');
     } else {
       setShowCurrentQuestion(false);
@@ -296,6 +301,18 @@ export function AuditEngine({ industry }: AuditEngineProps) {
           {/* Completion CTA */}
           {isAtEnd() && answers[currentQuestion.id] && (
             <div className="text-center pt-6 border-t">
+              <div className="mb-6">
+                <div className="inline-flex items-center space-x-2 text-sm text-muted-foreground mb-4">
+                  <span className="bg-primary/10 text-primary px-2 py-1 rounded">1</span>
+                  <span>Audit Complete</span>
+                  <span>→</span>
+                  <span className="bg-muted px-2 py-1 rounded">2</span>
+                  <span>Money Lost Analysis</span>
+                  <span>→</span>
+                  <span className="bg-muted px-2 py-1 rounded">3</span>
+                  <span>Report</span>
+                </div>
+              </div>
               <h3 className="text-lg font-medium mb-2">
                 {t('completion.title')}
               </h3>
@@ -305,7 +322,7 @@ export function AuditEngine({ industry }: AuditEngineProps) {
               <Button 
                 onClick={() => navigate('/moneylost')}
                 size="lg"
-                className="bg-brand-gradient hover:opacity-90 text-white"
+                className="bg-gradient-primary hover:opacity-90 text-primary-foreground shadow-glow"
               >
                 {t('completion.button')}
               </Button>

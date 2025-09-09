@@ -72,6 +72,18 @@ export default function MoneyLost() {
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-8">
+      {/* Progress Breadcrumb */}
+      <div className="flex items-center justify-center space-x-2 text-sm text-muted-foreground mb-8">
+        <span className="bg-primary/10 text-primary px-3 py-1 rounded-full">✓</span>
+        <span>Audit Complete</span>
+        <span>→</span>
+        <span className="bg-primary text-primary-foreground px-3 py-1 rounded-full font-medium">2</span>
+        <span className="font-medium">Money Lost Analysis</span>
+        <span>→</span>
+        <span className="bg-muted px-3 py-1 rounded-full">3</span>
+        <span>Report</span>
+      </div>
+
       {/* Header */}
       <div className="text-center space-y-2">
         <h1 className="text-4xl font-bold">Money Lost — Conservative Estimate</h1>

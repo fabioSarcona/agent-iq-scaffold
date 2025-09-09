@@ -258,7 +258,7 @@ serve(async (req) => {
 
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
 
   // Anonymous access allowed for public audits
@@ -330,7 +330,11 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    logger.error('MoneyLost computation error', { error: error.message });
+    logger.error('MoneyLost computation error', { 
+      msg: error.message?.slice(0, 160),
+      code: error.code,
+      name: error.name 
+    });
     
     const processingTime = Date.now() - startTime;
     let errorResponse: ErrorResponse;

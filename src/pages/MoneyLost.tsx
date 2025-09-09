@@ -2,7 +2,6 @@ import { Button } from '@/components/ui/button'
 import { useAuditProgressStore } from '@modules/audit/AuditProgressStore'
 import { MoneyLostSummaryCard, LossAreaCard, DisclaimerNote } from '@modules/moneylost/components'
 import { requestMoneyLost } from '@modules/moneylost/client'
-import { severityFromDaily } from '../../modules/moneylost/severity'
 import { MoneyLostSummary } from '@/lib/validation'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
@@ -122,7 +121,7 @@ export default function MoneyLost() {
                 monthlyUsd={area.monthlyUsd || 0}
                 annualUsd={area.annualUsd || 0}
                 recoverablePct={[area.recoverablePctRange?.min || 0, area.recoverablePctRange?.max || 0]}
-                severity={severityFromDaily(area.dailyUsd || 0).toLowerCase() as "low" | "medium" | "high" | "critical"}
+                severity="low"
                 rationale={area.rationale?.join(' ') || 'No details available'}
               />
             ))}

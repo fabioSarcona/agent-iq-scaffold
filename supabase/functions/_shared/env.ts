@@ -16,7 +16,7 @@ export function getEnv(): EnvConfig {
   const config: EnvConfig = {
     ANTHROPIC_API_KEY: Deno.env.get('ANTHROPIC_API_KEY'),
     OPENAI_API_KEY: Deno.env.get('OPENAI_API_KEY'),
-    AI_MODEL: Deno.env.get('AI_MODEL') || 'claude-3-5-sonnet-20241022',
+    AI_MODEL: Deno.env.get('AI_MODEL') || 'claude-sonnet-4-20250514',
     AI_COST_CAP_USD: parseFloat(Deno.env.get('AI_COST_CAP_USD') || '0.15'),
     SUPABASE_URL: Deno.env.get('SUPABASE_URL'),
     SUPABASE_ANON_KEY: Deno.env.get('SUPABASE_ANON_KEY')
@@ -37,7 +37,7 @@ export function validateAIEnv(): { ANTHROPIC_API_KEY: string; AI_MODEL: string }
 
   return {
     ANTHROPIC_API_KEY: config.ANTHROPIC_API_KEY,
-    AI_MODEL: config.AI_MODEL || 'claude-3-5-sonnet-20241022'
+    AI_MODEL: config.AI_MODEL || 'claude-sonnet-4-20250514'
   };
 }
 

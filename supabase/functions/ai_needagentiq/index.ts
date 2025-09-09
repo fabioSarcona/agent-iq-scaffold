@@ -118,7 +118,15 @@ serve(async (req) => {
     let insights = [];
     if (content) {
       try {
-        const parsed = JSON.parse(content);
+        // Remove markdown backticks if present
+        let cleanContent = content.trim();
+        if (cleanContent.startsWith('```json')) {
+          cleanContent = cleanContent.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+        } else if (cleanContent.startsWith('```')) {
+          cleanContent = cleanContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
+        }
+        
+        const parsed = JSON.parse(cleanContent);
         
         // Validate & sanitize output
         insights = NeedAgentIQSimpleOutputSchema.parse(parsed).map(i => ({

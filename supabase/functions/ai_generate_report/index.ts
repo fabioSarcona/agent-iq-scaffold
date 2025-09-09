@@ -10,7 +10,7 @@ import type { VoiceFitInput, VoiceFitOutput, ErrorResponse } from '../_shared/ty
 
 // Environment variables validation and system prompt loading
 const SYSTEM_PROMPT = Deno.env.get('VOICEFIT_SYSTEM_PROMPT');
-const AI_MODEL = Deno.env.get('AI_MODEL') || 'claude-3-5-sonnet-20241022';
+const AI_MODEL = Deno.env.get('AI_MODEL') || 'claude-sonnet-4-20250514';
 
 if (!SYSTEM_PROMPT || SYSTEM_PROMPT.length < 2000) {
   logger.error('VoiceFit SYSTEM_PROMPT environment variable missing or too short');

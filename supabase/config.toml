@@ -15,6 +15,12 @@ verify_jwt = true
 [functions.moneylost_compute]
 verify_jwt = false
 
+[functions.otp_request]
+verify_jwt = false
+
+[functions.otp_verify]
+verify_jwt = false
+
 [functions.stripe_create_customer]
 verify_jwt = true
 

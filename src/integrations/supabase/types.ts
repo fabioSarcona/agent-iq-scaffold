@@ -101,12 +101,60 @@ export type Database = {
         }
         Relationships: []
       }
+      roi_brain_cache: {
+        Row: {
+          access_count: number
+          ai_response: Json
+          business_context: Json
+          cache_key: string
+          created_at: string
+          expires_at: string
+          id: string
+          input_tokens: number
+          kb_payload: Json
+          output_tokens: number
+          processing_time: number
+          total_cost: number
+        }
+        Insert: {
+          access_count?: number
+          ai_response: Json
+          business_context: Json
+          cache_key: string
+          created_at?: string
+          expires_at: string
+          id?: string
+          input_tokens?: number
+          kb_payload: Json
+          output_tokens?: number
+          processing_time: number
+          total_cost?: number
+        }
+        Update: {
+          access_count?: number
+          ai_response?: Json
+          business_context?: Json
+          cache_key?: string
+          created_at?: string
+          expires_at?: string
+          id?: string
+          input_tokens?: number
+          kb_payload?: Json
+          output_tokens?: number
+          processing_time?: number
+          total_cost?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      cleanup_roi_brain_cache: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

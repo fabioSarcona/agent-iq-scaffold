@@ -82,9 +82,9 @@ export const voiceSkillsModule = {
 
   hvacSkills: [
     {
-      name: "Reception 24/7 Agent",
+      name: "Reception 24/7 Agent and Emergency Management",
       painPoint: "Missed after-hours calls & slow responses",
-      howItWorks: "Answers 24/7, filters requests, logs jobs, schedules or dispatches",
+      howItWorks: "Answers 24/7, filters requests, logs jobs, schedules or dispatches handles emergencies, especially during peak call times.",
       estimatedROI: "+$4,000–$8,000/month",
       monthlyPrice: "$199/month",
       includedIn: "Elite Impact",

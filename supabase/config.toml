@@ -9,6 +9,9 @@ verify_jwt = true
 [functions.ai_needagentiq]
 verify_jwt = false
 
+[functions.ai_roi_brain]
+verify_jwt = true
+
 [functions.moneylost_compute]
 verify_jwt = false
 

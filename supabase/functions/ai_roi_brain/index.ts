@@ -48,7 +48,7 @@ serve(async (req) => {
     input.sessionId = metrics.sessionId;
 
     // Generate cache key from business context
-    const cacheKey = generateCacheKey(input);
+    const cacheKey = await generateCacheKey(input);
     console.log('Generated cache key:', cacheKey);
 
     // Try L1 Cache first (fastest)
@@ -224,7 +224,7 @@ Top Loss Areas: ${input.moneylost.areas.slice(0, 3).map(a => a.title).join(', ')
 Generate a comprehensive ROI Brain analysis focusing on voice AI opportunities and business outcomes.`;
 }
 
-function generateCacheKey(input: any): string {
+async function generateCacheKey(input: any): Promise<string> {
   // Create deterministic cache key from business context
   const context = {
     vertical: input.vertical,
@@ -234,14 +234,12 @@ function generateCacheKey(input: any): string {
   };
   
   const contextString = JSON.stringify(context, Object.keys(context).sort());
-  
-  // Create hash of context for cache key
   const encoder = new TextEncoder();
   const data = encoder.encode(contextString);
-  return crypto.subtle.digest('SHA-256', data)
-    .then(hash => Array.from(new Uint8Array(hash)))
-    .then(bytes => bytes.map(b => b.toString(16).padStart(2, '0')).join(''))
-    .then(hex => hex.substring(0, 16));
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const bytes = Array.from(new Uint8Array(hashBuffer));
+  const hex = bytes.map(b => b.toString(16).padStart(2, '0')).join('');
+  return hex.substring(0, 16);
 }
 
 async function checkL2Cache(cacheKey: string): Promise<any | null> {

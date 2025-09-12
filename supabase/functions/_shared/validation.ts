@@ -368,3 +368,103 @@ export const OTPVerifyOutputSchema = z.object({
   verified: z.boolean(),
   error: z.string().optional()
 });
+
+// ROI Brain Schemas (Single Brain + Claude Orchestrator)
+export const ROIBrainBusinessContextSchema = z.object({
+  vertical: z.enum(['dental', 'hvac']),
+  auditAnswers: z.record(z.unknown()),
+  scoreSummary: z.object({
+    overall: z.number(),
+    sections: z.array(z.object({
+      name: z.string(),
+      score: z.number()
+    }))
+  }).optional(),
+  moneylost: z.object({
+    dailyUsd: z.number(),
+    monthlyUsd: z.number(), 
+    annualUsd: z.number(),
+    areas: z.array(z.object({
+      id: z.string(),
+      title: z.string(),
+      dailyUsd: z.number(),
+      monthlyUsd: z.number(),
+      annualUsd: z.number(),
+      recoverablePctRange: z.tuple([z.number(), z.number()]),
+      confidence: z.enum(['low', 'medium', 'high']),
+      notes: z.string().optional()
+    }))
+  }).optional(),
+  benchmarks: z.array(z.string()).optional(),
+  sessionId: z.string().optional()
+});
+
+export const ROIBrainOutputSchema = z.object({
+  success: z.boolean(),
+  sessionId: z.string(),
+  
+  // Unified AI Results
+  voiceFitReport: z.object({
+    header: z.object({
+      score: z.number(),
+      scoreBand: z.string(),
+      title: z.string(),
+      subtitle: z.string()
+    }),
+    diagnosis: z.object({
+      title: z.string(),
+      items: z.array(z.string())
+    }),
+    consequences: z.array(z.object({
+      title: z.string(),
+      description: z.string(),
+      impact: z.string(),
+      severity: z.enum(['low', 'medium', 'high'])
+    })),
+    solutions: z.array(z.object({
+      title: z.string(),
+      description: z.string(),
+      expectedROI: z.string(),
+      timeframe: z.string(),
+      difficulty: z.enum(['easy', 'medium', 'hard']),
+      priority: z.enum(['low', 'medium', 'high'])
+    })),
+    plan: z.object({
+      title: z.string(),
+      description: z.string(),
+      monthlyPrice: z.number(),
+      features: z.array(z.string()),
+      estimatedROI: z.string()
+    }),
+    faq: z.array(z.object({
+      question: z.string(),
+      answer: z.string()
+    }))
+  }),
+  
+  needAgentIQInsights: z.array(z.object({
+    key: z.string(),
+    title: z.string(),
+    description: z.string(),
+    impact: z.string(),
+    priority: z.enum(['low', 'medium', 'high']),
+    category: z.string(),
+    actionable: z.boolean()
+  })).optional(),
+  
+  // Processing metadata
+  processingTime: z.number(),
+  cacheHit: z.boolean().default(false),
+  costs: z.object({
+    inputTokens: z.number(),
+    outputTokens: z.number(),
+    totalCost: z.number()
+  }).optional(),
+  
+  error: z.object({
+    message: z.string(),
+    code: z.string().optional()
+  }).optional()
+});
+
+export const ROIBrainInputSchema = ROIBrainBusinessContextSchema;

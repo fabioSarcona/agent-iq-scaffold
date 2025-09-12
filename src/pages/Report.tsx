@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { FileText, AlertTriangle, TrendingDown, Loader2 } from 'lucide-react'
+import { FileText, AlertTriangle, TrendingDown, Loader2, Zap, TrendingUp } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import * as React from 'react'
 import { useTranslation } from '@/hooks/useTranslation'
@@ -16,6 +16,14 @@ import {
   type VoiceFitReportData
 } from '@modules/ai/voicefit'
 
+// ROI Brain Integration
+import { 
+  requestROIBrain,
+  roiBrainToVoiceFitAdapter,
+  shouldUseROIBrain,
+  type ROIBrainBusinessContext
+} from '../../modules/ai/roibrain'
+
 // Import SkillScope components and utils  
 import { SkillScopeOverlay } from '@modules/skillscope/components/SkillScopeOverlay'
 // KB utilities are now handled by edge functions
@@ -24,6 +32,7 @@ import type { SkillScopePayload } from '@modules/skillscope/types'
 // Import Revenue Simulator
 import { RevenueSimulator, mapSolutionToInsight } from '../../modules/revenue'
 import type { MoneyLostSummary } from '../../modules/moneylost/types'
+import { Badge } from '@/components/ui/badge'
 
 export default function Report() {
   const { vertical, answers } = useAuditProgressStore()
@@ -34,12 +43,61 @@ export default function Report() {
   const [selectedSkill, setSelectedSkill] = React.useState<string | null>(null)
   const [isSkillScopeOpen, setIsSkillScopeOpen] = React.useState(false)
   
+  // ROI Brain Integration - Single source of truth for all AI analysis
+  const useROIBrain = shouldUseROIBrain();
+  
   const { data: reportData, isLoading, error } = useQuery({
-    queryKey: ['voicefit-report', currentVertical, JSON.stringify(answers)],
-    queryFn: () => requestVoiceFitReport(currentVertical, answers || {}),
+    queryKey: ['voicefit-report', currentVertical, JSON.stringify(answers), useROIBrain],
+    queryFn: async () => {
+      if (useROIBrain) {
+        // Use ROI Brain - Single Brain + Claude Orchestrator
+        const roiContext: ROIBrainBusinessContext = {
+          vertical: currentVertical,
+          auditAnswers: answers || {},
+          sessionId: `report_${Date.now()}_${Math.random().toString(36).substring(7)}`
+        };
+
+        console.log('🧠 Using ROI Brain for unified analysis', {
+          vertical: currentVertical,
+          sessionId: roiContext.sessionId,
+          answerKeys: Object.keys(answers || {})
+        });
+
+        const roiResponse = await requestROIBrain(roiContext);
+        
+        if (!roiResponse.success) {
+          throw new Error(roiResponse.error?.message || 'ROI Brain analysis failed');
+        }
+
+        // Convert ROI Brain response to VoiceFit format for UI compatibility
+        const adaptedReport = roiBrainToVoiceFitAdapter(roiResponse);
+        
+        if (!adaptedReport) {
+          throw new Error('Failed to adapt ROI Brain response');
+        }
+
+        console.log('🧠 ROI Brain analysis completed', {
+          sessionId: roiResponse.sessionId,
+          processingTime: roiResponse.processingTime,
+          cacheHit: roiResponse.cacheHit,
+          costs: roiResponse.costs
+        });
+
+        return adaptedReport;
+      } else {
+        // Legacy VoiceFit Report (fallback)
+        console.log('📊 Using legacy VoiceFit report');
+        return requestVoiceFitReport(currentVertical, answers || {});
+      }
+    },
     staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 1
   })
+
+  // Type guard for ROI Brain enhanced reports
+  const isROIBrainReport = (report: any): report is typeof reportData & { _roiBrainMetadata: any } => {
+    return useROIBrain && report && '_roiBrainMetadata' in report;
+  };
 
   // Create audit context for SkillScope
   const auditContext = React.useMemo(() => ({
@@ -62,7 +120,7 @@ export default function Report() {
 
   // Create SkillScope payload with hardcoded KB slices
   const createSkillScopePayload = React.useCallback((skillId: string, skillTitle: string): SkillScopePayload => {
-    const solution = reportData?.solutions.find(s => s.skillId === skillId)
+    const solution = reportData?.solutions?.find(s => s.skillId === skillId)
     
     // Hardcode KB slices (to be handled by edge functions)
     const kbSlices = {
@@ -106,7 +164,7 @@ export default function Report() {
   // Current skill scope payload
   const skillScopePayload = React.useMemo(() => {
     if (!selectedSkill || !reportData) return null
-    const solution = reportData.solutions.find(s => s.skillId === selectedSkill)
+    const solution = reportData.solutions?.find(s => s.skillId === selectedSkill)
     return solution ? createSkillScopePayload(selectedSkill, solution.title) : null
   }, [selectedSkill, reportData, createSkillScopePayload])
 
@@ -176,16 +234,43 @@ export default function Report() {
         </p>
       </div>
 
-      {/* Business Score Section */}
+      {/* Business Score Section with ROI Brain indicator */}
       <Card className="text-center">
         <CardHeader className="pb-8">
-          <CardTitle className="text-2xl mb-6">{t('score.title')}</CardTitle>
+          <div className="flex items-center justify-center gap-3 mb-6">
+            <CardTitle className="text-2xl">{t('score.title')}</CardTitle>
+            {useROIBrain && isROIBrainReport(reportData) && reportData._roiBrainMetadata?.cacheHit && (
+              <Badge variant="secondary" className="text-xs">
+                <Zap className="w-3 h-3 mr-1" />
+                Cached
+              </Badge>
+            )}
+            {useROIBrain && isROIBrainReport(reportData) && !reportData._roiBrainMetadata?.cacheHit && (
+              <Badge variant="outline" className="text-xs">
+                <TrendingUp className="w-3 h-3 mr-1" />
+                ROI Brain™
+              </Badge>
+            )}
+          </div>
           <ScoreGauge score={reportData.score} band={reportData.band} />
+          
+          {/* ROI Brain Processing Info */}
+          {useROIBrain && isROIBrainReport(reportData) && reportData._roiBrainMetadata && (
+            <div className="text-xs text-muted-foreground mt-4 space-y-1">
+              <div>Processing time: {reportData._roiBrainMetadata.processingTime}ms</div>
+              {reportData._roiBrainMetadata.costs && (
+                <div>
+                  Tokens: {reportData._roiBrainMetadata.costs.inputTokens}→{reportData._roiBrainMetadata.costs.outputTokens} 
+                  (${reportData._roiBrainMetadata.costs.totalCost.toFixed(4)})
+                </div>
+              )}
+            </div>
+          )}
         </CardHeader>
       </Card>
 
       {/* Benchmark Note */}
-      <BenchmarkNote benchmarks={reportData.benchmarks} />
+      <BenchmarkNote benchmarks={reportData.benchmarks || []} />
 
       <div className="grid gap-8 lg:grid-cols-2">
         {/* Diagnosis Section */}
@@ -199,7 +284,7 @@ export default function Report() {
           </CardHeader>
           <CardContent className="space-y-4">
             <ul className="space-y-3">
-              {reportData.diagnosis.map((finding, index) => (
+              {(Array.isArray(reportData.diagnosis) ? reportData.diagnosis : []).map((finding, index) => (
                 <li key={index} className="flex items-start space-x-3">
                   <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0" />
                   <p className="text-sm text-foreground">{finding}</p>
@@ -239,7 +324,7 @@ export default function Report() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {reportData.solutions.map((solution, index) => (
+            {reportData.solutions?.map((solution, index) => (
               <SolutionCard 
                 key={index} 
                 skillId={solution.skillId}

@@ -11,6 +11,10 @@ export { SkillScopeModal } from './components/SkillScopeModal'
 // Client utilities
 export { requestVoiceFitReport, mapLLMToUI } from './report.client'
 
+// ROI Brain Integration (Single Brain + Claude Orchestrator)  
+export { requestROIBrain, roiBrainToVoiceFitAdapter, shouldUseROIBrain } from '../roibrain/client'
+export type { ROIBrainBusinessContext, ROIBrainOutput } from '../roibrain/client'
+
 // Types
 export type * from './report.types'
 

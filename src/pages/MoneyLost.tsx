@@ -33,8 +33,8 @@ export default function MoneyLost() {
         
         logger.event('moneylost_request_success', {
           vertical,
-          dailyUsd: result.dailyUsd ?? 0,
-          monthlyUsd: result.monthlyUsd ?? 0,
+          dailyUsd: result.total?.dailyUsd ?? result.dailyUsd ?? 0,
+          monthlyUsd: result.total?.monthlyUsd ?? result.monthlyUsd ?? 0,
           areasCount: result.areas?.length ?? 0
         });
         
@@ -54,7 +54,10 @@ export default function MoneyLost() {
   if (data) {
     try {
       validatedData = MoneyLostSummary.parse(data);
-    } catch {
+      logger.info('Money lost validation successful', { validatedData });
+    } catch (error) {
+      logger.error('Money lost validation failed', { error, data });
+      console.error('MoneyLost validation error:', error);
       // Validation failed - treat as error
     }
   }
@@ -103,9 +106,9 @@ export default function MoneyLost() {
 
       {/* Summary Card */}
       <MoneyLostSummaryCard 
-        dailyUsd={validatedData.dailyUsd || 0}
-        monthlyUsd={validatedData.monthlyUsd || 0}
-        annualUsd={validatedData.annualUsd || 0}
+        dailyUsd={validatedData.total.dailyUsd}
+        monthlyUsd={validatedData.total.monthlyUsd}
+        annualUsd={validatedData.total.annualUsd}
       />
 
       {/* Disclaimer */}

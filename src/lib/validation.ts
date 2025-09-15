@@ -10,9 +10,14 @@ export const ApiResponseSchema = z.object({
 })
 
 export const MoneyLostSummary = z.object({
-  dailyUsd: z.number().min(0),
-  monthlyUsd: z.number().min(0),
-  annualUsd: z.number().min(0),
+  total: z.object({
+    dailyUsd: z.number().min(0),
+    monthlyUsd: z.number().min(0),
+    annualUsd: z.number().min(0),
+  }).optional(),
+  dailyUsd: z.number().min(0).optional(),
+  monthlyUsd: z.number().min(0).optional(),
+  annualUsd: z.number().min(0).optional(),
   areas: z.array(z.object({
     key: z.string().min(1),
     title: z.string().min(1),
@@ -27,6 +32,19 @@ export const MoneyLostSummary = z.object({
   })),
   assumptions: z.array(z.string()).optional(),
   version: z.string().min(1),
+}).transform((data) => {
+  // Ensure we always have the nested total structure
+  if (data.total) {
+    return data;
+  }
+  return {
+    ...data,
+    total: {
+      dailyUsd: data.dailyUsd || 0,
+      monthlyUsd: data.monthlyUsd || 0,
+      annualUsd: data.annualUsd || 0,
+    }
+  };
 })
 
 export const VoiceFitReportSchema = z.object({

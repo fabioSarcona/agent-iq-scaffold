@@ -43,17 +43,22 @@ declare module '@modules/moneylost/components' {
 
 declare module '@modules/moneylost/client' {
   export const requestMoneyLost: (vertical: string, answers: Record<string, unknown>) => Promise<{
-    dailyUsd: number;
-    monthlyUsd: number;
-    annualUsd: number;
+    total?: {
+      dailyUsd: number;
+      monthlyUsd: number;
+      annualUsd: number;
+    };
+    dailyUsd?: number;
+    monthlyUsd?: number;
+    annualUsd?: number;
     areas: Array<{
+      key: string;
       title: string;
       dailyUsd: number;
       monthlyUsd: number;
       annualUsd: number;
-      recoverablePct: [number, number];
-      severity: 'low' | 'medium' | 'high' | 'critical';
-      rationale: string;
+      recoverablePctRange: { min: number; max: number };
+      rationale: string[];
     }>;
     assumptions?: string[];
     version: string;

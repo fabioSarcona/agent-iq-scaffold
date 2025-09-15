@@ -141,7 +141,7 @@ export default function MoneyLost() {
                 dailyUsd={area.dailyUsd || 0}
                 monthlyUsd={area.monthlyUsd || 0}
                 annualUsd={area.annualUsd || 0}
-                recoverablePctRange={area.recoverablePctRange || { min: 0, max: 0 }}
+                recoverablePctRange={{ min: area.recoverablePctRange?.min ?? 0, max: area.recoverablePctRange?.max ?? 0 }}
                 severity={severityFromDaily(area.dailyUsd || 0)}
                 rationale={area.rationale || ['No details available']}
               />

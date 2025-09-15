@@ -34,9 +34,9 @@ declare module '@modules/moneylost/components' {
     dailyUsd: number;
     monthlyUsd: number;
     annualUsd: number;
-    recoverablePct: [number, number];
+    recoverablePctRange: { min: number; max: number };
     severity: 'low' | 'medium' | 'high' | 'critical';
-    rationale: string;
+    rationale: string[];
   }>;
   export const DisclaimerNote: React.ComponentType;
 }

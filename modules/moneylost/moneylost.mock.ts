@@ -1,4 +1,6 @@
-import type { MoneyLostSummary, LossArea, Confidence } from './moneylost.types';
+import type { LossArea } from './types';
+
+type Confidence = 'low' | 'medium' | 'high';
 
 const DENTAL_WORKDAYS = 22;
 const HVAC_WORKDAYS = 26;
@@ -60,16 +62,15 @@ export function buildMockMoneyLost(
       const monthly = daily * workdays;
       const annual = monthly * 12;
       
-      areas.push({
-        id: 'missed_calls',
-        title: 'Missed Calls Revenue Loss',
-        dailyUsd: daily,
-        monthlyUsd: monthly,
-        annualUsd: annual,
-        recoverablePctRange: [0.35, 0.60],
-        confidence: getConfidence(!!dailyMissedCallsChoice, !!answers.avg_fee_standard_treatment_usd),
-        notes: 'Based on average appointment value and conversion rates'
-      });
+        areas.push({
+          key: 'missed_calls',
+          title: 'Missed Calls Revenue Loss',
+          dailyUsd: daily,
+          monthlyUsd: monthly,
+          annualUsd: annual,
+          recoverablePctRange: { min: 0.35, max: 0.60 },
+          rationale: ['Based on average appointment value and conversion rates']
+        });
     }
 
     // No-Shows Loss Area
@@ -79,14 +80,13 @@ export function buildMockMoneyLost(
       const annual = monthly * 12;
       
       areas.push({
-        id: 'no_shows',
+        key: 'no_shows',
         title: 'No-Show Revenue Loss',
         dailyUsd: daily,
         monthlyUsd: monthly,
         annualUsd: annual,
-        recoverablePctRange: [0.30, 0.50],
-        confidence: getConfidence(!!weeklyNoShowsChoice, !!answers.avg_fee_standard_treatment_usd),
-        notes: 'Estimated lost revenue from missed appointments'
+        recoverablePctRange: { min: 0.30, max: 0.50 },
+        rationale: ['Estimated lost revenue from missed appointments']
       });
     }
 
@@ -97,14 +97,13 @@ export function buildMockMoneyLost(
       const annual = monthly * 12;
       
       areas.push({
-        id: 'treatment_plans',
+        key: 'treatment_plans',
         title: 'Unaccepted Treatment Plans Loss',
         dailyUsd: daily,
         monthlyUsd: monthly,
         annualUsd: annual,
-        recoverablePctRange: [0.25, 0.45],
-        confidence: getConfidence(!!answers.monthly_cold_treatment_plans, !!answers.avg_unaccepted_plan_value_usd),
-        notes: 'Revenue lost from treatment plans going cold'
+        recoverablePctRange: { min: 0.25, max: 0.45 },
+        rationale: ['Revenue lost from treatment plans going cold']
       });
     }
 
@@ -139,14 +138,13 @@ export function buildMockMoneyLost(
       const annual = monthly * 12;
       
       areas.push({
-        id: 'missed_service_calls',
+        key: 'missed_service_calls',
         title: 'Missed Service Calls Loss',
         dailyUsd: daily,
         monthlyUsd: monthly,
         annualUsd: annual,
-        recoverablePctRange: [0.35, 0.60],
-        confidence: getConfidence(!!dailyMissedCallsChoice, !!answers.missed_call_estimated_value_usd),
-        notes: 'Potential revenue from unanswered service calls'
+        recoverablePctRange: { min: 0.35, max: 0.60 },
+        rationale: ['Potential revenue from unanswered service calls']
       });
     }
 
@@ -157,14 +155,13 @@ export function buildMockMoneyLost(
       const annual = monthly * 12;
       
       areas.push({
-        id: 'last_minute_cancellations',
+        key: 'last_minute_cancellations',
         title: 'Last-Minute Cancellations Loss',
         dailyUsd: daily,
         monthlyUsd: monthly,
         annualUsd: annual,
-        recoverablePctRange: [0.30, 0.50],
-        confidence: getConfidence(!!weeklyCancellationsChoice, !!answers.avg_canceled_job_value_usd),
-        notes: 'Revenue lost from job cancellations'
+        recoverablePctRange: { min: 0.30, max: 0.50 },
+        rationale: ['Revenue lost from job cancellations']
       });
     }
 
@@ -176,14 +173,13 @@ export function buildMockMoneyLost(
       const annual = monthly * 12;
       
       areas.push({
-        id: 'pending_quotes',
+        key: 'pending_quotes',
         title: 'Pending Quotes Revenue Loss',
         dailyUsd: daily,
         monthlyUsd: monthly,
         annualUsd: annual,
-        recoverablePctRange: [0.25, 0.45],
-        confidence: getConfidence(!!answers.monthly_pending_quotes, !!answers.average_pending_quote_value_usd),
-        notes: 'Potential revenue from stagnant quotes'
+        recoverablePctRange: { min: 0.25, max: 0.45 },
+        rationale: ['Potential revenue from stagnant quotes']
       });
     }
   }

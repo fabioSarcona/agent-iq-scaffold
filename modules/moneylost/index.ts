@@ -6,7 +6,6 @@ export { MoneyLostSummaryCard, LossAreaCard, DisclaimerNote } from './components
 
 // Types
 export type * from './types'
-export type * from './moneylost.types'
 
 // Utilities
 export { computeMoneyLost } from './moneylost'

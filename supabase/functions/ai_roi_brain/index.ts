@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { initializeKB } from '../_shared/kb.ts'
+import { extractRelevantKB } from '../_shared/kb/roibrain.ts'
+import type { KBPayload } from '../_shared/kb/types.ts'
 import { logger } from '../_shared/logger.ts'
 import { ROIBrainInputSchema, VoiceFitOutputSchema } from '../_shared/validation.ts'
 import { z } from 'https://esm.sh/zod@3.22.4'
@@ -30,23 +31,7 @@ interface BusinessContext {
   };
 }
 
-// Unified KB Payload Structure
-interface KBPayload {
-  brand: any;
-  voiceSkills: any;
-  painPoints: any;
-  pricing: any;
-  responseModels: any;
-  faq: any;
-  approvedClaims: string[];
-  services: Array<{
-    name: string;
-    target: string;
-    problem: string;
-    how: string;
-    roiRangeMonthly?: [number, number];
-  }>;
-}
+// Note: KBPayload interface now imported from shared types
 
 // Business Intelligence Extractor
 class BusinessContextExtractor {
@@ -169,16 +154,8 @@ Deno.serve(async (req) => {
     // Generate contextual prompt
     const contextualPrompt = BusinessContextExtractor.generateContextualPrompt(context, intelligence);
     
-    // Initialize KB and get payload
-    const kb = await initializeKB();
-    const kbPayload = {
-      brand: kb.brand,
-      voiceSkills: kb.voiceSkills,
-      painPoints: kb.painPoints,
-      pricing: kb.pricing,
-      responseModels: kb.responseModels,
-      faq: kb.faq
-    };
+    // Extract relevant KB data based on business context
+    const kbPayload = extractRelevantKB(context);
 
     // Make Claude API call with enhanced prompt
     const claudeStart = Date.now();
@@ -190,9 +167,8 @@ Deno.serve(async (req) => {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: 'claude-3-5-sonnet-20241022',
+        model: 'claude-sonnet-4-20250514',
         max_tokens: 4000,
-        temperature: 0.7,
         messages: [{
           role: 'user',
           content: `${contextualPrompt}
@@ -282,7 +258,7 @@ Use this KB data for context: ${JSON.stringify(kbPayload, null, 2)}`
       },
       metadata: {
         version: '2.0',
-        kbVersion: kb.version || 'latest',
+        kbVersion: 'roibrain-centralized-v1',
         businessContext: {
           vertical: validInput.vertical,
           businessSize: intelligence.businessSize,

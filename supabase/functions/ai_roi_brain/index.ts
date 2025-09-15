@@ -1,4 +1,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { initializeKB } from '../_shared/kb.ts'
+import { logger } from '../_shared/logger.ts'
+import { ROIBrainInputSchema, VoiceFitOutputSchema } from '../_shared/validation.ts'
+import { z } from 'https://esm.sh/zod@3.22.4'
 
 // Type definitions for ROI Brain Business Context
 interface BusinessContext {
@@ -150,79 +154,153 @@ Deno.serve(async (req) => {
   }
 
   try {
-    console.log('ROI Brain function started - Business Context Extractor v1.0');
+    const startTime = Date.now();
+    logger.info('ROI Brain function started - Claude Integration Phase');
     
-    const input = await req.json();
-    console.log('Input received:', JSON.stringify(input, null, 2));
+    const rawInput = await req.json();
+    const validInput = ROIBrainInputSchema.parse(rawInput);
 
-    const context: BusinessContext = input as BusinessContext;
+    const context: BusinessContext = validInput;
     
     // Extract business intelligence
     const intelligence = BusinessContextExtractor.extractBusinessIntelligence(context);
-    console.log('Business Intelligence:', intelligence);
+    logger.info('Business Intelligence extracted', intelligence);
     
     // Generate contextual prompt
     const contextualPrompt = BusinessContextExtractor.generateContextualPrompt(context, intelligence);
-    console.log('Generated Contextual Prompt Preview:', contextualPrompt.substring(0, 300) + '...');
+    
+    // Initialize KB and get payload
+    const kb = await initializeKB();
+    const kbPayload = {
+      brand: kb.brand,
+      voiceSkills: kb.voiceSkills,
+      painPoints: kb.painPoints,
+      pricing: kb.pricing,
+      responseModels: kb.responseModels,
+      faq: kb.faq
+    };
 
-    // Enhanced response with real business context
+    // Make Claude API call with enhanced prompt
+    const claudeStart = Date.now();
+    const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': Deno.env.get('ANTHROPIC_API_KEY')!,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: 'claude-3-5-sonnet-20241022',
+        max_tokens: 4000,
+        temperature: 0.7,
+        messages: [{
+          role: 'user',
+          content: `${contextualPrompt}
+
+IMPORTANT: You are generating a VoiceFit report for a ${context.vertical} business. Respond with valid JSON matching this structure:
+
+{
+  "score": <number 1-100>,
+  "band": "<Crisis|Optimization Needed|Growth Ready|AI-Optimized>",
+  "diagnosis": ["<specific issues found>"],
+  "consequences": ["<business impact statements>"],
+  "solutions": [
+    {
+      "skillId": "<skill_identifier>",
+      "title": "<solution name>",
+      "rationale": "<why this helps>",
+      "estimatedRecoveryPct": [<min_pct>, <max_pct>]
+    }
+  ],
+  "faq": [
+    {
+      "q": "<common question>",
+      "a": "<helpful answer>"
+    }
+  ],
+  "plan": {
+    "name": "<plan name>",
+    "priceMonthlyUsd": <number>,
+    "inclusions": ["<feature 1>", "<feature 2>"]
+  }
+}
+
+Use this KB data for context: ${JSON.stringify(kbPayload, null, 2)}`
+        }]
+      })
+    });
+
+    const claudeTime = Date.now() - claudeStart;
+
+    if (!claudeResponse.ok) {
+      throw new Error(`Claude API error: ${claudeResponse.statusText}`);
+    }
+
+    const claudeData = await claudeResponse.json();
+    const aiContent = claudeData.content[0]?.text;
+
+    if (!aiContent) {
+      throw new Error('No content returned from Claude API');
+    }
+
+    // Parse Claude's JSON response
+    let parsedContent;
+    try {
+      parsedContent = JSON.parse(aiContent);
+    } catch (error) {
+      logger.error('Failed to parse Claude response as JSON', { error: error.message, content: aiContent });
+      throw new Error('Invalid JSON response from AI');
+    }
+
+    // Validate the parsed response
+    const validatedResponse = VoiceFitOutputSchema.parse(parsedContent);
+
+    // Enhanced response with business context and Claude integration
+    const totalTime = Date.now() - startTime;
     const response = {
       success: true,
       sessionId: `roi_brain_${Date.now()}`,
-      voiceFitReport: {
-        overall: {
-          score: intelligence.technicalReadiness,
-          recommendation: `${context.vertical.toUpperCase()} ${intelligence.businessSize} business with ${intelligence.urgencyLevel} urgency level. Monthly revenue at risk: $${context.moneyLostSummary.total.monthlyUsd.toLocaleString()}. Primary focus: ${intelligence.primaryPainPoints[0] || 'optimization'}.`,
-          band: intelligence.technicalReadiness > 70 ? 'HIGH' : intelligence.technicalReadiness > 40 ? 'MEDIUM' : 'LOW'
-        },
-        sections: context.scoreSummary.sections.map(section => ({
-          id: section.sectionId,
-          score: section.score,
-          impact: section.score < 50 ? 'high' : section.score < 70 ? 'medium' : 'low'
-        })),
-        recommendations: context.moneyLostSummary.areas.slice(0, 3).map((area, index) => ({
-          id: `rec_${index + 1}`,
-          title: `Address ${area.title}`,
-          description: `Recover $${Math.round(area.monthlyUsd * ((area.recoverablePctRange.min + area.recoverablePctRange.max) / 2)).toLocaleString()}/month from ${area.key}`,
-          monthly_impact_usd: Math.round(area.monthlyUsd * ((area.recoverablePctRange.min + area.recoverablePctRange.max) / 2)),
-          implementation_effort: intelligence.implementationComplexity,
-          roi_timeframe: intelligence.urgencyLevel === 'critical' ? '1-2 months' : '2-4 months',
-          skills: [`${area.key}_automation`]
-        })),
-        caseStudies: [
-          {
-            title: `${intelligence.businessSize.toUpperCase()} ${context.vertical} Success Story`,
-            problem: `Similar ${intelligence.primaryPainPoints[0]} challenges`,
-            solution: `${intelligence.implementationComplexity} implementation approach`,
-            result: `Average 40% improvement in ${intelligence.primaryPainPoints[0]} efficiency`
-          }
-        ]
-      },
-      needAgentIQInsights: intelligence.primaryPainPoints.map((point, index) => ({
-        area: point,
-        urgency: intelligence.urgencyLevel,
-        potential_monthly_savings: context.moneyLostSummary.areas[index]?.monthlyUsd || 0,
-        implementation_complexity: intelligence.implementationComplexity
-      })),
+      voiceFitReport: validatedResponse,
+      needAgentIQInsights: [{
+        category: intelligence.primaryPainPoints[0] || 'operational_efficiency',
+        insight: `Based on your ${intelligence.businessSize} business profile, immediate focus on ${intelligence.primaryPainPoints.join(' and ')} could yield ${intelligence.urgencyLevel === 'high' ? 'significant' : 'moderate'} ROI improvements.`,
+        priority: intelligence.urgencyLevel,
+        actionable: true,
+        estimatedImpact: intelligence.urgencyLevel === 'critical' ? 'high' : 'medium'
+      }],
+      businessIntelligence: intelligence,
+      contextualPrompt: contextualPrompt.substring(0, 500) + '...',
       processingTime: {
-        total: Date.now() - Date.now(),
-        ai: 0, // Will be populated when Claude integration is added
+        total: totalTime,
+        ai: claudeTime,
         cache: 0
       },
       costs: {
-        inputTokens: 0,
-        outputTokens: 0,
-        totalCost: 0
+        inputTokens: claudeData.usage?.input_tokens || 0,
+        outputTokens: claudeData.usage?.output_tokens || 0,
+        totalCost: ((claudeData.usage?.input_tokens || 0) * 0.000003) + ((claudeData.usage?.output_tokens || 0) * 0.000015)
       },
       metadata: {
-        business_intelligence: intelligence,
-        contextual_prompt_preview: contextualPrompt.substring(0, 200) + '...',
-        phase: 'Business Context Extractor - Phase 2 Active'
+        version: '2.0',
+        kbVersion: kb.version || 'latest',
+        businessContext: {
+          vertical: validInput.vertical,
+          businessSize: intelligence.businessSize,
+          urgencyLevel: intelligence.urgencyLevel,
+          technicalReadiness: intelligence.technicalReadiness
+        },
+        phase: 'Claude Integration - Phase 2 Complete'
       }
     };
 
-    console.log('ROI Brain response generated with business context intelligence');
-    
+    logger.info('ROI Brain computation completed', {
+      vertical: validInput.vertical,
+      businessSize: intelligence.businessSize,
+      urgencyLevel: intelligence.urgencyLevel,
+      processingTime: totalTime,
+      aiTime: claudeTime
+    });
+
     return new Response(
       JSON.stringify(response),
       { 
@@ -231,8 +309,19 @@ Deno.serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('ROI Brain error:', error);
+    logger.error('ROI Brain processing failed', { error: error.message });
     
+    if (error instanceof z.ZodError) {
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: 'Invalid input data', 
+        details: error.errors 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     return new Response(
       JSON.stringify({ 
         success: false,

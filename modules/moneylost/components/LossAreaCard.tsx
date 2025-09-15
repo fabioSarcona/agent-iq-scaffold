@@ -22,17 +22,17 @@ export function formatCurrency(amount: number): string {
 }
 
 const severityColors = {
-  LOW: "bg-accent text-accent-foreground",
-  MEDIUM: "bg-secondary text-secondary-foreground",
-  HIGH: "bg-warning text-warning-foreground",
-  CRITICAL: "bg-destructive text-destructive-foreground"
+  low: "bg-accent text-accent-foreground",
+  medium: "bg-secondary text-secondary-foreground",
+  high: "bg-warning text-warning-foreground",
+  critical: "bg-destructive text-destructive-foreground"
 };
 
 const severityLabels = {
-  LOW: "Low Impact",
-  MEDIUM: "Medium Impact", 
-  HIGH: "High Impact",
-  CRITICAL: "Critical Impact"
+  low: "Low Impact",
+  medium: "Medium Impact", 
+  high: "High Impact",
+  critical: "Critical Impact"
 };
 
 export function LossAreaCard({ 
@@ -44,8 +44,9 @@ export function LossAreaCard({
   severity,
   rationale 
 }: LossAreaCardProps) {
-  const { min, max } = recoverablePctRange;
-  const recoverableText = `${Math.round(min * 100)}–${Math.round(max * 100)}%`;
+  const { min, max } = recoverablePctRange || { min: 0, max: 0 };
+  const recoverableText = `${Math.round((min || 0) * 100)}–${Math.round((max || 0) * 100)}%`;
+  const safeRationale = Array.isArray(rationale) ? rationale : [rationale || 'No details available'];
 
   return (
     <Card>
@@ -57,7 +58,7 @@ export function LossAreaCard({
           </Badge>
         </div>
         <div className="mt-2 space-y-1">
-          {rationale.map((bullet, i) => (
+          {safeRationale.map((bullet, i) => (
             <p key={i} className="text-xs text-muted-foreground">• {bullet}</p>
           ))}
         </div>

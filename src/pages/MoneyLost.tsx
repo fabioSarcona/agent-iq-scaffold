@@ -7,6 +7,15 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { logger } from '@/lib/logger'
 
+type Severity = 'low' | 'medium' | 'high' | 'critical'
+
+function severityFromDaily(dailyUsd: number): Severity {
+  if (dailyUsd > 1000) return 'critical';
+  if (dailyUsd >= 500) return 'high';
+  if (dailyUsd >= 200) return 'medium';
+  return 'low';
+}
+
 export default function MoneyLost() {
   const navigate = useNavigate()
   const { vertical, answers } = useAuditProgressStore()
@@ -24,8 +33,8 @@ export default function MoneyLost() {
         
         logger.event('moneylost_request_success', {
           vertical,
-          dailyUsd: result.dailyUsd,
-          monthlyUsd: result.monthlyUsd,
+          dailyUsd: result.dailyUsd ?? 0,
+          monthlyUsd: result.monthlyUsd ?? 0,
           areasCount: result.areas?.length ?? 0
         });
         
@@ -94,9 +103,9 @@ export default function MoneyLost() {
 
       {/* Summary Card */}
       <MoneyLostSummaryCard 
-        dailyUsd={validatedData.total?.dailyUsd || 0}
-        monthlyUsd={validatedData.total?.monthlyUsd || 0}
-        annualUsd={validatedData.total?.annualUsd || 0}
+        dailyUsd={validatedData.dailyUsd || 0}
+        monthlyUsd={validatedData.monthlyUsd || 0}
+        annualUsd={validatedData.annualUsd || 0}
       />
 
       {/* Disclaimer */}
@@ -132,9 +141,9 @@ export default function MoneyLost() {
                 dailyUsd={area.dailyUsd || 0}
                 monthlyUsd={area.monthlyUsd || 0}
                 annualUsd={area.annualUsd || 0}
-                recoverablePct={[area.recoverablePctRange?.min || 0, area.recoverablePctRange?.max || 0]}
-                severity="low"
-                rationale={area.rationale?.join(' ') || 'No details available'}
+                recoverablePctRange={area.recoverablePctRange || { min: 0, max: 0 }}
+                severity={severityFromDaily(area.dailyUsd || 0)}
+                rationale={area.rationale || ['No details available']}
               />
             ))}
           </div>

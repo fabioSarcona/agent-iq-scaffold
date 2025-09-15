@@ -10,11 +10,9 @@ export const ApiResponseSchema = z.object({
 })
 
 export const MoneyLostSummary = z.object({
-  total: z.object({
-    dailyUsd: z.number().min(0),
-    monthlyUsd: z.number().min(0),
-    annualUsd: z.number().min(0),
-  }),
+  dailyUsd: z.number().min(0),
+  monthlyUsd: z.number().min(0),
+  annualUsd: z.number().min(0),
   areas: z.array(z.object({
     key: z.string().min(1),
     title: z.string().min(1),

@@ -1,5 +1,7 @@
 export type Vertical = 'dental' | 'hvac';
 
+export type Severity = 'low' | 'medium' | 'high' | 'critical';
+
 export interface RecoverableRange {
   min: number; // 0..1
   max: number; // 0..1

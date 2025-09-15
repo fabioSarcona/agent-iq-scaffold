@@ -10,7 +10,7 @@ interface MoneyLostSummaryCardProps {
 
 export function MoneyLostSummaryCard({ dailyUsd, monthlyUsd, annualUsd }: MoneyLostSummaryCardProps) {
   return (
-    <Card className="bg-gradient-to-r from-red-600 to-red-700 text-white border-0 shadow-lg">
+    <Card className="bg-brand-gradient text-white border-0 shadow-lg">
       <CardHeader className="text-center">
         <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-4">
           <DollarSign className="h-10 w-10 text-white" />

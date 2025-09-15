@@ -5,20 +5,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-interface BusinessContext {
-  vertical: 'dental' | 'hvac';
-  auditAnswers: Record<string, unknown>;
-  scoreSummary?: {
-    overall: number;
-    sections: Array<{ name: string; score: number }>;
-  };
-  moneylost?: Array<{
-    area: string;
-    monthlyLoss: number;
-    confidence: 'low' | 'medium' | 'high';
-  }>;
-}
-
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -36,38 +22,15 @@ Deno.serve(async (req) => {
   }
 
   try {
-    console.log('ROI Brain function started - minimal version v2 - force deployment');
+    console.log('Test deployment function called successfully');
     
-    const input = await req.json();
-    console.log('Input received:', JSON.stringify(input, null, 2));
-
-    // Minimal response for testing
     const response = {
       success: true,
-      sessionId: `session_${Date.now()}`,
-      voiceFitReport: {
-        overall: {
-          score: 75,
-          recommendation: "This is a minimal test response from ROI Brain function"
-        },
-        sections: [],
-        recommendations: [],
-        caseStudies: []
-      },
-      needAgentIQInsights: [],
-      processingTime: {
-        total: 100,
-        ai: 50,
-        cache: 0
-      },
-      costs: {
-        inputTokens: 0,
-        outputTokens: 0,
-        totalCost: 0
-      }
+      message: 'Test deployment function is working correctly',
+      timestamp: new Date().toISOString()
     };
 
-    console.log('Returning minimal response');
+    console.log('Test deployment response:', response);
     
     return new Response(
       JSON.stringify(response),
@@ -77,7 +40,7 @@ Deno.serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('ROI Brain error:', error);
+    console.error('Test deployment error:', error);
     
     return new Response(
       JSON.stringify({ 

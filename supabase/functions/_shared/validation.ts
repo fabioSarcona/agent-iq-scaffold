@@ -321,12 +321,13 @@ export const MoneyLostInputSchema = z.object({
   answers: z.record(z.string(), z.unknown())
 });
 
-// MoneyLost Output
+// MoneyLost Output - Aligned with modules/moneylost/types.ts
 export const MoneyLostOutputSchema = z.object({
-  vertical: z.enum(['dental', 'hvac']),
-  dailyTotalUsd: z.number(),
-  monthlyTotalUsd: z.number(),
-  annualTotalUsd: z.number(),
+  total: z.object({
+    dailyUsd: z.number(),
+    monthlyUsd: z.number(),
+    annualUsd: z.number()
+  }),
   areas: z.array(z.object({
     key: z.string(),
     title: z.string(),

@@ -289,12 +289,13 @@ serve(async (req) => {
     // Real computation logic
     const summary = computeMoneyLost({ vertical, answers });
     
-    // Transform to match expected output format
+    // Transform to match expected output format (modules/moneylost/types.ts)
     const output: MoneyLostOutput = {
-      vertical: summary.vertical,
-      dailyTotalUsd: summary.dailyTotalUsd,
-      monthlyTotalUsd: summary.monthlyTotalUsd,
-      annualTotalUsd: summary.annualTotalUsd,
+      total: {
+        dailyUsd: summary.dailyTotalUsd,
+        monthlyUsd: summary.monthlyTotalUsd,
+        annualUsd: summary.annualTotalUsd
+      },
       areas: summary.areas.map(area => ({
         key: area.key,
         title: area.title,
@@ -317,7 +318,7 @@ serve(async (req) => {
     logger.info('MoneyLost computation completed', { 
       vertical, 
       processingTime,
-      totalMonthly: validatedOutput.monthlyTotalUsd 
+      totalMonthly: validatedOutput.total.monthlyUsd 
     });
 
     return new Response(JSON.stringify(validatedOutput), { 

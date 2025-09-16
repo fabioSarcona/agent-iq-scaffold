@@ -313,7 +313,9 @@ Deno.serve(async (req) => {
           role: 'user',
           content: `${contextualPrompt}
 
-IMPORTANT: You are generating a VoiceFit report for a ${normalizedContext.vertical} business. Respond with valid JSON matching this structure:
+CRITICAL: Return ONLY raw JSON. Do not include markdown code fences (```json), backticks, or any explanations before or after the JSON.
+
+You are generating a VoiceFit report for a ${normalizedContext.vertical} business. Respond with valid JSON matching this exact structure:
 
 {
   "score": <number 1-100>,
@@ -359,12 +361,56 @@ Use this KB data for context: ${JSON.stringify(kbPayload, null, 2)}`
       throw new Error('No content returned from Claude API');
     }
 
-    // Parse Claude's JSON response
+// Helper function to extract JSON from markdown-wrapped text
+    function extractJsonFromText(text: string): any {
+      // First, try to find JSON within markdown code blocks
+      const jsonBlockRegex = /```(?:json)?\s*(\{[\s\S]*?\})\s*```/;
+      const match = text.match(jsonBlockRegex);
+      
+      if (match) {
+        try {
+          return JSON.parse(match[1]);
+        } catch (error) {
+          logger.warn('Found markdown block but failed to parse JSON', { error: error.message });
+        }
+      }
+      
+      // Try direct parsing
+      try {
+        return JSON.parse(text);
+      } catch (error) {
+        // Last resort: try to extract balanced braces
+        const braceStart = text.indexOf('{');
+        const braceEnd = text.lastIndexOf('}');
+        
+        if (braceStart !== -1 && braceEnd !== -1 && braceEnd > braceStart) {
+          const extracted = text.substring(braceStart, braceEnd + 1);
+          try {
+            return JSON.parse(extracted);
+          } catch (extractError) {
+            logger.error('All JSON extraction methods failed', { 
+              originalError: error.message,
+              extractError: extractError.message,
+              contentPreview: text.substring(0, 200) 
+            });
+          }
+        }
+        
+        throw new Error(`Unable to extract valid JSON. Content: ${text.substring(0, 200)}...`);
+      }
+    }
+
+    // Parse Claude's JSON response with robust extraction
     let parsedContent;
     try {
-      parsedContent = JSON.parse(aiContent);
+      parsedContent = extractJsonFromText(aiContent);
+      logger.info('Successfully extracted JSON from AI response');
     } catch (error) {
-      logger.error('Failed to parse Claude response as JSON', { error: error.message, content: aiContent });
+      logger.error('Failed to parse Claude response as JSON', { 
+        error: error.message, 
+        contentPreview: aiContent.substring(0, 300),
+        contentLength: aiContent.length
+      });
       throw new Error('Invalid JSON response from AI');
     }
 

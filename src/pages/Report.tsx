@@ -270,7 +270,7 @@ export default function Report() {
       </Card>
 
       {/* Benchmark Note */}
-      <BenchmarkNote benchmarks={reportData.benchmarks || []} />
+      <BenchmarkNote notes={reportData.benchmarks || []} />
 
       <div className="grid gap-8 lg:grid-cols-2">
         {/* Diagnosis Section */}
@@ -350,7 +350,7 @@ export default function Report() {
           <CardDescription>{t('sections.faq_description')}</CardDescription>
         </CardHeader>
         <CardContent>
-          <FAQAccordion faq={reportData.faq} />
+          <FAQAccordion items={reportData.faq || []} />
         </CardContent>
       </Card>
 

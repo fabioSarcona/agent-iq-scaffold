@@ -91,7 +91,7 @@ declare module '@modules/skillscope/types' {
 
 declare module '@modules/ai/voicefit' {
   export const ScoreGauge: React.ComponentType<{ score: number; band: string }>;
-  export const BenchmarkNote: React.ComponentType<{ benchmarks?: string[] }>;
+  export const BenchmarkNote: React.ComponentType<{ notes: string[] }>;
   export const SolutionCard: React.ComponentType<{
     skillId: string;
     title: string;
@@ -99,7 +99,7 @@ declare module '@modules/ai/voicefit' {
     estimatedRecoveryPct?: [number, number];
   }>;
   export const FAQAccordion: React.ComponentType<{ 
-    faq: Array<{ q: string; a: string }> 
+    items: Array<{ q: string; a: string }> 
   }>;
   export const PlanCard: React.ComponentType<{
     name: string;

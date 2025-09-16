@@ -7,7 +7,7 @@ async function testROIBrainSystem() {
   // Test data
   const dentalTest = {
     "vertical": "dental",
-    "answers": {
+    "auditAnswers": {
       "dental_chairs_active_choice": "3_4",
       "call_team_members_choice": "2_3",
       "practice_management_software_choice": "dentrix", 
@@ -26,22 +26,12 @@ async function testROIBrainSystem() {
         {"name": "call_handling_conversion", "score": 55}
       ]
     },
-    "moneylost": {
-      "total_estimated_monthly": 8500,
-      "areas": [
-        {
-          "area": "Missed Calls",
-          "estimate_monthly": 3200,
-          "confidence": 85
-        }
-      ]
-    },
     "sessionId": "test-dental-" + Date.now()
   };
 
   const hvacTest = {
     "vertical": "hvac",
-    "answers": {
+    "auditAnswers": {
       "field_technicians_count_choice": "3_5",
       "scheduling_software_used_choice": "servicetitan",
       "hvac_daily_calls_received_choice": "10_20", 
@@ -54,16 +44,6 @@ async function testROIBrainSystem() {
       "sections": [
         {"name": "company_overview", "score": 65},
         {"name": "call_handling_scheduling", "score": 50}
-      ]
-    },
-    "moneylost": {
-      "total_estimated_monthly": 12800,
-      "areas": [
-        {
-          "area": "Missed Calls", 
-          "estimate_monthly": 4200,
-          "confidence": 88
-        }
       ]
     },
     "sessionId": "test-hvac-" + Date.now()

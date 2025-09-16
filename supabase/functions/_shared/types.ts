@@ -21,7 +21,7 @@ import type {
   KBCaseStudySchema,
   NeedAgentIQInsightSchema
 } from './validation.ts';
-import { z } from "https://esm.sh/zod@3.22.4";
+import { z } from "zod";
 
 // Business context
 export type BusinessContext = z.infer<typeof BusinessContextSchema>;

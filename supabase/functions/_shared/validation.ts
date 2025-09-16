@@ -1,5 +1,5 @@
 // Zod validation schemas for Edge Functions
-import { z } from "https://esm.sh/zod@3.22.4";
+import { z } from "zod";
 
 // Common business context
 export const BusinessContextSchema = z.object({

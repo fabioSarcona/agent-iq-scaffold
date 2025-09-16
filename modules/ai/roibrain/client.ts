@@ -75,93 +75,192 @@ export interface ROIBrainOutput {
   };
 }
 
-/**
- * ROI Brain Client - Single Brain + Claude Orchestrator
- * Replaces multiple AI calls with one unified, intelligent orchestrator
- */
 export async function requestROIBrain(
   context: ROIBrainBusinessContext,
   signal?: AbortSignal
 ): Promise<ROIBrainOutput> {
   const startTime = Date.now();
-  
+  const maxRetries = 2;
+  let lastError: any;
+
+  // Retry logic with exponential backoff
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      logger.info('ROI Brain request initiated', { 
+        vertical: context.vertical,
+        hasScores: !!context.scoreSummary,
+        hasMoneyLost: !!context.moneylost,
+        sessionId: context.sessionId,
+        attempt: attempt + 1
+      });
+
+      const { data, error } = await supabase.functions.invoke('ai_roi_brain', {
+        body: context,
+      });
+
+      const processingTime = Date.now() - startTime;
+
+      if (error) {
+        logger.error('ROI Brain API error', { error: error.message, processingTime, attempt: attempt + 1 });
+        
+        if (error.message?.includes('401')) {
+          return {
+            success: false,
+            sessionId: context.sessionId || 'unknown',
+            error: { message: "Authentication required. Please log in and try again." },
+            processingTime,
+            cacheHit: false,
+            voiceFitReport: getEmptyVoiceFitReport()
+          };
+        }
+        
+        if (error.message?.includes('422')) {
+          return {
+            success: false,
+            sessionId: context.sessionId || 'unknown',
+            error: { message: "Invalid request data. Please try again." },
+            processingTime,
+            cacheHit: false,
+            voiceFitReport: getEmptyVoiceFitReport()
+          };
+        }
+        
+        // Store error for potential retry
+        lastError = error;
+        
+        // If this is not the last attempt, wait before retrying
+        if (attempt < maxRetries) {
+          const backoffMs = Math.pow(2, attempt) * 1000; // 1s, 2s, 4s
+          logger.info(`Retrying ROI Brain request in ${backoffMs}ms`, { attempt: attempt + 1 });
+          await new Promise(resolve => setTimeout(resolve, backoffMs));
+          continue;
+        }
+        
+        // Last attempt failed, try fallback
+        logger.warn('ROI Brain failed, attempting legacy VoiceFit fallback', { attempts: maxRetries + 1 });
+        return await fallbackToLegacyVoiceFit(context, processingTime);
+      }
+
+      // Success - log and return
+      logger.info('ROI Brain response received', {
+        sessionId: data.sessionId,
+        processingTime: data.processingTime,
+        cacheHit: data.cacheHit,
+        costs: data.costs,
+        attempt: attempt + 1
+      });
+
+      return data as ROIBrainOutput;
+
+    } catch (error) {
+      if (signal?.aborted) {
+        return {
+          success: false,
+          sessionId: context.sessionId || 'unknown',
+          error: { message: "Request was cancelled." },
+          processingTime: Date.now() - startTime,
+          cacheHit: false,
+          voiceFitReport: getEmptyVoiceFitReport()
+        };
+      }
+
+      lastError = error;
+      logger.error('ROI Brain request failed', { error: error.message, attempt: attempt + 1 });
+      
+      // If this is not the last attempt, wait before retrying
+      if (attempt < maxRetries) {
+        const backoffMs = Math.pow(2, attempt) * 1000;
+        logger.info(`Retrying ROI Brain request in ${backoffMs}ms`, { attempt: attempt + 1 });
+        await new Promise(resolve => setTimeout(resolve, backoffMs));
+        continue;
+      }
+    }
+  }
+
+  // All attempts failed, try fallback
+  logger.warn('All ROI Brain attempts failed, using legacy VoiceFit fallback');
+  return await fallbackToLegacyVoiceFit(context, Date.now() - startTime);
+}
+
+// Fallback to legacy VoiceFit system
+async function fallbackToLegacyVoiceFit(context: ROIBrainBusinessContext, processingTime: number): Promise<ROIBrainOutput> {
   try {
-    logger.info('ROI Brain request initiated', { 
-      vertical: context.vertical,
-      hasScores: !!context.scoreSummary,
-      hasMoneyLost: !!context.moneylost,
-      sessionId: context.sessionId 
-    });
-
-    const { data, error } = await supabase.functions.invoke('ai_roi_brain', {
-      body: context,
-    });
-
-    const processingTime = Date.now() - startTime;
-
-    if (error) {
-      logger.error('ROI Brain API error', { error: error.message, processingTime });
-      
-      if (error.message?.includes('401')) {
-        return {
-          success: false,
-          sessionId: context.sessionId || 'unknown',
-          error: { message: "Authentication required. Please log in and try again." },
-          processingTime,
-          cacheHit: false,
-          voiceFitReport: getEmptyVoiceFitReport()
-        };
+    // Import the legacy VoiceFit client
+    const { requestVoiceFitReport } = await import('../../ai/voicefit/report.client');
+    
+    logger.info('Attempting legacy VoiceFit fallback', { vertical: context.vertical });
+    
+    // Convert ROI Brain context to VoiceFit format
+    const legacyReport = await requestVoiceFitReport(
+      context.vertical,
+      context.auditAnswers,
+      context.scoreSummary,
+      context.moneylost,
+      context.benchmarks
+    );
+    
+    // Convert legacy format to ROI Brain output format
+    return {
+      success: true,
+      sessionId: context.sessionId || `fallback_${Date.now()}`,
+      voiceFitReport: {
+        header: {
+          score: legacyReport.score,
+          scoreBand: legacyReport.band,
+          title: `${context.vertical.charAt(0).toUpperCase() + context.vertical.slice(1)} AI Readiness Report`,
+          subtitle: 'Generated via legacy system'
+        },
+        diagnosis: {
+          title: 'Identified Issues',
+          items: legacyReport.diagnosis
+        },
+        consequences: legacyReport.consequences.map(c => ({
+          title: 'Business Impact',
+          description: c,
+          impact: 'medium',
+          severity: 'medium' as const
+        })),
+        solutions: legacyReport.solutions.map(s => ({
+          title: s.title,
+          description: s.rationale,
+          expectedROI: `${s.estimatedRecoveryPct[0]}-${s.estimatedRecoveryPct[1]}%`,
+          timeframe: '3-6 months',
+          difficulty: 'medium' as const,
+          priority: 'medium' as const
+        })),
+        plan: {
+          title: legacyReport.plan.name,
+          description: 'Recommended AI solution package',
+          monthlyPrice: legacyReport.plan.priceMonthlyUsd,
+          features: legacyReport.plan.inclusions,
+          estimatedROI: '200-400%'
+        },
+        faq: legacyReport.faq.map(f => ({
+          question: f.q,
+          answer: f.a
+        }))
+      },
+      processingTime,
+      cacheHit: false,
+      costs: {
+        inputTokens: 0,
+        outputTokens: 0,
+        totalCost: 0
+      },
+      error: {
+        message: 'Used legacy fallback system',
+        code: 'FALLBACK_USED'
       }
-      
-      if (error.message?.includes('422')) {
-        return {
-          success: false,
-          sessionId: context.sessionId || 'unknown',
-          error: { message: "Invalid request data. Please try again." },
-          processingTime,
-          cacheHit: false,
-          voiceFitReport: getEmptyVoiceFitReport()
-        };
-      }
-      
-      return {
-        success: false,
-        sessionId: context.sessionId || 'unknown',
-        error: { message: "Failed to generate ROI Brain analysis. Please try again later." },
-        processingTime,
-        cacheHit: false,
-        voiceFitReport: getEmptyVoiceFitReport()
-      };
-    }
-
-    // Log successful processing
-    logger.info('ROI Brain response received', {
-      sessionId: data.sessionId,
-      processingTime: data.processingTime,
-      cacheHit: data.cacheHit,
-      costs: data.costs
-    });
-
-    return data as ROIBrainOutput;
-
-  } catch (error) {
-    if (signal?.aborted) {
-      return {
-        success: false,
-        sessionId: context.sessionId || 'unknown',
-        error: { message: "Request was cancelled." },
-        processingTime: Date.now() - startTime,
-        cacheHit: false,
-        voiceFitReport: getEmptyVoiceFitReport()
-      };
-    }
-
-    logger.error('ROI Brain request failed', { error: error.message });
+    };
+    
+  } catch (fallbackError) {
+    logger.error('Legacy fallback also failed', { error: fallbackError.message });
+    
     return {
       success: false,
       sessionId: context.sessionId || 'unknown',
-      error: { message: "Network error. Please check your connection and try again." },
-      processingTime: Date.now() - startTime,
+      error: { message: "Both ROI Brain and legacy systems failed. Please try again later." },
+      processingTime,
       cacheHit: false,
       voiceFitReport: getEmptyVoiceFitReport()
     };
@@ -179,25 +278,68 @@ export function roiBrainToVoiceFitAdapter(roiResponse: ROIBrainOutput) {
 
   const report = roiResponse.voiceFitReport;
   
+  // Handle both new simple format and legacy complex format
+  const score = typeof report === 'object' && 'score' in report ? report.score : 
+                (typeof report === 'object' && 'header' in report ? report.header.score : 0);
+  
+  const band = typeof report === 'object' && 'band' in report ? report.band :
+               (typeof report === 'object' && 'header' in report ? report.header.scoreBand : 'Unknown');
+
+  const diagnosis = typeof report === 'object' && 'diagnosis' in report && Array.isArray(report.diagnosis) ? report.diagnosis :
+                   (typeof report === 'object' && 'diagnosis' in report && typeof report.diagnosis === 'object' ? report.diagnosis.items : []);
+
+  const consequences = typeof report === 'object' && 'consequences' in report && Array.isArray(report.consequences) ? 
+                      (typeof report.consequences[0] === 'string' ? report.consequences : report.consequences.map(c => c.description || c)) :
+                      [];
+
+  const solutions = typeof report === 'object' && 'solutions' in report && Array.isArray(report.solutions) ?
+                   report.solutions.map(s => {
+                     if (typeof s === 'object' && 'skillId' in s) {
+                       // New simple format
+                       return {
+                         skillId: s.skillId,
+                         title: s.title,
+                         rationale: s.rationale || s.description || '',
+                         estimatedRecoveryPct: s.estimatedRecoveryPct || [25, 45] as [number, number]
+                       };
+                     } else {
+                       // Legacy complex format
+                       return {
+                         skillId: `skill_${s.title.toLowerCase().replace(/[^a-z0-9]/g, '_')}`,
+                         title: s.title,
+                         rationale: s.description || s.rationale || '',
+                         estimatedRecoveryPct: [25, 45] as [number, number]
+                       };
+                     }
+                   }) : [];
+
+  const plan = typeof report === 'object' && 'plan' in report ? {
+    name: report.plan.name || report.plan.title || 'Standard',
+    priceMonthlyUsd: report.plan.priceMonthlyUsd || report.plan.monthlyPrice || 197,
+    inclusions: report.plan.inclusions || report.plan.features || [],
+    addons: report.plan.addons || []
+  } : {
+    name: 'Standard',
+    priceMonthlyUsd: 197,
+    inclusions: [],
+    addons: []
+  };
+
+  const faq = typeof report === 'object' && 'faq' in report && Array.isArray(report.faq) ?
+             report.faq.map(f => ({ 
+               q: f.q || f.question || '', 
+               a: f.a || f.answer || '' 
+             })) : [];
+  
   return {
-    score: report.header.score,
-    band: report.header.scoreBand,
-    diagnosis: report.diagnosis.items, // Convert from {title, items} to array
-    consequences: report.consequences.map(c => c.description), // Convert to string array
-    solutions: report.solutions.map(s => ({
-      skillId: `skill_${s.title.toLowerCase().replace(/[^a-z0-9]/g, '_')}`, // Generate skillId
-      title: s.title,
-      rationale: s.description,
-      estimatedRecoveryPct: [0.25, 0.45] as [number, number] // Default range
-    })),
-    benchmarks: [], // ROI Brain doesn't have benchmarks in this format
-    plan: {
-      name: report.plan.title,
-      priceMonthlyUsd: report.plan.monthlyPrice,
-      inclusions: report.plan.features,
-      addons: []
-    },
-    faq: report.faq.map(f => ({ q: f.question, a: f.answer })), // Convert format
+    score,
+    band,
+    diagnosis,
+    consequences,
+    solutions,
+    benchmarks: report.benchmarks || [],
+    plan,
+    faq,
     
     // Metadata for debugging
     processingTime: roiResponse.processingTime,

@@ -6,6 +6,84 @@ import { ROIBrainInputSchema, VoiceFitOutputSchema } from '../_shared/validation
 import { z } from 'https://esm.sh/zod@3.22.4'
 import { corsHeaders } from '../_shared/env.ts'
 
+// Initialize Supabase for L2 cache
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+// Generate cache key based on input
+function generateCacheKey(input: any): string {
+  const keyData = {
+    vertical: input.vertical,
+    auditAnswers: input.auditAnswers,
+    scoreSummary: input.scoreSummary,
+    moneyLostSummary: input.moneyLostSummary || input.moneylost
+  };
+  
+  // Create a deterministic hash of the input
+  const jsonStr = JSON.stringify(keyData, Object.keys(keyData).sort());
+  let hash = 0;
+  for (let i = 0; i < jsonStr.length; i++) {
+    const char = jsonStr.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32-bit integer
+  }
+  return Math.abs(hash).toString(16).padStart(8, '0');
+}
+
+// Check L2 cache for existing results
+async function checkCache(cacheKey: string): Promise<any | null> {
+  try {
+    const { data, error } = await supabase
+      .from('roi_brain_cache')
+      .select('*')
+      .eq('cache_key', cacheKey)
+      .gt('expires_at', new Date().toISOString())
+      .single();
+
+    if (error || !data) {
+      return null;
+    }
+
+    // Update access count
+    await supabase
+      .from('roi_brain_cache')
+      .update({ access_count: data.access_count + 1 })
+      .eq('id', data.id);
+
+    return data.ai_response;
+  } catch (error) {
+    logger.warn('Cache check failed', { error: error.message, cacheKey });
+    return null;
+  }
+}
+
+// Store result in L2 cache
+async function storeInCache(cacheKey: string, businessContext: any, aiResponse: any, processingTime: number, costs: any): Promise<void> {
+  try {
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 24); // 24 hour cache
+
+    await supabase
+      .from('roi_brain_cache')
+      .insert({
+        cache_key: cacheKey,
+        business_context: businessContext,
+        kb_payload: {}, // Could store KB payload if needed
+        ai_response: aiResponse,
+        processing_time: processingTime,
+        input_tokens: costs.inputTokens || 0,
+        output_tokens: costs.outputTokens || 0,
+        total_cost: costs.totalCost || 0,
+        expires_at: expiresAt.toISOString()
+      });
+
+    logger.info('Result cached successfully', { cacheKey });
+  } catch (error) {
+    logger.warn('Failed to cache result', { error: error.message, cacheKey });
+  }
+}
+
 // Schema for what Claude AI should return (matches the prompt format)
 const AIResponseSchema = z.object({
   score: z.number(),
@@ -280,6 +358,22 @@ Deno.serve(async (req) => {
     
     const rawInput = await req.json();
     
+    // Generate cache key for L2 caching
+    const cacheKey = generateCacheKey(rawInput);
+    
+    // Check L2 cache first
+    const cachedResult = await checkCache(cacheKey);
+    if (cachedResult) {
+      logger.info('Cache hit - returning cached result', { cacheKey });
+      return new Response(JSON.stringify({
+        ...cachedResult,
+        cacheHit: true,
+        processingTime: Date.now() - startTime
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+    
     // Step 1: Validate raw input with flexible schema
     let validInput;
     try {
@@ -512,6 +606,7 @@ Use this KB data for context: ${JSON.stringify(kbPayload, null, 2)}`
         outputTokens: claudeData.usage?.output_tokens || 0,
         totalCost: ((claudeData.usage?.input_tokens || 0) * 0.000003) + ((claudeData.usage?.output_tokens || 0) * 0.000015)
       },
+      cacheHit: false,
       metadata: {
         version: '2.0',
         kbVersion: 'roibrain-centralized-v1',
@@ -525,12 +620,16 @@ Use this KB data for context: ${JSON.stringify(kbPayload, null, 2)}`
       }
     };
 
+    // Store in L2 cache for future requests
+    await storeInCache(cacheKey, normalizedContext, response, totalTime, response.costs);
+
     logger.info('ROI Brain computation completed', {
       vertical: normalizedContext.vertical,
       businessSize: intelligence.businessSize,
       urgencyLevel: intelligence.urgencyLevel,
       processingTime: totalTime,
       aiTime: claudeTime,
+      cacheKey,
       normalizedInput: {
         sectionsCount: normalizedContext.scoreSummary.sections.length,
         monthlyLoss: normalizedContext.moneyLostSummary?.total?.monthlyUsd

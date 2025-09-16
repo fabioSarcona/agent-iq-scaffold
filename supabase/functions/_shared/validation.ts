@@ -370,30 +370,56 @@ export const OTPVerifyOutputSchema = z.object({
   error: z.string().optional()
 });
 
-// ROI Brain Schemas (Single Brain + Claude Orchestrator)
+// ROI Brain Schemas (Single Brain + Claude Orchestrator) - Enhanced for Centralized Architecture
 export const ROIBrainBusinessContextSchema = z.object({
   vertical: z.enum(['dental', 'hvac']),
   auditAnswers: z.record(z.unknown()),
   scoreSummary: z.object({
     overall: z.number(),
     sections: z.array(z.object({
-      name: z.string(),
+      sectionId: z.string().optional(),
+      name: z.string().optional(), // Made optional for compatibility
       score: z.number()
     }))
-  }).optional(),
+  }).optional(), // Made optional for compatibility
+  // Support both legacy and new formats
   moneylost: z.object({
-    dailyUsd: z.number(),
-    monthlyUsd: z.number(), 
-    annualUsd: z.number(),
+    dailyUsd: z.number().optional(),
+    monthlyUsd: z.number(),
+    annualUsd: z.number().optional(),
     areas: z.array(z.object({
-      id: z.string(),
+      id: z.string().optional(),
+      key: z.string().optional(),
       title: z.string(),
       dailyUsd: z.number(),
       monthlyUsd: z.number(),
       annualUsd: z.number(),
-      recoverablePctRange: z.tuple([z.number(), z.number()]),
-      confidence: z.enum(['low', 'medium', 'high']),
+      recoverablePctRange: z.union([
+        z.tuple([z.number(), z.number()]),
+        z.object({ min: z.number(), max: z.number() })
+      ]).optional(),
+      confidence: z.enum(['low', 'medium', 'high']).optional(),
+      rationale: z.array(z.string()).optional(),
       notes: z.string().optional()
+    })).optional()
+  }).optional(),
+  moneyLostSummary: z.object({
+    total: z.object({
+      dailyUsd: z.number(),
+      monthlyUsd: z.number(),
+      annualUsd: z.number()
+    }),
+    areas: z.array(z.object({
+      key: z.string(),
+      title: z.string(),
+      dailyUsd: z.number(),
+      monthlyUsd: z.number(),
+      annualUsd: z.number(),
+      recoverablePctRange: z.object({
+        min: z.number(),
+        max: z.number()
+      }),
+      rationale: z.array(z.string())
     }))
   }).optional(),
   benchmarks: z.array(z.string()).optional(),
@@ -403,69 +429,43 @@ export const ROIBrainBusinessContextSchema = z.object({
 export const ROIBrainOutputSchema = z.object({
   success: z.boolean(),
   sessionId: z.string(),
-  
-  // Unified AI Results
-  voiceFitReport: z.object({
-    header: z.object({
-      score: z.number(),
-      scoreBand: z.string(),
-      title: z.string(),
-      subtitle: z.string()
-    }),
-    diagnosis: z.object({
-      title: z.string(),
-      items: z.array(z.string())
-    }),
-    consequences: z.array(z.object({
-      title: z.string(),
-      description: z.string(),
-      impact: z.string(),
-      severity: z.enum(['low', 'medium', 'high'])
-    })),
-    solutions: z.array(z.object({
-      title: z.string(),
-      description: z.string(),
-      expectedROI: z.string(),
-      timeframe: z.string(),
-      difficulty: z.enum(['easy', 'medium', 'hard']),
-      priority: z.enum(['low', 'medium', 'high'])
-    })),
-    plan: z.object({
-      title: z.string(),
-      description: z.string(),
-      monthlyPrice: z.number(),
-      features: z.array(z.string()),
-      estimatedROI: z.string()
-    }),
-    faq: z.array(z.object({
-      question: z.string(),
-      answer: z.string()
-    }))
-  }),
-  
+  voiceFitReport: VoiceFitOutputSchema,
   needAgentIQInsights: z.array(z.object({
-    key: z.string(),
-    title: z.string(),
-    description: z.string(),
-    impact: z.string(),
-    priority: z.enum(['low', 'medium', 'high']),
     category: z.string(),
-    actionable: z.boolean()
-  })).optional(),
-  
-  // Processing metadata
-  processingTime: z.number(),
-  cacheHit: z.boolean().default(false),
+    insight: z.string(),
+    priority: z.string(),
+    actionable: z.boolean(),
+    estimatedImpact: z.string()
+  })),
+  businessIntelligence: z.object({
+    businessSize: z.enum(['small', 'medium', 'large']),
+    urgencyLevel: z.enum(['low', 'medium', 'high', 'critical']),
+    primaryPainPoints: z.array(z.string()),
+    technicalReadiness: z.number(),
+    implementationComplexity: z.enum(['simple', 'moderate', 'complex'])
+  }),
+  contextualPrompt: z.string(),
+  processingTime: z.object({
+    total: z.number(),
+    ai: z.number(),
+    cache: z.number()
+  }),
   costs: z.object({
     inputTokens: z.number(),
     outputTokens: z.number(),
     totalCost: z.number()
-  }).optional(),
-  
-  error: z.object({
-    message: z.string(),
-    code: z.string().optional()
-  }).optional()
+  }),
+  metadata: z.object({
+    version: z.string(),
+    kbVersion: z.string(),
+    businessContext: z.object({
+      vertical: z.enum(['dental', 'hvac']),
+      businessSize: z.enum(['small', 'medium', 'large']),
+      urgencyLevel: z.enum(['low', 'medium', 'high', 'critical']),
+      technicalReadiness: z.number()
+    }),
+    phase: z.string()
+  })
 });
 
 export const ROIBrainInputSchema = ROIBrainBusinessContextSchema;

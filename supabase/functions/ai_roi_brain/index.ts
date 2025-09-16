@@ -6,6 +6,29 @@ import { ROIBrainInputSchema, VoiceFitOutputSchema } from '../_shared/validation
 import { z } from 'https://esm.sh/zod@3.22.4'
 import { corsHeaders } from '../_shared/env.ts'
 
+// Schema for what Claude AI should return (matches the prompt format)
+const AIResponseSchema = z.object({
+  score: z.number(),
+  band: z.string(),
+  diagnosis: z.array(z.string()),
+  consequences: z.array(z.string()),
+  solutions: z.array(z.object({
+    skillId: z.string(),
+    title: z.string(),
+    rationale: z.string(),
+    estimatedRecoveryPct: z.tuple([z.number(), z.number()])
+  })),
+  faq: z.array(z.object({
+    q: z.string(),
+    a: z.string()
+  })),
+  plan: z.object({
+    name: z.string(),
+    priceMonthlyUsd: z.number(),
+    inclusions: z.array(z.string())
+  })
+});
+
 // Type definitions for ROI Brain Business Context (normalized)
 interface BusinessContextNormalized {
   vertical: 'dental' | 'hvac';
@@ -308,7 +331,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 4000,
+        max_tokens: 8000, // Increased from 4000 to prevent truncation
         messages: [{
           role: 'user',
           content: `${contextualPrompt}
@@ -361,7 +384,14 @@ Use this KB data for context: ${JSON.stringify(kbPayload, null, 2)}`
       throw new Error('No content returned from Claude API');
     }
 
-// Helper function to extract JSON from markdown-wrapped text
+    // Log response length and check for truncation
+    logger.info('Claude response received', { 
+      contentLength: aiContent.length,
+      isTruncated: aiContent.length >= 7500, // Close to max_tokens limit
+      tokenUsage: claudeData.usage
+    });
+
+    // Helper function to extract JSON from markdown-wrapped text
     function extractJsonFromText(text: string): any {
       // First, try to find JSON within markdown code blocks
       const jsonBlockRegex = /```(?:json)?\s*(\{[\s\S]*?\})\s*```/;
@@ -414,14 +444,15 @@ Use this KB data for context: ${JSON.stringify(kbPayload, null, 2)}`
       throw new Error('Invalid JSON response from AI');
     }
 
-    // Validate the parsed response with better error handling
-    let validatedResponse;
+    // Validate the parsed response with AIResponseSchema first
+    let validatedAIResponse;
     try {
-      validatedResponse = VoiceFitOutputSchema.parse(parsedContent);
+      validatedAIResponse = AIResponseSchema.parse(parsedContent);
+      logger.info('AI response validated successfully');
     } catch (aiValidationError) {
       logger.error('AI output validation failed', { 
         error: aiValidationError instanceof z.ZodError ? aiValidationError.errors : aiValidationError.message,
-        aiContent: aiContent.substring(0, 500)
+        aiContent: aiContent.substring(0, 1000) // Show more content for debugging
       });
       
       return new Response(JSON.stringify({ 
@@ -435,12 +466,33 @@ Use this KB data for context: ${JSON.stringify(kbPayload, null, 2)}`
       });
     }
 
+    // Map AI response to VoiceFit format
+    function mapAIToVoiceFit(aiResponse: z.infer<typeof AIResponseSchema>): z.infer<typeof VoiceFitOutputSchema> {
+      return {
+        success: true,
+        score: aiResponse.score,
+        band: aiResponse.band,
+        diagnosis: aiResponse.diagnosis,
+        consequences: aiResponse.consequences,
+        solutions: aiResponse.solutions.map(sol => ({
+          skillId: sol.skillId,
+          title: sol.title,
+          rationale: sol.rationale,
+          estimatedRecoveryPct: sol.estimatedRecoveryPct
+        })),
+        faq: aiResponse.faq,
+        plan: aiResponse.plan
+      };
+    }
+
+    const voiceFitResponse = mapAIToVoiceFit(validatedAIResponse);
+
     // Enhanced response with business context and Claude integration
     const totalTime = Date.now() - startTime;
     const response = {
       success: true,
       sessionId: `roi_brain_${Date.now()}`,
-      voiceFitReport: validatedResponse,
+      voiceFitReport: voiceFitResponse,
       needAgentIQInsights: [{
         category: intelligence.primaryPainPoints[0] || 'operational_efficiency',
         insight: `Based on your ${intelligence.businessSize} business profile, immediate focus on ${intelligence.primaryPainPoints.join(' and ')} could yield ${intelligence.urgencyLevel === 'high' ? 'significant' : 'moderate'} ROI improvements.`,

@@ -4,6 +4,7 @@ import type { KBPayload } from '../_shared/kb/types.ts'
 import { logger } from '../_shared/logger.ts'
 import { ROIBrainInputSchema, VoiceFitOutputSchema } from '../_shared/validation.ts'
 import { z } from 'https://esm.sh/zod@3.22.4'
+import { corsHeaders } from '../_shared/env.ts'
 
 // Type definitions for ROI Brain Business Context
 interface BusinessContext {
@@ -117,10 +118,7 @@ RECOMMENDATION CRITERIA:
   }
 }
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+// CORS headers imported from shared env
 
 Deno.serve(async (req) => {
   // Handle CORS preflight requests

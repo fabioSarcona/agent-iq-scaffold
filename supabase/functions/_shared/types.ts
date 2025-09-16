@@ -7,7 +7,6 @@ import type {
   SkillScopeInputSchema,
   SkillScopeOutputSchema,
   NeedAgentIQInputSchema,
-  NeedAgentIQOutputSchema,
   MoneyLostInputSchema,
   MoneyLostOutputSchema,
   OTPRequestInputSchema,
@@ -22,7 +21,7 @@ import type {
   KBCaseStudySchema,
   NeedAgentIQInsightSchema
 } from './validation.ts';
-import { z } from "https://esm.sh/zod@3.22.4";
+import { z } from "zod";
 
 // Business context
 export type BusinessContext = z.infer<typeof BusinessContextSchema>;
@@ -45,7 +44,6 @@ export type SkillScopeOutput = z.infer<typeof SkillScopeOutputSchema>;
 // NeedAgentIQ types
 export type NeedAgentIQInput = z.infer<typeof NeedAgentIQInputSchema>;
 export type NeedAgentIQInsight = z.infer<typeof NeedAgentIQInsightSchema>;
-export type NeedAgentIQOutput = z.infer<typeof NeedAgentIQOutputSchema>;
 
 // MoneyLost types
 export type MoneyLostInput = z.infer<typeof MoneyLostInputSchema>;

@@ -1,13 +1,13 @@
 import { supabase } from '@/integrations/supabase/client'
 import type { LLMOutput, VoiceFitReportData } from './report.types'  
-import type { MoneyLostSummary } from 'supabase/functions/_shared/types'
+import type { MoneyLostOutput } from 'supabase/functions/_shared/types'
 import { logger } from '@/lib/logger'
 
 export async function requestVoiceFitReport(
   vertical: string, 
   answers: Record<string, unknown>,
   scoreSummary?: { overall: number; sections: Array<{ name: string; score: number }> },
-  moneylost?: MoneyLostSummary,
+  moneylost?: MoneyLostOutput,
   benchmarks?: string[]
 ): Promise<VoiceFitReportData> {
   const { data, error } = await supabase.functions.invoke('ai_generate_report', {

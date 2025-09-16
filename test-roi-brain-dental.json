@@ -1,0 +1,78 @@
+{
+  "vertical": "dental",
+  "answers": {
+    "dental_chairs_active_choice": "3_4",
+    "call_team_members_choice": "2_3",
+    "practice_management_software_choice": "dentrix",
+    "website_scheduling_connection_choice": "partial",
+    "weekly_appointments_count_choice": "71_120",
+    "chair_utilization_pct_choice": "60_80",
+    "avg_fee_standard_treatment_usd": 150,
+    "avg_fee_complex_treatment_usd": 2500,
+    "monthly_treatments_count": 180,
+    "monthly_new_patients": 25,
+    "new_patient_first_year_ltv_usd": 1200,
+    "treatment_acceptance_rate_choice": "60_80",
+    "payment_within_30_days_choice": "70_90",
+    "monthly_operating_margin_usd": 15000,
+    "daily_incoming_calls_choice": "51_100",
+    "daily_unanswered_calls_choice": "4_10",
+    "new_patient_conversion_rate_choice": "3_5",
+    "after_hours_call_handling_choice": "voicemail",
+    "missed_call_followup_speed_choice": "2h",
+    "weekly_no_shows_choice": "4_6",
+    "high_value_deposit_policy_choice": "sometimes",
+    "cancellation_rebooking_rate_choice": "50_75",
+    "automatic_reminders_choice": "yes",
+    "appointment_fill_rate_choice": "75_90",
+    "first_discussion_acceptance_rate_choice": "60_80",
+    "monthly_cold_treatment_plans": 15,
+    "avg_unaccepted_plan_value_usd": 800,
+    "treatment_plan_followup_system_choice": "manual",
+    "inactive_patient_contact_frequency_choice": "occasional",
+    "inactive_patients_count": 200,
+    "reactivated_patient_first_year_value_usd": 800,
+    "proactive_reminder_frequency_choice": "one_two",
+    "recall_response_rate_choice": "3_5",
+    "monthly_google_reviews_choice": "4_10",
+    "automated_review_requests_choice": "manual",
+    "review_response_frequency_choice": "sometimes",
+    "feedback_improvement_usage_choice": "sometimes"
+  },
+  "scoreSummary": {
+    "overall": 65,
+    "sections": [
+      {"name": "practice_profile", "score": 70},
+      {"name": "financial_overview", "score": 75},
+      {"name": "call_handling_conversion", "score": 55},
+      {"name": "scheduling_no_shows", "score": 60},
+      {"name": "treatment_plan_conversion", "score": 65},
+      {"name": "patient_retention_recall", "score": 45},
+      {"name": "reviews_reputation", "score": 50}
+    ]
+  },
+  "moneylost": {
+    "total_estimated_monthly": 8500,
+    "areas": [
+      {
+        "area": "Missed Calls",
+        "estimate_monthly": 3200,
+        "confidence": 85,
+        "formula": "6 missed calls/day × $15 avg value × 30 days"
+      },
+      {
+        "area": "No-Shows",
+        "estimate_monthly": 2800,
+        "confidence": 90,
+        "formula": "5 no-shows/week × $140 avg appointment × 4 weeks"
+      },
+      {
+        "area": "Cold Treatment Plans",
+        "estimate_monthly": 2500,
+        "confidence": 75,
+        "formula": "15 plans × $800 avg × 20% recovery rate"
+      }
+    ]
+  },
+  "benchmarks": ["AI Readiness Score: 65/100", "Industry Average: 58/100", "Top Performers: 85/100"]
+}

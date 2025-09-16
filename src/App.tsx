@@ -16,6 +16,7 @@ import NotFound from "./pages/NotFound";
 import SkillScopePage from "./pages/SkillScope";
 import { DevConsole } from "./pages/DevConsole";
 import { Billing } from "./pages/Billing";
+import TestROIBrain from "./pages/TestROIBrain";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -43,6 +44,7 @@ const App = () => (
                 <Route path="admin" element={<Admin />} />
                 <Route path="skills/:id" element={<SkillScopePage />} />
                 {process.env.NODE_ENV !== 'production' && <Route path="dev" element={<DevConsole />} />}
+                {process.env.NODE_ENV !== 'production' && <Route path="test-roi-brain" element={<TestROIBrain />} />}
                 <Route path="*" element={<NotFound />} />
               </Route>
             </Routes>

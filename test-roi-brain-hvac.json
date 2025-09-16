@@ -1,0 +1,74 @@
+{
+  "vertical": "hvac", 
+  "answers": {
+    "field_technicians_count_choice": "3_5",
+    "call_booking_staff_count_choice": "2_3",
+    "scheduling_software_used_choice": "servicetitan",
+    "website_system_connection_choice": "partial",
+    "weekly_jobs_completed_choice": "20_50",
+    "hvac_daily_calls_received_choice": "10_20",
+    "basic_service_call_fee_usd": 185,
+    "large_job_install_value_usd": 8500,
+    "monthly_jobs_completed": 120,
+    "monthly_new_customers": 30,
+    "new_customer_first_year_ltv_usd": 2200,
+    "monthly_net_profit_usd": 18000,
+    "hvac_daily_unanswered_calls_choice": "1_3",
+    "missed_call_estimated_value_usd": 220,
+    "after_hours_call_handling_choice": "voicemail",
+    "missed_call_response_time_choice": "2h",
+    "booking_system_automation_choice": "no",
+    "automatic_appointment_reminders_choice": "yes",
+    "weekly_job_cancellations_choice": "1_2",
+    "avg_canceled_job_value_usd": 450,
+    "large_job_deposit_policy_choice": "sometimes",
+    "immediate_quote_acceptance_choice": "3_5",
+    "quote_followup_timeline_choice": "2_3_days",
+    "monthly_pending_quotes": 25,
+    "average_pending_quote_value_usd": 3200,
+    "busy_season_turnaway_rate_choice": "5_10",
+    "waitlist_overflow_process_choice": "manual",
+    "customers_with_maintenance_plans_choice": "20_40",
+    "maintenance_renewal_reminders_choice": "1y",
+    "monthly_online_reviews_choice": "1_3",
+    "automated_review_system_choice": "no",
+    "customer_referral_program_choice": "informal",
+    "referral_rate_per_new_customers_choice": "3_5"
+  },
+  "scoreSummary": {
+    "overall": 58,
+    "sections": [
+      {"name": "company_overview", "score": 65},
+      {"name": "financial_overview", "score": 72},
+      {"name": "call_handling_scheduling", "score": 50},
+      {"name": "cancellations_quotes", "score": 45},
+      {"name": "capacity_overflow", "score": 55},
+      {"name": "recurring_revenue_maintenance", "score": 35},
+      {"name": "reviews_referrals", "score": 40}
+    ]
+  },
+  "moneylost": {
+    "total_estimated_monthly": 12800,
+    "areas": [
+      {
+        "area": "Missed Calls",
+        "estimate_monthly": 4200,
+        "confidence": 88,
+        "formula": "2 missed calls/day × $220 avg value × 30 days × 80% conversion"
+      },
+      {
+        "area": "Pending Quotes",
+        "estimate_monthly": 5600,
+        "confidence": 70,
+        "formula": "25 quotes × $3200 avg × 7% conversion loss"
+      },
+      {
+        "area": "Capacity Overflow",
+        "estimate_monthly": 3000,
+        "confidence": 65,
+        "formula": "7.5% busy season turnaway × $40k monthly peak revenue"
+      }
+    ]
+  },
+  "benchmarks": ["AI Readiness Score: 58/100", "HVAC Industry Average: 52/100", "Top HVAC Companies: 78/100"]
+}

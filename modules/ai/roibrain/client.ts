@@ -292,43 +292,31 @@ export function roiBrainToVoiceFitAdapter(roiResponse: ROIBrainOutput) {
                       (typeof report.consequences[0] === 'string' ? report.consequences : report.consequences.map(c => c.description || c)) :
                       [];
 
+  // Safe property access with fallbacks
   const solutions = typeof report === 'object' && 'solutions' in report && Array.isArray(report.solutions) ?
-                   report.solutions.map(s => {
-                     if (typeof s === 'object' && 'skillId' in s) {
-                       // New simple format
-                       return {
-                         skillId: s.skillId,
-                         title: s.title,
-                         rationale: s.rationale || s.description || '',
-                         estimatedRecoveryPct: s.estimatedRecoveryPct || [25, 45] as [number, number]
-                       };
-                     } else {
-                       // Legacy complex format
-                       return {
-                         skillId: `skill_${s.title.toLowerCase().replace(/[^a-z0-9]/g, '_')}`,
-                         title: s.title,
-                         rationale: s.description || s.rationale || '',
-                         estimatedRecoveryPct: [25, 45] as [number, number]
-                       };
-                     }
-                   }) : [];
+                   report.solutions.map((s: any) => ({
+                     skillId: s.skillId || `skill_${s.title?.toLowerCase().replace(/[^a-z0-9]/g, '_') || 'unknown'}`,
+                     title: s.title || 'AI Enhancement',
+                     rationale: s.rationale || s.description || 'Improves operational efficiency',
+                     estimatedRecoveryPct: s.estimatedRecoveryPct || [25, 45] as [number, number]
+                   })) : [];
 
-  const plan = typeof report === 'object' && 'plan' in report ? {
-    name: report.plan.name || report.plan.title || 'Standard',
-    priceMonthlyUsd: report.plan.priceMonthlyUsd || report.plan.monthlyPrice || 197,
-    inclusions: report.plan.inclusions || report.plan.features || [],
-    addons: report.plan.addons || []
+  const plan = typeof report === 'object' && 'plan' in report && report.plan ? {
+    name: (report.plan as any).name || (report.plan as any).title || 'Standard',
+    priceMonthlyUsd: (report.plan as any).priceMonthlyUsd || (report.plan as any).monthlyPrice || 197,
+    inclusions: (report.plan as any).inclusions || (report.plan as any).features || ['AI Call Handling'],
+    addons: (report.plan as any).addons || []
   } : {
     name: 'Standard',
     priceMonthlyUsd: 197,
-    inclusions: [],
+    inclusions: ['AI Call Handling'],
     addons: []
   };
 
   const faq = typeof report === 'object' && 'faq' in report && Array.isArray(report.faq) ?
-             report.faq.map(f => ({ 
-               q: f.q || f.question || '', 
-               a: f.a || f.answer || '' 
+             report.faq.map((f: any) => ({ 
+               q: f.q || f.question || 'How does this work?', 
+               a: f.a || f.answer || 'AI optimizes your business operations.' 
              })) : [];
   
   return {
@@ -337,7 +325,7 @@ export function roiBrainToVoiceFitAdapter(roiResponse: ROIBrainOutput) {
     diagnosis,
     consequences,
     solutions,
-    benchmarks: report.benchmarks || [],
+    benchmarks: (report as any).benchmarks || ['AI Analysis Complete'],
     plan,
     faq,
     

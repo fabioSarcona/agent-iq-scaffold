@@ -252,7 +252,7 @@ export default function Report() {
               </Badge>
             )}
           </div>
-          <ScoreGauge score={reportData.score} band={reportData.band} />
+          <ScoreGauge score={reportData.score as number} band={reportData.band as string} />
           
           {/* ROI Brain Processing Info */}
           {useROIBrain && isROIBrainReport(reportData) && reportData._roiBrainMetadata && (

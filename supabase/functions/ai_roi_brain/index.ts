@@ -313,7 +313,7 @@ Deno.serve(async (req) => {
           role: 'user',
           content: `${contextualPrompt}
 
-CRITICAL: Return ONLY raw JSON. Do not include markdown code fences (```json), backticks, or any explanations before or after the JSON.
+CRITICAL: Return ONLY raw JSON. Do not include markdown code fences (\`\`\`json), backticks, or any explanations before or after the JSON.
 
 You are generating a VoiceFit report for a ${normalizedContext.vertical} business. Respond with valid JSON matching this exact structure:
 

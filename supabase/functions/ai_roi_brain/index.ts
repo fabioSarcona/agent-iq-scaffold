@@ -104,7 +104,26 @@ const AIResponseSchema = z.object({
     name: z.string(),
     priceMonthlyUsd: z.number(),
     inclusions: z.array(z.string())
-  })
+  }),
+  skillScopeContext: z.object({
+    recommendedSkills: z.array(z.object({
+      id: z.string(),
+      name: z.string(),
+      target: z.enum(["Dental", "HVAC", "Both"]),
+      problem: z.string(),
+      how: z.string(),
+      roiRangeMonthly: z.tuple([z.number(), z.number()]).optional(),
+      implementation: z.object({
+        time_weeks: z.number().optional(),
+        phases: z.array(z.string()).optional()
+      }).optional(),
+      integrations: z.array(z.string()).optional(),
+      priority: z.enum(["high", "medium", "low"]),
+      rationale: z.string()
+    })),
+    contextSummary: z.string(),
+    implementationReadiness: z.number() // 1-100 scale
+  }).optional()
 });
 
 // Type definitions for ROI Brain Business Context (normalized)
@@ -330,6 +349,14 @@ RECOMMENDATION CRITERIA:
 - Consider ${implementationComplexity} implementation for ${businessSize} business
 - Focus on ${primaryPainPoints[0] ?? 'operational_efficiency'} as primary area
 - Technical readiness score: ${technicalReadiness}% - ${technicalReadiness > 70 ? 'high adoption potential' : technicalReadiness > 40 ? 'moderate training needed' : 'extensive onboarding required'}
+
+SKILL RECOMMENDATION REQUIREMENTS:
+- Generate 2-4 recommended voice skills based on identified pain points and loss areas
+- Prioritize skills that address the highest revenue loss areas: ${topAreas.map(area => area?.title || 'Unknown').join(', ')}
+- Consider business size (${businessSize}) for implementation complexity
+- Match skills to vertical (${vertical.toUpperCase()}) with appropriate terminology
+- Provide realistic ROI ranges based on current monthly losses ($${totalLoss.toLocaleString()})
+- Include specific rationale connecting business context to skill recommendation
 `;
   }
 }
@@ -482,6 +509,27 @@ You are generating a VoiceFit report for a ${normalizedContext.vertical} busines
     "name": "<plan name>",
     "priceMonthlyUsd": <number>,
     "inclusions": ["<feature 1>", "<feature 2>"]
+  },
+  "skillScopeContext": {
+    "recommendedSkills": [
+      {
+        "id": "<unique_skill_id>",
+        "name": "<skill name>",
+        "target": "${normalizedContext.vertical === 'dental' ? 'Dental' : 'HVAC'}",
+        "problem": "<specific problem this skill solves>",
+        "how": "<how the skill works>",
+        "roiRangeMonthly": [<min_monthly_roi>, <max_monthly_roi>],
+        "implementation": {
+          "time_weeks": <number>,
+          "phases": ["<phase 1>", "<phase 2>"]
+        },
+        "integrations": ["<integration 1>", "<integration 2>"],
+        "priority": "<high|medium|low>",
+        "rationale": "<why this skill is recommended for this business>"
+      }
+    ],
+    "contextSummary": "<brief summary of why these skills were selected>",
+    "implementationReadiness": <number 1-100>
   }
 }
 
@@ -670,6 +718,7 @@ Use this KB data for context: ${JSON.stringify(kbPayload, null, 2)}`
         actionable: true,
         estimatedImpact: intelligence.urgencyLevel === 'critical' ? 'high' : 'medium'
       }],
+      skillScopeContext: validatedAIResponse.skillScopeContext || null,
       businessIntelligence: intelligence,
       contextualPrompt: contextualPrompt.substring(0, 500) + '...',
       processingTime: {

@@ -1,0 +1,44 @@
+{
+  "vertical": "dental",
+  "auditAnswers": {
+    "daily_unanswered_calls_choice": "11_20",
+    "staff_availability_rating": 2,
+    "weekly_no_shows_choice": "6_10",
+    "staff_size": 5
+  },
+  "scoreSummary": {
+    "overall": 45,
+    "sections": [
+      { "sectionId": "appointment_management", "name": "Appointment Management", "score": 30 },
+      { "sectionId": "patient_communication", "name": "Patient Communication", "score": 50 },
+      { "sectionId": "follow_up", "name": "Follow Up", "score": 55 }
+    ]
+  },
+  "moneyLostSummary": {
+    "total": {
+      "dailyUsd": 800,
+      "monthlyUsd": 24000,
+      "annualUsd": 288000
+    },
+    "areas": [
+      {
+        "key": "missed_calls",
+        "title": "Missed Calls",
+        "dailyUsd": 500,
+        "monthlyUsd": 15000,
+        "annualUsd": 180000,
+        "recoverablePctRange": { "min": 70, "max": 90 },
+        "rationale": ["Automated call handling can capture most missed calls"]
+      },
+      {
+        "key": "no_shows",
+        "title": "No-Shows",
+        "dailyUsd": 200,
+        "monthlyUsd": 6000,
+        "annualUsd": 72000,
+        "recoverablePctRange": { "min": 50, "max": 70 },
+        "rationale": ["Automated reminders reduce no-show rates"]
+      }
+    ]
+  }
+}

@@ -351,7 +351,7 @@ RECOMMENDATION CRITERIA:
 - Technical readiness score: ${technicalReadiness}% - ${technicalReadiness > 70 ? 'high adoption potential' : technicalReadiness > 40 ? 'moderate training needed' : 'extensive onboarding required'}
 
 SKILL RECOMMENDATION REQUIREMENTS:
-- Generate 2-4 recommended voice skills based on identified pain points and loss areas
+- Generate all recommended voice skills based on identified pain points and loss areas
 - Prioritize skills that address the highest revenue loss areas: ${topAreas.map(area => area?.title || 'Unknown').join(', ')}
 - Consider business size (${businessSize}) for implementation complexity
 - Match skills to vertical (${vertical.toUpperCase()}) with appropriate terminology

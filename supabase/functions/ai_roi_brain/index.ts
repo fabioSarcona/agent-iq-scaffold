@@ -123,7 +123,17 @@ const AIResponseSchema = z.object({
     })),
     contextSummary: z.string(),
     implementationReadiness: z.number() // 1-100 scale
-  }).optional()
+  }).optional(),
+  needAgentIQInsights: z.array(z.object({
+    title: z.string(),
+    description: z.string(),
+    impact: z.string(),
+    priority: z.enum(["high", "medium", "low"]),
+    category: z.string(),
+    rationale: z.array(z.string()),
+    monthlyImpactUsd: z.number(),
+    actionable: z.boolean()
+  })).optional()
 });
 
 // Type definitions for ROI Brain Business Context (normalized)
@@ -530,7 +540,19 @@ You are generating a VoiceFit report for a ${normalizedContext.vertical} busines
     ],
     "contextSummary": "<brief summary of why these skills were selected>",
     "implementationReadiness": <number 1-100>
-  }
+  },
+  "needAgentIQInsights": [
+    {
+      "title": "<specific insight title>",
+      "description": "<detailed description of the insight>",
+      "impact": "<specific business impact>",
+      "priority": "<high|medium|low>",
+      "category": "<category based on pain points: ${intelligence.primaryPainPoints.join('|')}>",
+      "rationale": ["<reason 1>", "<reason 2>"],
+      "monthlyImpactUsd": <estimated monthly impact in USD>,
+      "actionable": true
+    }
+  ]
 }
 
 Use this KB data for context: ${JSON.stringify(kbPayload, null, 2)}`
@@ -711,12 +733,19 @@ Use this KB data for context: ${JSON.stringify(kbPayload, null, 2)}`
       success: true,
       sessionId: `roi_brain_${Date.now()}`,
       voiceFitReport: voiceFitResponse,
-      needAgentIQInsights: [{
+      needAgentIQInsights: validatedAIResponse.needAgentIQInsights || [{
+        title: "Business Intelligence Analysis",
+        description: `Based on your ${intelligence.businessSize} business profile, immediate focus on ${intelligence.primaryPainPoints.join(' and ')} could yield ${intelligence.urgencyLevel === 'high' ? 'significant' : 'moderate'} ROI improvements.`,
+        impact: `Potential monthly recovery: $${Math.round((normalizedContext.moneyLostSummary?.total?.monthlyUsd || 30000) * 0.4).toLocaleString()}`,
+        priority: intelligence.urgencyLevel as 'high' | 'medium' | 'low',
         category: intelligence.primaryPainPoints[0] || 'operational_efficiency',
-        insight: `Based on your ${intelligence.businessSize} business profile, immediate focus on ${intelligence.primaryPainPoints.join(' and ')} could yield ${intelligence.urgencyLevel === 'high' ? 'significant' : 'moderate'} ROI improvements.`,
-        priority: intelligence.urgencyLevel,
-        actionable: true,
-        estimatedImpact: intelligence.urgencyLevel === 'critical' ? 'high' : 'medium'
+        rationale: [
+          `Current monthly loss: $${(normalizedContext.moneyLostSummary?.total?.monthlyUsd || 30000).toLocaleString()}`,
+          `Technical readiness score: ${intelligence.technicalReadiness}%`,
+          `Implementation complexity: ${intelligence.implementationComplexity}`
+        ],
+        monthlyImpactUsd: Math.round((normalizedContext.moneyLostSummary?.total?.monthlyUsd || 30000) * 0.4),
+        actionable: true
       }],
       skillScopeContext: validatedAIResponse.skillScopeContext || null,
       businessIntelligence: intelligence,

@@ -369,12 +369,19 @@ RECOMMENDATION CRITERIA:
 - Technical readiness score: ${technicalReadiness}% - ${technicalReadiness > 70 ? 'high adoption potential' : technicalReadiness > 40 ? 'moderate training needed' : 'extensive onboarding required'}
 
 NEEDAGENTIQ_INSIGHTS_REQUIREMENTS:
-- Generate 3-5 strategic insights based on business context and money lost areas
-- Each insight must include: title, description, impact level, priority, category, rationale, monthlyImpactUsd, actionable status
-- Impact levels: 'high', 'medium', 'low' based on potential revenue recovery
-- Prioritize insights that address the highest loss areas: ${topAreas.map(area => area?.title || 'Unknown').join(', ')}
-- Focus on actionable recommendations with clear business value
-- Connect insights to specific vertical (${vertical.toUpperCase()}) terminology and practices
+- Act as NeedAgentIQ, an AI consultant who analyzes audit sections for specific problems and recommends targeted VoiceSkill solutions
+- Generate 1 insight per audit section where problems are identified, not a fixed number
+- For basic business issues (sections 1-2): Provide general business consulting insights
+- For call handling problems (section 3): Recommend "Reception 24/7 Agent" if missed calls detected
+- For scheduling issues (section 4): Recommend "Appointment Reminder System" if high no-shows
+- For case acceptance problems (section 5): Recommend "Treatment Plan Presenter" if low acceptance rates
+- For retention issues (section 6): Recommend "Customer Retention Assistant" if recall problems
+- For quality concerns (section 7): Recommend "Quality Assurance Monitor" if feedback issues
+- Each insight must connect specific audit findings to business impact and include relevant VoiceSkill when applicable
+- Impact levels: 'high', 'medium', 'low' based on potential revenue recovery from current losses: ${topAreas.map(area => area?.title || 'Unknown').join(', ')}
+- Include ROI estimates based on current monthly losses ($${totalLoss.toLocaleString()}) in the affected area
+- Format each insight: "In [SECTION], I noticed [SPECIFIC_PROBLEM]. This typically costs [IMPACT]. Our [VOICESKILL] solves this by [SOLUTION] with expected ROI of [RANGE]"
+- Connect insights to ${vertical.toUpperCase()} vertical terminology and practices
 
 SKILLSCOPE_GENERATION_REQUIREMENTS:
 - Generate comprehensive skill context for the most relevant voice skill based on primary pain point: ${primaryPainPoints[0] ?? 'operational_efficiency'}

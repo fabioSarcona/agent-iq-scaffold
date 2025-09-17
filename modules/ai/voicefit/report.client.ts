@@ -10,17 +10,29 @@ export async function requestVoiceFitReport(
   moneylost?: MoneyLostOutput,
   benchmarks?: string[]
 ): Promise<VoiceFitReportData> {
-  const { data, error } = await supabase.functions.invoke('ai_generate_report', {
+  // Add timeout to prevent infinite loading
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => reject(new Error('Report generation timeout after 30 seconds')), 30000)
+  })
+
+  const requestPromise = supabase.functions.invoke('ai_generate_report', {
     body: { vertical, answers, scoreSummary, moneylost, benchmarks }
   })
 
-  if (error) {
-    logger.error('Error generating VoiceFit report', { error: error.message })
-    throw new Error(`Failed to generate report: ${error.message}`)
-  }
+  try {
+    const { data, error } = await Promise.race([requestPromise, timeoutPromise]) as any
 
-  const llmOutput = data as LLMOutput
-  return mapLLMToUI(llmOutput)
+    if (error) {
+      logger.error('Error generating VoiceFit report', { error: error.message })
+      throw new Error(`Failed to generate report: ${error.message}`)
+    }
+
+    const llmOutput = data as LLMOutput
+    return mapLLMToUI(llmOutput)
+  } catch (timeoutError) {
+    logger.error('VoiceFit report timeout', { error: timeoutError.message })
+    throw new Error('Report generation is taking too long. Please try again.')
+  }
 }
 
 // Adapter function to map LLM output to existing UI format

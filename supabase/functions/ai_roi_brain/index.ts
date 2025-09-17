@@ -444,7 +444,13 @@ If, on the other hand, the customer says they don't have a website, you should t
 - Technical readiness: ${technicalReadiness}%
 - Urgency level: ${urgencyLevel}
 
-Each insight must include: title, description, impact level ('high'/'medium'/'low'), priority, category, rationale, monthlyImpactUsd, actionable status
+Each insight must include: title, description, impact level (MUST be exactly 'high', 'medium', or 'low' - no other text), priority, category, rationale, monthlyImpactUsd, actionable status
+
+CRITICAL: The impact field must be EXACTLY one of these enum values:
+- 'high' (for monthly impact > $5,000)
+- 'medium' (for monthly impact $1,000-$5,000)  
+- 'low' (for monthly impact < $1,000)
+DO NOT include any description or additional text in the impact field - only the enum value.
 
 SKILLSCOPE_GENERATION_REQUIREMENTS:
 - Generate comprehensive skill context for the most relevant voice skill based on primary pain point: ${primaryPainPoints[0] ?? 'operational_efficiency'}

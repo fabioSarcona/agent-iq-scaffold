@@ -154,7 +154,7 @@ async function callClaude(systemPrompt: string, llmInput: VoiceFitInput): Promis
     },
     body: JSON.stringify({
       model: AI_MODEL,
-      max_completion_tokens: 1800,
+      max_tokens: 1800,
       system: systemPrompt,
       messages: [{
         role: 'user',

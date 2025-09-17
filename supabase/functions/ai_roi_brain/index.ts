@@ -442,7 +442,7 @@ If, on the other hand, the customer says they don't have a website, you should t
 - Primary loss areas: ${topAreas.map(area => area?.title || 'Unknown').join(', ')}
 - Total monthly bleeding: $${totalLoss.toLocaleString()}
 - Technical readiness: ${technicalReadiness}%
-- Urgency level: ${businessIntelligence.urgencyLevel}
+- Urgency level: ${urgencyLevel}
 
 Each insight must include: title, description, impact level ('high'/'medium'/'low'), priority, category, rationale, monthlyImpactUsd, actionable status
 

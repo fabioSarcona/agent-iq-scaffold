@@ -134,7 +134,7 @@ const AIResponseSchema = z.object({
   needAgentIQInsights: z.array(z.object({
     title: z.string(),
     description: z.string(),
-    impact: z.string(),
+    impact: z.enum(['high', 'medium', 'low']),
     priority: z.enum(["high", "medium", "low"]),
     category: z.string(),
     rationale: z.array(z.string()),
@@ -368,13 +368,21 @@ RECOMMENDATION CRITERIA:
 - Focus on ${primaryPainPoints[0] ?? 'operational_efficiency'} as primary area
 - Technical readiness score: ${technicalReadiness}% - ${technicalReadiness > 70 ? 'high adoption potential' : technicalReadiness > 40 ? 'moderate training needed' : 'extensive onboarding required'}
 
-SKILL RECOMMENDATION REQUIREMENTS:
-- Generate all recommended voice skills based on identified pain points and loss areas
-- Prioritize skills that address the highest revenue loss areas: ${topAreas.map(area => area?.title || 'Unknown').join(', ')}
-- Consider business size (${businessSize}) for implementation complexity
-- Match skills to vertical (${vertical.toUpperCase()}) with appropriate terminology
-- Provide realistic ROI ranges based on current monthly losses ($${totalLoss.toLocaleString()})
-- Include specific rationale connecting business context to skill recommendation
+NEEDAGENTIQ_INSIGHTS_REQUIREMENTS:
+- Generate 3-5 strategic insights based on business context and money lost areas
+- Each insight must include: title, description, impact level, priority, category, rationale, monthlyImpactUsd, actionable status
+- Impact levels: 'high', 'medium', 'low' based on potential revenue recovery
+- Prioritize insights that address the highest loss areas: ${topAreas.map(area => area?.title || 'Unknown').join(', ')}
+- Focus on actionable recommendations with clear business value
+- Connect insights to specific vertical (${vertical.toUpperCase()}) terminology and practices
+
+SKILLSCOPE_GENERATION_REQUIREMENTS:
+- Generate comprehensive skill context for the most relevant voice skill based on primary pain point: ${primaryPainPoints[0] ?? 'operational_efficiency'}
+- Include: skill name, vertical, business size, summary, what it does, how it works, revenue impact, key benefits
+- Calculate realistic implementation timeline (weeks) based on business size and technical readiness
+- Provide proven results with stats typical for ${businessSize} ${vertical} businesses
+- Include specific requirements: prerequisites, data needed for implementation
+- Connect directly to business context with ${totalLoss.toLocaleString()}/month loss potential
 `;
   }
 }

@@ -253,19 +253,6 @@ export default function Report() {
             )}
           </div>
           <ScoreGauge score={reportData.score as number} band={reportData.band as string} />
-          
-          {/* ROI Brain Processing Info */}
-          {useROIBrain && isROIBrainReport(reportData) && reportData._roiBrainMetadata && (
-            <div className="text-xs text-muted-foreground mt-4 space-y-1">
-              <div>Processing time: {reportData._roiBrainMetadata.processingTime}ms</div>
-              {reportData._roiBrainMetadata.costs && (
-                <div>
-                  Tokens: {reportData._roiBrainMetadata.costs.inputTokens}→{reportData._roiBrainMetadata.costs.outputTokens} 
-                  (${reportData._roiBrainMetadata.costs.totalCost.toFixed(4)})
-                </div>
-              )}
-            </div>
-          )}
         </CardHeader>
       </Card>
 

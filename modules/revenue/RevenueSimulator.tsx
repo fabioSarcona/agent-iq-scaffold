@@ -55,7 +55,7 @@ export function RevenueSimulator({
   return (
     <div className="space-y-6">
       {/* Header with Totals */}
-      <Card className="sticky top-4 z-10 glass-card backdrop-blur-md">
+      <Card className="glass-card backdrop-blur-md">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">

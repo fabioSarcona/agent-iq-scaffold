@@ -85,6 +85,13 @@ async function storeInCache(cacheKey: string, businessContext: any, aiResponse: 
 }
 
 // Schema for what Claude AI should return (matches the prompt format)
+// Parts status schema for granular failure tracking
+const PartsStatusSchema = z.object({
+  iq: z.boolean(),        // needAgentIQInsights generation success
+  report: z.boolean(),    // voiceFitReport generation success  
+  skills: z.boolean()     // skillScopeContext generation success
+});
+
 const AIResponseSchema = z.object({
   score: z.number(),
   band: z.string(),
@@ -133,7 +140,8 @@ const AIResponseSchema = z.object({
     rationale: z.array(z.string()),
     monthlyImpactUsd: z.number(),
     actionable: z.boolean()
-  })).optional()
+  })).optional(),
+  parts: PartsStatusSchema.optional()
 });
 
 // Type definitions for ROI Brain Business Context (normalized)
@@ -699,6 +707,36 @@ Use this KB data for context: ${JSON.stringify(kbPayload, null, 2)}`
       });
     }
 
+    // Parts validation function to determine section success
+    function validateParts(aiResponse: z.infer<typeof AIResponseSchema>): { iq: boolean; report: boolean; skills: boolean } {
+      // IQ validation: Check if needAgentIQInsights is valid and complete
+      const iqSuccess = !!(aiResponse.needAgentIQInsights && 
+        aiResponse.needAgentIQInsights.length >= 1 && 
+        aiResponse.needAgentIQInsights.every(insight => 
+          insight.title && insight.description && insight.impact &&
+          insight.priority && insight.category && insight.rationale?.length > 0
+        ));
+
+      // Report validation: Check if core VoiceFit fields are present and valid
+      const reportSuccess = !!(aiResponse.score && 
+        aiResponse.band && 
+        aiResponse.diagnosis?.length >= 2 && 
+        aiResponse.consequences?.length >= 2 && 
+        aiResponse.solutions?.length >= 1 &&
+        aiResponse.faq?.length >= 2 &&
+        aiResponse.plan?.name && aiResponse.plan?.priceMonthlyUsd);
+
+      // Skills validation: Check if skillScopeContext is valid and complete
+      const skillsSuccess = !!(aiResponse.skillScopeContext && 
+        aiResponse.skillScopeContext.recommendedSkills?.length >= 1 && 
+        aiResponse.skillScopeContext.contextSummary &&
+        aiResponse.skillScopeContext.recommendedSkills.every(skill => 
+          skill.id && skill.name && skill.rationale && skill.priority
+        ));
+
+      return { iq: iqSuccess, report: reportSuccess, skills: skillsSuccess };
+    }
+
     // Map AI response to VoiceFit format
     function mapAIToVoiceFit(aiResponse: z.infer<typeof AIResponseSchema>): z.infer<typeof VoiceFitOutputSchema> {
       return {
@@ -729,25 +767,42 @@ Use this KB data for context: ${JSON.stringify(kbPayload, null, 2)}`
     const dataQuality = diagnosisLength > 200 && consequencesCount > 3 ? 'high' : 
                        diagnosisLength > 100 && consequencesCount > 2 ? 'medium' : 'low';
     
+    // Validate parts and create fallbacks
+    const partsStatus = validateParts(validatedAIResponse);
+    
+    // Generate fallback IQ insights if needed
+    const fallbackIQInsights = [{
+      title: "Business Intelligence Analysis",
+      description: `Based on your ${intelligence.businessSize} business profile, immediate focus on ${intelligence.primaryPainPoints.join(' and ')} could yield ${intelligence.urgencyLevel === 'high' ? 'significant' : 'moderate'} ROI improvements.`,
+      impact: `Potential monthly recovery: $${Math.round((normalizedContext.moneyLostSummary?.total?.monthlyUsd || 30000) * 0.4).toLocaleString()}`,
+      priority: intelligence.urgencyLevel as 'high' | 'medium' | 'low',
+      category: intelligence.primaryPainPoints[0] || 'operational_efficiency',
+      rationale: [
+        `Current monthly loss: $${(normalizedContext.moneyLostSummary?.total?.monthlyUsd || 30000).toLocaleString()}`,
+        `Technical readiness score: ${intelligence.technicalReadiness}%`,
+        `Implementation complexity: ${intelligence.implementationComplexity}`
+      ],
+      monthlyImpactUsd: Math.round((normalizedContext.moneyLostSummary?.total?.monthlyUsd || 30000) * 0.4),
+      actionable: true
+    }];
+
+    // Log parts status for monitoring
+    logger.info('Parts validation completed', {
+      partsStatus,
+      totalPartsSuccessful: Object.values(partsStatus).filter(Boolean).length,
+      failedParts: Object.entries(partsStatus).filter(([_, success]) => !success).map(([part, _]) => part)
+    });
+
+    // Determine overall success - at least one part must succeed
+    const overallSuccess = partsStatus.iq || partsStatus.report || partsStatus.skills;
+
     const response = {
-      success: true,
+      success: overallSuccess,
+      parts: partsStatus,
       sessionId: `roi_brain_${Date.now()}`,
-      voiceFitReport: voiceFitResponse,
-      needAgentIQInsights: validatedAIResponse.needAgentIQInsights || [{
-        title: "Business Intelligence Analysis",
-        description: `Based on your ${intelligence.businessSize} business profile, immediate focus on ${intelligence.primaryPainPoints.join(' and ')} could yield ${intelligence.urgencyLevel === 'high' ? 'significant' : 'moderate'} ROI improvements.`,
-        impact: `Potential monthly recovery: $${Math.round((normalizedContext.moneyLostSummary?.total?.monthlyUsd || 30000) * 0.4).toLocaleString()}`,
-        priority: intelligence.urgencyLevel as 'high' | 'medium' | 'low',
-        category: intelligence.primaryPainPoints[0] || 'operational_efficiency',
-        rationale: [
-          `Current monthly loss: $${(normalizedContext.moneyLostSummary?.total?.monthlyUsd || 30000).toLocaleString()}`,
-          `Technical readiness score: ${intelligence.technicalReadiness}%`,
-          `Implementation complexity: ${intelligence.implementationComplexity}`
-        ],
-        monthlyImpactUsd: Math.round((normalizedContext.moneyLostSummary?.total?.monthlyUsd || 30000) * 0.4),
-        actionable: true
-      }],
-      skillScopeContext: validatedAIResponse.skillScopeContext || null,
+      voiceFitReport: partsStatus.report ? voiceFitResponse : null,
+      needAgentIQInsights: partsStatus.iq ? validatedAIResponse.needAgentIQInsights : fallbackIQInsights,
+      skillScopeContext: partsStatus.skills ? validatedAIResponse.skillScopeContext : null,
       businessIntelligence: intelligence,
       contextualPrompt: contextualPrompt.substring(0, 500) + '...',
       processingTime: {

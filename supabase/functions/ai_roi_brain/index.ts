@@ -413,6 +413,31 @@ Deno.serve(async (req) => {
     
     // Step 5: Extract relevant KB data based on business context
     const kbPayload = extractRelevantKB(normalizedContext);
+    
+    // Enhanced logging for debugging data quality
+    logger.info('Business context extracted', {
+      vertical: normalizedContext.vertical,
+      businessSize: intelligence.businessSize,
+      urgencyLevel: intelligence.urgencyLevel,
+      technicalReadiness: intelligence.technicalReadiness,
+      auditResponsesCount: Object.keys(normalizedContext.auditAnswers).length,
+      aiReadinessScore: normalizedContext.scoreSummary.overall,
+      moneyLostItems: normalizedContext.moneyLostSummary?.areas?.length || 0,
+      totalMonthlyLoss: normalizedContext.moneyLostSummary?.total?.monthlyUsd,
+      primaryPainPoints: intelligence.primaryPainPoints
+    });
+    
+    // Log KB payload structure for debugging
+    if (kbPayload) {
+      logger.info('KB payload structure', {
+        voiceSkillsCount: kbPayload.voiceSkills?.length || 0,
+        painPointsCount: kbPayload.painPoints?.length || 0,
+        pricingTiersCount: kbPayload.pricing?.length || 0,
+        faqItemsCount: kbPayload.faq?.length || 0,
+        hasResponseModels: !!kbPayload.responseModels,
+        brandDataPresent: !!kbPayload.brand
+      });
+    }
 
     // Make Claude API call with enhanced prompt
     const claudeStart = Date.now();
@@ -478,6 +503,17 @@ Use this KB data for context: ${JSON.stringify(kbPayload, null, 2)}`
       throw new Error('No content returned from Claude API');
     }
 
+    // Enhanced logging for Claude's raw response
+    logger.info('Claude raw response received', {
+      responseLength: aiContent.length,
+      tokensUsed: {
+        input: claudeData.usage?.input_tokens,
+        output: claudeData.usage?.output_tokens
+      },
+      isTruncated: aiContent.length >= 7500,
+      contentPreview: aiContent.substring(0, 200) // First 200 chars for debugging
+    });
+
     // Log response length and check for truncation
     logger.info('Claude response received', { 
       contentLength: aiContent.length,
@@ -542,6 +578,39 @@ Use this KB data for context: ${JSON.stringify(kbPayload, null, 2)}`
     let validatedAIResponse;
     try {
       validatedAIResponse = AIResponseSchema.parse(parsedContent);
+      
+      // Data quality validation
+      const diagnosisLength = validatedAIResponse.diagnosis?.join(' ').length || 0;
+      const consequencesCount = validatedAIResponse.consequences?.length || 0;
+      const solutionsCount = validatedAIResponse.solutions?.length || 0;
+      
+      // Log data quality metrics
+      logger.info('Data quality metrics', {
+        diagnosisLength,
+        consequencesCount,
+        solutionsCount,
+        hasVerticalSpecificContent: diagnosisLength > 100 && consequencesCount > 2,
+        dataQuality: diagnosisLength > 200 && consequencesCount > 3 ? 'high' : 
+                     diagnosisLength > 100 && consequencesCount > 2 ? 'medium' : 'low',
+        vertical: normalizedContext.vertical,
+        businessSize: intelligence.businessSize
+      });
+      
+      // Validation for vertical-specific content
+      const isVerticalSpecific = validatedAIResponse.diagnosis.some(d => 
+        d.toLowerCase().includes(normalizedContext.vertical.toLowerCase()) ||
+        (normalizedContext.vertical === 'dental' && (d.toLowerCase().includes('patient') || d.toLowerCase().includes('appointment'))) ||
+        (normalizedContext.vertical === 'hvac' && (d.toLowerCase().includes('customer') || d.toLowerCase().includes('service')))
+      );
+      
+      if (!isVerticalSpecific) {
+        logger.warn('Low vertical personalization detected', {
+          vertical: normalizedContext.vertical,
+          diagnosisPreview: validatedAIResponse.diagnosis[0]?.substring(0, 100) + '...',
+          businessName: normalizedContext.auditAnswers?.business_name
+        });
+      }
+      
       logger.info('AI response validated successfully');
     } catch (aiValidationError) {
       logger.error('AI output validation failed', { 
@@ -583,6 +652,13 @@ Use this KB data for context: ${JSON.stringify(kbPayload, null, 2)}`
 
     // Enhanced response with business context and Claude integration
     const totalTime = Date.now() - startTime;
+    
+    // Calculate data quality score
+    const diagnosisLength = validatedAIResponse.diagnosis?.join(' ').length || 0;
+    const consequencesCount = validatedAIResponse.consequences?.length || 0;
+    const dataQuality = diagnosisLength > 200 && consequencesCount > 3 ? 'high' : 
+                       diagnosisLength > 100 && consequencesCount > 2 ? 'medium' : 'low';
+    
     const response = {
       success: true,
       sessionId: `roi_brain_${Date.now()}`,
@@ -610,11 +686,20 @@ Use this KB data for context: ${JSON.stringify(kbPayload, null, 2)}`
       metadata: {
         version: '2.0',
         kbVersion: 'roibrain-centralized-v1',
+        dataQuality,
         businessContext: {
           vertical: normalizedContext.vertical,
           businessSize: intelligence.businessSize,
           urgencyLevel: intelligence.urgencyLevel,
           technicalReadiness: intelligence.technicalReadiness
+        },
+        qualityMetrics: {
+          diagnosisLength,
+          consequencesCount,
+          solutionsCount: validatedAIResponse.solutions?.length || 0,
+          verticalPersonalization: validatedAIResponse.diagnosis.some(d => 
+            d.toLowerCase().includes(normalizedContext.vertical.toLowerCase())
+          )
         },
         phase: 'Claude Integration - Phase 2 Complete'
       }
@@ -630,6 +715,14 @@ Use this KB data for context: ${JSON.stringify(kbPayload, null, 2)}`
       processingTime: totalTime,
       aiTime: claudeTime,
       cacheKey,
+      dataQuality,
+      qualityMetrics: {
+        diagnosisLength,
+        consequencesCount,
+        verticalPersonalization: validatedAIResponse.diagnosis.some(d => 
+          d.toLowerCase().includes(normalizedContext.vertical.toLowerCase())
+        )
+      },
       normalizedInput: {
         sectionsCount: normalizedContext.scoreSummary.sections.length,
         monthlyLoss: normalizedContext.moneyLostSummary?.total?.monthlyUsd

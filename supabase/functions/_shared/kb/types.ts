@@ -1,12 +1,66 @@
 // Shared KB Types for ROI Brain System
 
+export interface VoiceSkill {
+  id: string;
+  name: string;
+  target: "Dental" | "HVAC" | "Both";
+  problem: string;
+  how: string;
+  roiRangeMonthly?: [number, number];
+  implementation?: {
+    time_weeks?: number;
+    phases?: string[];
+  };
+  integrations?: string[];
+  tags?: string[];
+}
+
+export interface PainPoint {
+  id: string;
+  vertical: "dental" | "hvac" | "both";
+  category: string;
+  problem: string;
+  impact: string;
+  frequency: "high" | "medium" | "low";
+  severity: "critical" | "major" | "minor";
+}
+
+export interface PricingTier {
+  name: string;
+  monthlyPrice: number;
+  yearlyPrice: number;
+  features: string[];
+  limitations?: string[];
+  target: "starter" | "professional" | "enterprise";
+}
+
+export interface FAQItem {
+  question: string;
+  answer: string;
+  category: string;
+  vertical?: "dental" | "hvac" | "both";
+}
+
+export interface ResponseModel {
+  name: string;
+  description: string;
+  template: string;
+  variables: string[];
+  context: string;
+}
+
 export interface KBPayload {
-  brand: any;
-  voiceSkills: any;
-  painPoints: any;
-  pricing: any;
-  responseModels?: any;
-  faq: any;
+  brand: {
+    name: string;
+    tagline: string;
+    values: string[];
+    differentiators: string[];
+  };
+  voiceSkills: VoiceSkill[];
+  painPoints: PainPoint[];
+  pricing: PricingTier[];
+  responseModels?: ResponseModel[];
+  faq: FAQItem[];
 }
 
 export interface CacheEntry {

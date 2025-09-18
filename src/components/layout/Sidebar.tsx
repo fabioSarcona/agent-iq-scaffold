@@ -35,13 +35,6 @@ export function Sidebar() {
               </div>
             </div>}
           
-          <Link to="/billing" className="glass-card p-3 rounded-lg border border-dashed border-border/50 text-center hover-lift group block transition-all duration-300">
-            <div className="w-8 h-8 mx-auto mb-2 glass-card rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
-              <CreditCard className="h-4 w-4 text-primary" />
-            </div>
-            <span className="text-xs font-medium text-foreground">Billing</span>
-            <p className="text-xs text-muted-foreground mt-1">Subscriptions</p>
-          </Link>
           
           {process.env.NODE_ENV !== 'production' && <Link to="/dev" className="mt-4 glass-card p-3 rounded-lg border border-dashed border-border/50 text-center hover-lift group block transition-all duration-300">
               <div className="w-8 h-8 mx-auto mb-2 glass-card rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300">

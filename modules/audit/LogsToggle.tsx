@@ -10,6 +10,11 @@ export function LogsToggle() {
   const [isOpen, setIsOpen] = useState(false);
   const events = logger.getEvents();
 
+  // Hide in production environment
+  if (process.env.NODE_ENV === 'production') {
+    return null;
+  }
+
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>

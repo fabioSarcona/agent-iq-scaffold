@@ -156,7 +156,19 @@ export function NeedAgentIQPanel() {
         </div>
       </CardHeader>
       <CardContent className="p-2 space-y-3">
-        {insights.map(insight => <InsightCard key={insight.key || insight.title} insight={insight} />)}
+        {insights.map((insight, index) => (
+          <div key={insight.key || insight.title} className="relative">
+            <InsightCard insight={insight} />
+            {index < 2 && (
+              <Badge 
+                variant="success" 
+                className="absolute -top-1 -right-1 text-xs bg-green-100 text-green-700 border-green-200 hover:bg-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-800"
+              >
+                New
+              </Badge>
+            )}
+          </div>
+        ))}
       </CardContent>
     </Card>;
 }

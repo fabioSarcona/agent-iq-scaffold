@@ -40,6 +40,7 @@ interface AuditProgressState {
   
   // NeedAgentIQ actions
   appendInsights: (sectionId: string, newInsights: NeedAgentIQInsight[]) => void;
+  populateInsightsFromROIBrain: (insights: NeedAgentIQInsight[]) => void;
   clearIqError: () => void;
   setIqError: (sectionId: string, error: string | null) => void;
   
@@ -325,6 +326,70 @@ export const useAuditProgressStore = create<AuditProgressState>()(
           sectionId, 
           count: newInsights.length,
           keys: newInsights.map(i => i.key)
+        });
+      },
+      
+      // FASE 2.1: Populate insights from ROI Brain (bypassing per-section logic)
+      populateInsightsFromROIBrain: (roiBrainInsights) => {
+        console.log('🧠 DEBUG: populateInsightsFromROIBrain called:', {
+          insightsCount: roiBrainInsights.length,
+          insights: roiBrainInsights,
+          source: 'ROI_BRAIN',
+          timestamp: new Date().toISOString()
+        });
+        
+        set((state) => {
+          // Group insights by sectionId for organized storage
+          const newInsightsBySection = { ...state.insightsBySection };
+          const allInsights = [...state.insights];
+          const existingKeys = new Set(state.insights.map(i => i.key));
+          
+          roiBrainInsights.forEach(insight => {
+            const sectionId = insight.sectionId || 'general';
+            
+            // Add to section-specific storage
+            if (!newInsightsBySection[sectionId]) {
+              newInsightsBySection[sectionId] = [];
+            }
+            
+            // Check for duplicates in section
+            const sectionExists = newInsightsBySection[sectionId].some(existing => 
+              existing.key === insight.key
+            );
+            
+            if (!sectionExists) {
+              newInsightsBySection[sectionId].push(insight);
+              
+              // Add to global insights if not already present
+              if (!existingKeys.has(insight.key)) {
+                allInsights.push(insight);
+                existingKeys.add(insight.key);
+              }
+            }
+          });
+          
+          // Limit global insights to last 8 items (increased for ROI Brain)
+          const limitedInsights = allInsights.slice(-8);
+          
+          console.log('🧠 DEBUG: ROI Brain insights processed:', {
+            totalInsights: limitedInsights.length,
+            insightsBySection: Object.keys(newInsightsBySection).map(sectionId => ({
+              sectionId,
+              count: newInsightsBySection[sectionId].length
+            }))
+          });
+          
+          return {
+            insightsBySection: newInsightsBySection,
+            insights: limitedInsights,
+            lastEmittedKeys: [...state.lastEmittedKeys, ...roiBrainInsights.map(i => i.key)]
+          };
+        });
+        
+        logEvent(get().logsEnabled, 'roi_brain_insights_populated', {
+          count: roiBrainInsights.length,
+          keys: roiBrainInsights.map(i => i.key),
+          source: 'ROI_BRAIN'
         });
       },
       

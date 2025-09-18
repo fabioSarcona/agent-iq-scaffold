@@ -29,6 +29,7 @@ import { LogsToggle } from './LogsToggle';
 import { loadAuditConfig } from './config.loader';
 import { logger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
+import { featureFlags } from '@/env';
 
 interface AuditEngineProps {
   industry: 'dental' | 'hvac';
@@ -131,11 +132,22 @@ export function AuditEngine({ industry }: AuditEngineProps) {
       currentSectionId: currentSection?.id,
       hasCurrentSection: !!currentSection,
       vertical,
-      totalAnswers: Object.keys(answers).length
+      totalAnswers: Object.keys(answers).length,
+      useRoiBrainNeedAgentIQ: featureFlags.shouldUseRoiBrainNeedAgentIQ()
     });
     
     if (!currentSection) {
       console.log('🐛 DEBUG: No current section, returning');
+      return;
+    }
+    
+    // FASE 2.1: Skip standalone ai_needagentiq if ROI Brain NeedAgentIQ is enabled
+    if (featureFlags.shouldUseRoiBrainNeedAgentIQ()) {
+      console.log('🐛 DEBUG: ROI Brain NeedAgentIQ enabled, skipping standalone ai_needagentiq call');
+      logger.event('needagentiq_skip', { 
+        sectionId: currentSection.id, 
+        reason: 'roi_brain_integration_enabled'
+      });
       return;
     }
     

@@ -143,24 +143,30 @@ export function AuditEngine({ industry }: AuditEngineProps) {
       return;
     }
     
-    // FASE 2.1: Skip standalone ai_needagentiq if ROI Brain NeedAgentIQ is enabled
-    const shouldSkipStandalone = featureFlags.shouldUseRoiBrainNeedAgentIQ();
-    console.log('🐛 DEBUG: FASE 2.1 Check - Skip standalone ai_needagentiq?', {
+    // FASE 2.2: Skip standalone ai_needagentiq only if ROI Brain insights already exist
+    const hasROIBrainInsights = state.insights.some(i => i.sectionId === 'roi_brain_generated');
+    const shouldSkipStandalone = featureFlags.shouldUseRoiBrainNeedAgentIQ() && hasROIBrainInsights;
+    
+    console.log('🐛 DEBUG: FASE 2.2 Fix - Smart skip logic:', {
+      roiBrainNeedAgentIQEnabled: featureFlags.shouldUseRoiBrainNeedAgentIQ(),
+      hasROIBrainInsights,
       shouldSkipStandalone,
-      roiBrainEnabled: featureFlags.shouldUseRoiBrain(),
+      currentInsightsCount: state.insights.length,
+      roiBrainInsightKeys: state.insights.filter(i => i.sectionId === 'roi_brain_generated').map(i => i.key),
       timestamp: new Date().toISOString()
     });
     
     if (shouldSkipStandalone) {
-      console.log('🐛 DEBUG: ✅ SKIPPING standalone ai_needagentiq - ROI Brain NeedAgentIQ enabled');
+      console.log('🐛 DEBUG: ✅ SKIPPING - ROI Brain insights already populated');
       logger.event('needagentiq_skip', { 
         sectionId: currentSection.id, 
-        reason: 'roi_brain_integration_enabled',
+        reason: 'roi_brain_insights_already_exist',
+        roiBrainInsightsCount: state.insights.filter(i => i.sectionId === 'roi_brain_generated').length,
         timestamp: new Date().toISOString()
       });
       return;
     } else {
-      console.log('🐛 DEBUG: ❌ NOT SKIPPING - Proceeding with standalone ai_needagentiq');
+      console.log('🐛 DEBUG: ⚡ PROCEEDING - Using legacy ai_needagentiq for immediate insights');
     }
     
     // Get answers for current section only

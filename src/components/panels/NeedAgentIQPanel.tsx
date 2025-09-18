@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { AlertTriangle, Lightbulb, DollarSign, ChevronDown, ChevronRight, History, Clock } from 'lucide-react';
 import { useAuditProgressStore } from '@modules/audit/AuditProgressStore';
+import { featureFlags } from '@/env';
 const formatCurrency = (amount: number, currency: string = 'USD'): string => {
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -52,12 +53,14 @@ function InsightCard({
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <DollarSign className="h-3 w-3" />
-                  <span className="font-medium">
-                    {formatCurrency(insight.monthlyImpactUsd || 0)}/mo
-                  </span>
-                </div>
+                {insight.monthlyImpactUsd && insight.monthlyImpactUsd > 0 && (
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <DollarSign className="h-3 w-3" />
+                    <span className="font-medium">
+                      {formatCurrency(insight.monthlyImpactUsd)}/mo
+                    </span>
+                  </div>
+                )}
                 <Badge variant={getImpactBadgeVariant(insight.impact)} className="text-xs">
                   {insight.impact}
                 </Badge>
@@ -153,6 +156,8 @@ export function NeedAgentIQPanel() {
 
   // Show placeholder if no insights yet
   if (insights.length === 0 && allSectionInsights.length === 0) {
+    const isROIBrainActive = featureFlags.shouldUseRoiBrain();
+    
     return <Card className="border-muted">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
@@ -162,7 +167,10 @@ export function NeedAgentIQPanel() {
         </CardHeader>
         <CardContent>
           <p className="text-xs text-muted-foreground">
-            Insights will appear as you complete sections.
+            {isROIBrainActive 
+              ? "Insights disponibili dopo completamento Report" 
+              : "Insights will appear as you complete sections."
+            }
           </p>
         </CardContent>
       </Card>;
@@ -170,6 +178,11 @@ export function NeedAgentIQPanel() {
 
   const totalInsights = insights.length + allSectionInsights.length;
   const hasHistoricalData = historicalInsights.length > 0 || allSectionInsights.length > 0;
+  const completedSections = config?.sections?.filter(s => 
+    Object.keys(insightsBySection).includes(s.id) || 
+    insights.some(i => i.sectionId === s.id)
+  ).length || 0;
+  const shouldShowHistorical = hasHistoricalData && completedSections >= 2;
 
   // Render insights
   return <Card>
@@ -196,8 +209,8 @@ export function NeedAgentIQPanel() {
           </div>
         ))}
 
-        {/* Historical Insights Accordion */}
-        {hasHistoricalData && (
+        {/* Previous Sections Accordion */}
+        {shouldShowHistorical && (
           <Collapsible open={showHistorical} onOpenChange={setShowHistorical}>
             <CollapsibleTrigger asChild>
               <Button 
@@ -207,7 +220,7 @@ export function NeedAgentIQPanel() {
               >
                 <div className="flex items-center gap-2">
                   <History className="h-3 w-3" />
-                  <span>Historical Insights</span>
+                  <span>Previous Sections</span>
                   <Badge variant="outline" className="text-xs">
                     {historicalInsights.length + allSectionInsights.length}
                   </Badge>
@@ -221,15 +234,19 @@ export function NeedAgentIQPanel() {
             </CollapsibleTrigger>
             
             <CollapsibleContent className="space-y-2 mt-2">
-              {/* Legacy historical insights */}
-              {historicalInsights.map((insight) => (
+              {/* Legacy historical insights (deduplicated) */}
+              {historicalInsights
+                .filter(insight => !recentInsights.some(r => r.key === insight.key))
+                .map((insight) => (
                 <div key={insight.key || insight.title} className="opacity-75 hover:opacity-100 transition-opacity">
                   <InsightCard insight={insight} />
                 </div>
               ))}
               
-              {/* Section-based historical insights */}
-              {allSectionInsights.map((insight) => (
+              {/* Section-based historical insights (deduplicated) */}
+              {allSectionInsights
+                .filter(insight => !recentInsights.some(r => r.key === insight.key))
+                .map((insight) => (
                 <div key={`${insight.sectionId}-${insight.key}`} className="opacity-75 hover:opacity-100 transition-opacity">
                   <div className="relative">
                     <InsightCard insight={insight} />

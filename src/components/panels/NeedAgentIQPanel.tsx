@@ -125,6 +125,9 @@ export function NeedAgentIQPanel() {
   ];
   const historicalInsights = legacyInsights.slice(Math.max(0, 2 - roiBrainInsights.length));
 
+  // Create a Set of recent insight keys for efficient deduplication
+  const recentInsightKeys = new Set(recentInsights.map(insight => insight.key));
+
   // Get all historical insights from all sections
   const allSectionInsights = Object.entries(insightsBySection)
     .filter(([sectionId]) => sectionId !== 'current')
@@ -168,7 +171,7 @@ export function NeedAgentIQPanel() {
         <CardContent>
           <p className="text-xs text-muted-foreground">
             {isROIBrainActive 
-              ? "Insights disponibili dopo completamento Report" 
+              ? "Live insights upon completion of the report" 
               : "Insights will appear as you complete sections."
             }
           </p>
@@ -220,7 +223,7 @@ export function NeedAgentIQPanel() {
               >
                 <div className="flex items-center gap-2">
                   <History className="h-3 w-3" />
-                  <span>Previous Sections</span>
+                  <span>Previous Insights</span>
                   <Badge variant="outline" className="text-xs">
                     {historicalInsights.length + allSectionInsights.length}
                   </Badge>
@@ -236,7 +239,7 @@ export function NeedAgentIQPanel() {
             <CollapsibleContent className="space-y-2 mt-2">
               {/* Legacy historical insights (deduplicated) */}
               {historicalInsights
-                .filter(insight => !recentInsights.some(r => r.key === insight.key))
+                .filter(insight => !recentInsightKeys.has(insight.key))
                 .map((insight) => (
                 <div key={insight.key || insight.title} className="opacity-75 hover:opacity-100 transition-opacity">
                   <InsightCard insight={insight} />
@@ -245,7 +248,7 @@ export function NeedAgentIQPanel() {
               
               {/* Section-based historical insights (deduplicated) */}
               {allSectionInsights
-                .filter(insight => !recentInsights.some(r => r.key === insight.key))
+                .filter(insight => !recentInsightKeys.has(insight.key))
                 .map((insight) => (
                 <div key={`${insight.sectionId}-${insight.key}`} className="opacity-75 hover:opacity-100 transition-opacity">
                   <div className="relative">

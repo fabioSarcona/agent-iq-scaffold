@@ -369,7 +369,11 @@ export const useAuditProgressStore = create<AuditProgressState>()(
           });
           
           // Limit global insights to last 8 items (increased for ROI Brain)
-          const limitedInsights = allInsights.slice(-8);
+          // BUT: Put ROI Brain insights at the BEGINNING so they appear as "New"
+          const roiBrainNewInsights = allInsights.filter(i => i.sectionId === 'roi_brain_generated');
+          const otherInsights = allInsights.filter(i => i.sectionId !== 'roi_brain_generated');
+          const orderedInsights = [...roiBrainNewInsights, ...otherInsights.slice(-6)]; // Max 8 total
+          const limitedInsights = orderedInsights.slice(0, 8);
           
           console.log('🧠 DEBUG: ROI Brain insights processed:', {
             totalInsights: limitedInsights.length,

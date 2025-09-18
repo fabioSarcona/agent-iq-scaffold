@@ -133,7 +133,9 @@ export function AuditEngine({ industry }: AuditEngineProps) {
       hasCurrentSection: !!currentSection,
       vertical,
       totalAnswers: Object.keys(answers).length,
-      useRoiBrainNeedAgentIQ: featureFlags.shouldUseRoiBrainNeedAgentIQ()
+      useRoiBrainNeedAgentIQ: featureFlags.shouldUseRoiBrainNeedAgentIQ(),
+      shouldUseRoiBrain: featureFlags.shouldUseRoiBrain(),
+      timestamp: new Date().toISOString()
     });
     
     if (!currentSection) {
@@ -142,13 +144,23 @@ export function AuditEngine({ industry }: AuditEngineProps) {
     }
     
     // FASE 2.1: Skip standalone ai_needagentiq if ROI Brain NeedAgentIQ is enabled
-    if (featureFlags.shouldUseRoiBrainNeedAgentIQ()) {
-      console.log('🐛 DEBUG: ROI Brain NeedAgentIQ enabled, skipping standalone ai_needagentiq call');
+    const shouldSkipStandalone = featureFlags.shouldUseRoiBrainNeedAgentIQ();
+    console.log('🐛 DEBUG: FASE 2.1 Check - Skip standalone ai_needagentiq?', {
+      shouldSkipStandalone,
+      roiBrainEnabled: featureFlags.shouldUseRoiBrain(),
+      timestamp: new Date().toISOString()
+    });
+    
+    if (shouldSkipStandalone) {
+      console.log('🐛 DEBUG: ✅ SKIPPING standalone ai_needagentiq - ROI Brain NeedAgentIQ enabled');
       logger.event('needagentiq_skip', { 
         sectionId: currentSection.id, 
-        reason: 'roi_brain_integration_enabled'
+        reason: 'roi_brain_integration_enabled',
+        timestamp: new Date().toISOString()
       });
       return;
+    } else {
+      console.log('🐛 DEBUG: ❌ NOT SKIPPING - Proceeding with standalone ai_needagentiq');
     }
     
     // Get answers for current section only

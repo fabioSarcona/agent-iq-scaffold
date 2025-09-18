@@ -80,8 +80,35 @@ export default function Report() {
           sessionId: roiResponse.sessionId,
           processingTime: roiResponse.processingTime,
           cacheHit: roiResponse.cacheHit,
-          costs: roiResponse.costs
+          costs: roiResponse.costs,
+          hasNeedAgentIQInsights: !!roiResponse.needAgentIQInsights?.length
         });
+
+        // FASE 2.1: Populate NeedAgentIQ insights from ROI Brain
+        if (roiResponse.needAgentIQInsights?.length) {
+          // Import store only when needed to avoid circular deps
+          const { useAuditProgressStore } = await import('@modules/audit/AuditProgressStore');
+          const { populateInsightsFromROIBrain } = useAuditProgressStore.getState();
+          
+          // Transform ROI Brain insights to NeedAgentIQ format
+          const transformedInsights = roiResponse.needAgentIQInsights.map(insight => ({
+            key: insight.key || `roi_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+            title: insight.title,
+            description: insight.description,
+            impact: insight.impact,
+            priority: insight.priority,
+            category: insight.category,
+            actionable: insight.actionable,
+            sectionId: 'roi_brain_generated' // Mark as ROI Brain generated
+          }));
+          
+          console.log('🧠 DEBUG: Populating ROI Brain insights into NeedAgentIQ:', {
+            originalCount: roiResponse.needAgentIQInsights.length,
+            transformedCount: transformedInsights.length
+          });
+          
+          populateInsightsFromROIBrain(transformedInsights);
+        }
 
         return adaptedReport;
       } else {

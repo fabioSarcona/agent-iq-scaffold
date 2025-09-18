@@ -113,9 +113,14 @@ export function NeedAgentIQPanel() {
 
   const [showHistorical, setShowHistorical] = useState(false);
 
-  // Get recent insights (last 2)
-  const recentInsights = insights.slice(0, 2);
-  const historicalInsights = insights.slice(2);
+  // Get recent insights (ROI Brain insights are always recent, then last 2 from legacy)
+  const roiBrainInsights = insights.filter(i => i.sectionId === 'roi_brain_generated');
+  const legacyInsights = insights.filter(i => i.sectionId !== 'roi_brain_generated');
+  const recentInsights = [
+    ...roiBrainInsights, // All ROI Brain insights are "new"
+    ...legacyInsights.slice(0, Math.max(0, 2 - roiBrainInsights.length)) // Fill remaining with legacy
+  ];
+  const historicalInsights = legacyInsights.slice(Math.max(0, 2 - roiBrainInsights.length));
 
   // Get all historical insights from all sections
   const allSectionInsights = Object.entries(insightsBySection)

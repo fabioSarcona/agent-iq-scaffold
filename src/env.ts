@@ -54,7 +54,8 @@ export const featureFlags = {
 
   // Granular Feature Helpers
   shouldUseRoiBrainNeedAgentIQ(): boolean {
-    return this.shouldUseRoiBrain() && this.roiBrainNeedAgentIQEnabled;
+    // FASE 2.1 FIX: Se ROI Brain è attivo, abilita automaticamente NeedAgentIQ integration
+    return this.shouldUseRoiBrain(); // Semplificato per evitare double flag dependency
   },
 
   shouldUseRoiBrainSkillScope(): boolean {

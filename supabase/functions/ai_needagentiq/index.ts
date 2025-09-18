@@ -47,7 +47,7 @@ serve(async (req) => {
     // Parse and validate input
     const body = await req.json();
     console.log('📋 Body received:', JSON.stringify(body).slice(0, 200));
-    const { vertical, sectionId, answersSection } = NeedAgentIQSimpleInputSchema.parse(body);
+    const { vertical, sectionId, answersSection, language = 'en' } = NeedAgentIQSimpleInputSchema.parse(body);
     console.log('✅ Input validated successfully');
 
     logger.info('Processing NeedAgentIQ request', { 
@@ -61,6 +61,11 @@ serve(async (req) => {
     
     // Enhanced system prompt that explicitly requests insights
     const systemPrompt = `${basePrompt}
+
+LANGUAGE INSTRUCTIONS:
+- Respond in ${language === 'it' ? 'Italian' : 'English'}
+- Use professional ${language === 'it' ? 'Italian' : 'English'} terminology appropriate for business contexts
+- Maintain the same JSON structure regardless of language
 
 CRITICAL OUTPUT REQUIREMENTS:
 - You MUST generate at least 1-3 actionable insights based on the provided data

@@ -595,6 +595,12 @@ Deno.serve(async (req) => {
           role: 'user',
           content: `${contextualPrompt}
 
+LANGUAGE INSTRUCTIONS:
+- Respond in ${validInput.language === 'it' ? 'Italian' : 'English'}
+- Use professional ${validInput.language === 'it' ? 'Italian' : 'English'} terminology appropriate for business contexts
+- Maintain the same JSON structure regardless of language
+- All text content (titles, descriptions, recommendations, diagnoses) should be in ${validInput.language === 'it' ? 'Italian' : 'English'}
+
 CRITICAL: Return ONLY raw JSON. Do not include markdown code fences (\`\`\`json), backticks, or any explanations before or after the JSON.
 
 You are generating a VoiceFit report for a ${normalizedContext.vertical} business. Respond with valid JSON matching this exact structure:

@@ -145,6 +145,7 @@ export const SkillScopeInputSchema = z.object({
     business: BusinessContextSchema,
     settings: SettingsSchema
   }),
+  language: z.string().default('en'), // Prepare for multilingual support
   skill: z.object({
     id: z.string(),
     name: z.string(),
@@ -289,7 +290,8 @@ export const NeedAgentIQInsightSchema = z.object({
 export const NeedAgentIQSimpleInputSchema = z.object({
   vertical: z.enum(['dental', 'hvac']),
   sectionId: z.string(),
-  answersSection: z.record(z.string(), z.unknown())
+  answersSection: z.record(z.string(), z.unknown()),
+  language: z.string().default('en') // Prepare for multilingual support
 });
 
 // NeedAgentIQ Simple Insight Output (enriched format)
@@ -374,6 +376,7 @@ export const OTPVerifyOutputSchema = z.object({
 export const ROIBrainBusinessContextSchema = z.object({
   vertical: z.enum(['dental', 'hvac']),
   auditAnswers: z.record(z.unknown()),
+  language: z.string().default('en'), // Prepare for multilingual support
   scoreSummary: z.object({
     overall: z.number(),
     sections: z.array(z.object({

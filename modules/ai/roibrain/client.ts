@@ -77,7 +77,8 @@ export interface ROIBrainOutput {
 
 export async function requestROIBrain(
   context: ROIBrainBusinessContext,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  language: string = 'en' // Prepare for multilingual support
 ): Promise<ROIBrainOutput> {
   const startTime = Date.now();
   const maxRetries = 2;
@@ -95,7 +96,7 @@ export async function requestROIBrain(
       });
 
       const { data, error } = await supabase.functions.invoke('ai_roi_brain', {
-        body: context,
+        body: { ...context, language }, // Pass language parameter for future multilingual support
       });
 
       const processingTime = Date.now() - startTime;

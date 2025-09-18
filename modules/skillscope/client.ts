@@ -5,11 +5,12 @@ import { logger } from '@/lib/logger';
 
 export async function requestSkillScope(
   payload: SkillScopePayload,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  language: string = 'en' // Prepare for multilingual support
 ): Promise<SkillScopeOutput> {
   try {
     const { data, error } = await supabase.functions.invoke('ai_skillscope', {
-      body: payload,
+      body: { ...payload, language }, // Pass language parameter for future multilingual support
     });
 
     if (error) {

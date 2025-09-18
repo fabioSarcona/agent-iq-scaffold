@@ -64,7 +64,8 @@ function buildLLMInput({
   scoreSummary, 
   moneylost, 
   benchmarks,
-  kb 
+  kb,
+  language = 'en' // Add language parameter with default
 }: {
   vertical: string;
   answers: Record<string, unknown>;
@@ -72,6 +73,7 @@ function buildLLMInput({
   moneylost?: any;
   benchmarks?: string[];
   kb: { approved_claims: string[], services: any[] };
+  language?: string; // Make language optional
 }): VoiceFitInput {
   const auditId = `audit_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   
@@ -141,9 +143,20 @@ function buildLLMInput({
   };
 }
 
-async function callClaude(systemPrompt: string, llmInput: VoiceFitInput): Promise<VoiceFitOutput> {
+async function callClaude(systemPrompt: string, llmInput: VoiceFitInput, language: string = 'en'): Promise<VoiceFitOutput> {
   const env = validateAIEnv();
   const startTime = Date.now();
+  
+  // Add language instructions to system prompt
+  const languageAwarePrompt = `${systemPrompt}
+
+LANGUAGE INSTRUCTIONS:
+- Respond in ${language === 'it' ? 'Italian' : 'English'}
+- Use professional ${language === 'it' ? 'Italian' : 'English'} terminology appropriate for business contexts
+- Maintain the same JSON structure regardless of language
+- All text content (titles, descriptions, recommendations) should be in ${language === 'it' ? 'Italian' : 'English'}
+
+`;
   
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -204,6 +217,9 @@ serve(async (req) => {
     // Build LLM input from request format  
     const llmInput = buildLLMInput({ ...request, kb });
     
+    // Extract language from request (prepare for multilingual support)
+    const language = request.language || 'en';
+    
     // Validate input
     const validatedInput = VoiceFitInputSchema.parse(llmInput);
     
@@ -223,7 +239,7 @@ serve(async (req) => {
     }
     
     // Call Claude with system prompt
-    const llmOutput = await callClaude(SYSTEM_PROMPT, validatedInput);
+    const llmOutput = await callClaude(SYSTEM_PROMPT, validatedInput, language);
     
     // Cache successful response
     responseCache.set(cacheKey, { data: llmOutput, timestamp: Date.now() });

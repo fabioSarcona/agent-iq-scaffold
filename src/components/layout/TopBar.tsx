@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button'
 import { Moon, Sun } from 'lucide-react'
 import { useTheme } from '@/providers/ThemeProvider'
-import { LanguageSwitcher } from './LanguageSwitcher'
+// import { LanguageSwitcher } from './LanguageSwitcher' // Temporarily hidden for monolingual mode
 import { useTranslation } from '@/hooks/useTranslation'
 
 export function TopBar() {
@@ -17,7 +17,7 @@ export function TopBar() {
       </div>
 
       <div className="flex items-center space-x-2">
-        <LanguageSwitcher />
+        {/* <LanguageSwitcher /> */} {/* Temporarily hidden for monolingual mode */}
         <Button
           variant="ghost"
           size="icon"

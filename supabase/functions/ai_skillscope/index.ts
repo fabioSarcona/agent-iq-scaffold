@@ -58,9 +58,16 @@ async function callClaude(input: SkillScopeInput): Promise<SkillScopeOutput> {
   try {
     const env = validateAIEnv();
     
-    // Build system prompt with dynamic KB data
+    // Build system prompt with dynamic KB data and language instructions
     const kb = await getCachedKB();
+    const language = input.language || 'en';
     const systemPrompt = `${SYSTEM_PROMPT}
+
+LANGUAGE INSTRUCTIONS:
+- Respond in ${language === 'it' ? 'Italian' : 'English'}
+- Use professional ${language === 'it' ? 'Italian' : 'English'} terminology appropriate for business contexts  
+- Maintain the same JSON structure regardless of language
+- All text content (titles, descriptions, recommendations) should be in ${language === 'it' ? 'Italian' : 'English'}
 
 === KNOWLEDGE BASE ===
 Approved Claims: ${JSON.stringify(kb.approved_claims, null, 2)}

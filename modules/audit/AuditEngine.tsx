@@ -202,7 +202,8 @@ export function AuditEngine({ industry }: AuditEngineProps) {
       const requestBody = {
         vertical: vertical || 'dental',
         sectionId: currentSection.id,
-        answersSection: sectionAnswers
+        answersSection: sectionAnswers,
+        language: 'en' // Fixed to English for now, ready for multilingual
       };
       
       console.log('🐛 DEBUG: Request body:', requestBody);

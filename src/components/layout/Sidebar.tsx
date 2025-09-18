@@ -32,11 +32,6 @@ export function Sidebar() {
               <p className="text-xs text-muted-foreground leading-relaxed">
                 Real-time insights and business intelligence will appear here
               </p>
-              <div className="mt-4 pt-4 border-border/30">
-                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-brand-secondary/10 text-brand-secondary">
-                  Coming Soon
-                </span>
-              </div>
             </div>}
           
           

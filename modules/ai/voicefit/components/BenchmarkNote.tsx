@@ -10,7 +10,14 @@ interface BenchmarkNoteProps {
 
 const BenchmarkNote = React.forwardRef<HTMLDivElement, BenchmarkNoteProps>(
   ({ notes, className }, ref) => {
-    if (notes.length === 0) return null
+    // Hide if no notes or only contains generic placeholder text
+    if (notes.length === 0 || 
+        (notes.length === 1 && (
+          notes[0] === 'AI Analysis Complete' || 
+          notes[0]?.trim() === ''
+        ))) {
+      return null
+    }
 
     return (
       <Card ref={ref} className={cn("border-muted bg-muted/20", className)}>

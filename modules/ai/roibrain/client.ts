@@ -325,7 +325,7 @@ export function roiBrainToVoiceFitAdapter(roiResponse: ROIBrainOutput) {
     diagnosis,
     consequences,
     solutions,
-    benchmarks: (report as any).benchmarks || ['AI Analysis Complete'],
+    benchmarks: (report as any).benchmarks || [],
     plan,
     faq,
     

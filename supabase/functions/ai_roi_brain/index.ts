@@ -103,6 +103,7 @@ const AIResponseSchema = z.object({
     rationale: z.string(),
     estimatedRecoveryPct: z.tuple([z.number(), z.number()])
   })),
+  benchmarks: z.array(z.string()),
   faq: z.array(z.object({
     q: z.string(),
     a: z.string()
@@ -459,6 +460,16 @@ SKILLSCOPE_GENERATION_REQUIREMENTS:
 - Provide proven results with stats typical for ${businessSize} ${vertical} businesses
 - Include specific requirements: prerequisites, data needed for implementation
 - Connect directly to business context with ${totalLoss.toLocaleString()}/month loss potential
+
+BENCHMARK_NOTES_GENERATION:
+Generate 2-3 contextual benchmark notes that help the business understand their position:
+1. INDUSTRY POSITIONING: Compare their score (${normalizedContext.scoreSummary.overall}) to ${vertical} industry standards
+   - Example: "Your AI readiness score of ${normalizedContext.scoreSummary.overall} places you in the ${normalizedContext.scoreSummary.overall > 70 ? 'top 25%' : normalizedContext.scoreSummary.overall > 50 ? 'middle 50%' : 'bottom 25%'} of ${vertical} businesses"
+2. PEER COMPARISON: Compare to similar ${businessSize} businesses in ${vertical}
+   - Example: "${businessSize} ${vertical} practices typically ${urgencyLevel === 'high' ? 'lose 20-30% fewer calls' : 'have more automated processes'}"
+3. STRENGTH/WEAKNESS INSIGHT: Identify a key strength or area for improvement
+   - Example: "Strong technical foundation (${technicalReadiness}% readiness) but ${primaryPainPoints[0]} needs immediate attention"
+Keep notes concise (15-25 words each), professional, and actionable
 `;
   }
 }
@@ -600,6 +611,11 @@ You are generating a VoiceFit report for a ${normalizedContext.vertical} busines
       "rationale": "<why this helps>",
       "estimatedRecoveryPct": [<min_pct>, <max_pct>]
     }
+  ],
+  "benchmarks": [
+    "<industry positioning note (e.g., 'Your score of X places you in the top/bottom Y% of businesses')>",
+    "<comparative insight (e.g., 'Similar-sized businesses typically lose X% fewer calls')>",
+    "<strength/weakness summary (e.g., 'Strong technical foundation, but processes need standardization')>"
   ],
   "faq": [
     {
@@ -835,6 +851,7 @@ Use this KB data for context: ${JSON.stringify(kbPayload, null, 2)}`
           rationale: sol.rationale,
           estimatedRecoveryPct: sol.estimatedRecoveryPct
         })),
+        benchmarks: aiResponse.benchmarks,
         faq: aiResponse.faq,
         plan: aiResponse.plan
       };

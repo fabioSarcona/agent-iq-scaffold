@@ -118,13 +118,46 @@ export default function Report() {
     },
   }), [currentVertical, answers])
 
-  // Create SkillScope payload with hardcoded KB slices
+  // FASE 2.2: Create SkillScope payload using ROI Brain skillScopeContext or fallback to hardcoded
   const createSkillScopePayload = React.useCallback((skillId: string, skillTitle: string): SkillScopePayload => {
     const solution = reportData?.solutions?.find(s => s.skillId === skillId)
     
-    // Hardcode KB slices (to be handled by edge functions)
+    // FASE 2.2: Try to get skill from ROI Brain skillScopeContext first
+    const roiBrainSkill = isROIBrainReport(reportData) && 
+      (reportData as any).skillScopeContext?.recommendedSkills?.find(
+        (skill: any) => skill.id === skillId || skill.name === skillTitle
+      )
+    
+    // Use ROI Brain data if available, otherwise fallback to hardcoded
+    const skillData = roiBrainSkill ? {
+      id: roiBrainSkill.id,
+      name: roiBrainSkill.name,
+      target: roiBrainSkill.target,
+      problem: roiBrainSkill.problem,
+      how: roiBrainSkill.how,
+      roiRangeMonthly: roiBrainSkill.roiRangeMonthly,
+      implementation: roiBrainSkill.implementation,
+      integrations: roiBrainSkill.integrations
+    } : {
+      id: skillId,
+      name: skillTitle,
+      target: (currentVertical === 'dental' ? "Dental" : "HVAC") as "Dental" | "HVAC",
+      problem: solution?.rationale || "Identified business challenge",
+      how: "AI-powered automation that integrates with your existing systems",
+      roiRangeMonthly: solution?.estimatedRecoveryPct ? 
+        [solution.estimatedRecoveryPct[0] * 100, solution.estimatedRecoveryPct[1] * 100] as [number, number] :
+        undefined,
+    }
+    
+    // Enhanced KB slices with ROI Brain context or fallback
+    const contextSummary = isROIBrainReport(reportData) && (reportData as any).skillScopeContext?.contextSummary
     const kbSlices = {
-      approved_claims: [
+      approved_claims: contextSummary ? [
+        contextSummary,
+        "Increase revenue by 15-40% through better patient retention",
+        "Reduce no-shows by up to 80% with automated reminders", 
+        "Save 2-4 hours daily on administrative tasks"
+      ] : [
         "Increase revenue by 15-40% through better patient retention",
         "Reduce no-shows by up to 80% with automated reminders", 
         "Save 2-4 hours daily on administrative tasks"
@@ -132,18 +165,18 @@ export default function Report() {
       services: []
     }
     
+    console.log('🎯 DEBUG: createSkillScopePayload:', {
+      skillId,
+      skillTitle,
+      roiBrainSkillFound: !!roiBrainSkill,
+      contextSummary: !!contextSummary,
+      skillData,
+      source: roiBrainSkill ? 'ROI_BRAIN' : 'FALLBACK'
+    });
+    
     return {
       context: auditContext,
-      skill: {
-        id: skillId,
-        name: skillTitle,
-        target: (currentVertical === 'dental' ? "Dental" : "HVAC") as "Dental" | "HVAC",
-        problem: solution?.rationale || "Identified business challenge",
-        how: "AI-powered automation that integrates with your existing systems",
-        roiRangeMonthly: solution?.estimatedRecoveryPct ? 
-          [solution.estimatedRecoveryPct[0] * 100, solution.estimatedRecoveryPct[1] * 100] as [number, number] :
-          undefined,
-      },
+      skill: skillData,
       audit: {
         responses: Object.entries(answers || {}).map(([key, value]) => ({ key, value })),
         aiReadinessScore: reportData?.score,

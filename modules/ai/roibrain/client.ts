@@ -62,6 +62,26 @@ export interface ROIBrainOutput {
     category: string;
     actionable: boolean;
   }>;
+  // FASE 2.2: SkillScope Context from ROI Brain
+  skillScopeContext?: {
+    recommendedSkills: Array<{
+      id: string;
+      name: string;
+      target: "Dental" | "HVAC" | "Both";
+      problem: string;
+      how: string;
+      roiRangeMonthly?: [number, number];
+      implementation?: {
+        time_weeks?: number;
+        phases?: string[];
+      };
+      integrations?: string[];
+      priority: "high" | "medium" | "low";
+      rationale: string;
+    }>;
+    contextSummary: string;
+    implementationReadiness: number; // 1-100 scale
+  };
   processingTime: number;
   cacheHit: boolean;
   costs?: {
@@ -329,6 +349,9 @@ export function roiBrainToVoiceFitAdapter(roiResponse: ROIBrainOutput) {
     benchmarks: (report as any).benchmarks || [],
     plan,
     faq,
+    
+    // FASE 2.2: Pass through skillScopeContext from ROI Brain
+    skillScopeContext: roiResponse.skillScopeContext || undefined,
     
     // Metadata for debugging
     processingTime: roiResponse.processingTime,

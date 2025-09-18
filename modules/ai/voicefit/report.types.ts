@@ -22,6 +22,27 @@ export interface VoiceFitReportData {
   faq: Array<{ q: string; a: string }>;
   plan: RecommendedPlan;
   benchmarks?: string[];      // notes about sector/local benchmarks used
+  
+  // FASE 2.2: SkillScope Context from ROI Brain (optional for backward compatibility)
+  skillScopeContext?: {
+    recommendedSkills: Array<{
+      id: string;
+      name: string;
+      target: "Dental" | "HVAC" | "Both";
+      problem: string;
+      how: string;
+      roiRangeMonthly?: [number, number];
+      implementation?: {
+        time_weeks?: number;
+        phases?: string[];
+      };
+      integrations?: string[];
+      priority: "high" | "medium" | "low";
+      rationale: string;
+    }>;
+    contextSummary: string;
+    implementationReadiness: number; // 1-100 scale
+  };
 }
 
 // New LLM-based types (from schemas)

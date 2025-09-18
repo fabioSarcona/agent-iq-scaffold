@@ -463,8 +463,8 @@ SKILLSCOPE_GENERATION_REQUIREMENTS:
 
 BENCHMARK_NOTES_GENERATION:
 Generate 2-3 contextual benchmark notes that help the business understand their position:
-1. INDUSTRY POSITIONING: Compare their score (${normalizedContext.scoreSummary.overall}) to ${vertical} industry standards
-   - Example: "Your AI readiness score of ${normalizedContext.scoreSummary.overall} places you in the ${normalizedContext.scoreSummary.overall > 70 ? 'top 25%' : normalizedContext.scoreSummary.overall > 50 ? 'middle 50%' : 'bottom 25%'} of ${vertical} businesses"
+1. INDUSTRY POSITIONING: Compare their score (${context.scoreSummary?.overall || 'Unknown'}) to ${vertical} industry standards
+   - Example: "Your AI readiness score of ${context.scoreSummary?.overall || 'Unknown'} places you in the ${(context.scoreSummary?.overall || 0) > 70 ? 'top 25%' : (context.scoreSummary?.overall || 0) > 50 ? 'middle 50%' : 'bottom 25%'} of ${vertical} businesses"
 2. PEER COMPARISON: Compare to similar ${businessSize} businesses in ${vertical}
    - Example: "${businessSize} ${vertical} practices typically ${urgencyLevel === 'high' ? 'lose 20-30% fewer calls' : 'have more automated processes'}"
 3. STRENGTH/WEAKNESS INSIGHT: Identify a key strength or area for improvement

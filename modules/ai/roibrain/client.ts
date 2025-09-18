@@ -61,6 +61,8 @@ export interface ROIBrainOutput {
     priority: 'low' | 'medium' | 'high';
     category: string;
     actionable: boolean;
+    // Monthly financial impact in USD - optional as backend may not always provide this value
+    monthlyImpactUsd?: number;
   }>;
   // FASE 2.2: SkillScope Context from ROI Brain
   skillScopeContext?: {

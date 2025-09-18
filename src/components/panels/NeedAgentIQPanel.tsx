@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { AlertTriangle, Lightbulb, DollarSign, ChevronDown, ChevronRight } from 'lucide-react';
+import { AlertTriangle, Lightbulb, DollarSign, ChevronDown, ChevronRight, History, Clock } from 'lucide-react';
 import { useAuditProgressStore } from '@modules/audit/AuditProgressStore';
 const formatCurrency = (amount: number, currency: string = 'USD'): string => {
   return new Intl.NumberFormat('en-US', {
@@ -105,9 +105,28 @@ function InsightCard({
 export function NeedAgentIQPanel() {
   const {
     insights,
+    insightsBySection,
     iqError,
-    clearIqError
+    clearIqError,
+    config
   } = useAuditProgressStore();
+
+  const [showHistorical, setShowHistorical] = useState(false);
+
+  // Get recent insights (last 2)
+  const recentInsights = insights.slice(0, 2);
+  const historicalInsights = insights.slice(2);
+
+  // Get all historical insights from all sections
+  const allSectionInsights = Object.entries(insightsBySection)
+    .filter(([sectionId]) => sectionId !== 'current')
+    .flatMap(([sectionId, sectionInsights]) => 
+      (Array.isArray(sectionInsights) ? sectionInsights : []).map(insight => ({
+        ...insight,
+        sectionId,
+        sectionName: config?.sections.find(s => s.id === sectionId)?.title || sectionId
+      }))
+    );
 
   // Show error state if there's an error
   if (iqError) {
@@ -128,7 +147,7 @@ export function NeedAgentIQPanel() {
   }
 
   // Show placeholder if no insights yet
-  if (insights.length === 0) {
+  if (insights.length === 0 && allSectionInsights.length === 0) {
     return <Card className="border-muted">
         <CardHeader className="pb-3">
           <div className="flex items-center gap-2">
@@ -144,6 +163,9 @@ export function NeedAgentIQPanel() {
       </Card>;
   }
 
+  const totalInsights = insights.length + allSectionInsights.length;
+  const hasHistoricalData = historicalInsights.length > 0 || allSectionInsights.length > 0;
+
   // Render insights
   return <Card>
       <CardHeader className="pb-3">
@@ -151,24 +173,73 @@ export function NeedAgentIQPanel() {
           <Lightbulb className="h-4 w-4 text-primary" />
           <CardTitle className="text-sm">AI Insights</CardTitle>
           <Badge variant="secondary" className="text-xs">
-            {insights.length}
+            {totalInsights}
           </Badge>
         </div>
       </CardHeader>
       <CardContent className="p-2 space-y-3">
-        {insights.map((insight, index) => (
+        {/* Recent Insights */}
+        {recentInsights.map((insight, index) => (
           <div key={insight.key || insight.title} className="relative">
             <InsightCard insight={insight} />
-            {index < 2 && (
-              <Badge 
-                variant="success" 
-                className="absolute -top-1 -right-1 text-xs bg-green-100 text-green-700 border-green-200 hover:bg-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-800"
-              >
-                New
-              </Badge>
-            )}
+            <Badge 
+              variant="success" 
+              className="absolute -top-1 -right-1 text-xs bg-green-100 text-green-700 border-green-200 hover:bg-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-800"
+            >
+              New
+            </Badge>
           </div>
         ))}
+
+        {/* Historical Insights Accordion */}
+        {hasHistoricalData && (
+          <Collapsible open={showHistorical} onOpenChange={setShowHistorical}>
+            <CollapsibleTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="w-full justify-between text-xs text-muted-foreground hover:text-foreground h-8"
+              >
+                <div className="flex items-center gap-2">
+                  <History className="h-3 w-3" />
+                  <span>Historical Insights</span>
+                  <Badge variant="outline" className="text-xs">
+                    {historicalInsights.length + allSectionInsights.length}
+                  </Badge>
+                </div>
+                {showHistorical ? (
+                  <ChevronDown className="h-3 w-3" />
+                ) : (
+                  <ChevronRight className="h-3 w-3" />
+                )}
+              </Button>
+            </CollapsibleTrigger>
+            
+            <CollapsibleContent className="space-y-2 mt-2">
+              {/* Legacy historical insights */}
+              {historicalInsights.map((insight) => (
+                <div key={insight.key || insight.title} className="opacity-75 hover:opacity-100 transition-opacity">
+                  <InsightCard insight={insight} />
+                </div>
+              ))}
+              
+              {/* Section-based historical insights */}
+              {allSectionInsights.map((insight) => (
+                <div key={`${insight.sectionId}-${insight.key}`} className="opacity-75 hover:opacity-100 transition-opacity">
+                  <div className="relative">
+                    <InsightCard insight={insight} />
+                    <div className="absolute top-2 left-2">
+                      <Badge variant="outline" className="text-xs opacity-70">
+                        <Clock className="h-2 w-2 mr-1" />
+                        {insight.sectionName}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </CollapsibleContent>
+          </Collapsible>
+        )}
       </CardContent>
     </Card>;
 }

@@ -236,11 +236,18 @@ export const useAuditProgressStore = create<AuditProgressState>()(
           currentQuestionIndex: 0,
           answers: {},
           scoreSummary: { overall: 0, sections: [] },
+          // Clear all insights on restart
+          insights: [],
+          lastEmittedKeys: [],
+          iqError: null,
+          insightsBySection: {},
+          iqErrorBySection: {},
           currentSection: firstSection || null,
           currentQuestion: firstQuestion || null
         });
 
         logEvent(state.logsEnabled, 'restart');
+        logEvent(state.logsEnabled, 'insights_cleared');
         
         if (firstSection) {
           logEvent(state.logsEnabled, 'section_enter', { sectionId: firstSection.id });

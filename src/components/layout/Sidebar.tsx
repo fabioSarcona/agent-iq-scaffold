@@ -1,8 +1,10 @@
-import { Settings, PanelLeft, Sparkles, Terminal, CreditCard } from 'lucide-react';
+import { Settings, PanelLeft, Sparkles, Terminal } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { NeedAgentIQPanel } from '@/components/panels/NeedAgentIQPanel';
+import { useDevAdmin } from '@/hooks/useAdmin';
 export function Sidebar() {
   const location = useLocation();
+  const { canAccessDevConsole } = useDevAdmin();
   const isAuditRoute = location.pathname.startsWith('/audit/');
   return <aside className="w-80 glass-card border-r border-border/30 flex flex-col animate-fade-in-scale">
       <div className="p-6 border-b border-border/30">
@@ -36,7 +38,7 @@ export function Sidebar() {
             </div>}
           
           
-          {process.env.NODE_ENV !== 'production' && <Link to="/dev" className="mt-4 glass-card p-3 rounded-lg border border-dashed border-border/50 text-center hover-lift group block transition-all duration-300">
+          {canAccessDevConsole && <Link to="/dev" className="mt-4 glass-card p-3 rounded-lg border border-dashed border-border/50 text-center hover-lift group block transition-all duration-300">
               <div className="w-8 h-8 mx-auto mb-2 glass-card rounded-full flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
                 <Terminal className="h-4 w-4 text-primary animate-pulse" />
               </div>

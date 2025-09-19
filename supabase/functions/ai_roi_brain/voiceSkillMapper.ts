@@ -55,11 +55,13 @@ export function mapPainPointsToSkills(
  * Maps audit sections to voice skills (FASE 4 - IMPLEMENTED)
  * @param sections - Audit sections with scores  
  * @param vertical - Business vertical
+ * @param moneyLostByArea - Optional pre-calculated money lost data
  * @returns Section-based skill recommendations
  */
 export function mapSectionsToSkills(
   sections: Array<{ sectionId?: string; name?: string; score: number }>,
-  vertical: 'dental' | 'hvac'
+  vertical: 'dental' | 'hvac',
+  moneyLostByArea?: Record<string, number>
 ): VoiceSkillMapping[] {
   // Focus on low-scoring sections (below 60) as they indicate problems
   const lowScoringSections = sections.filter(s => s.score < 60);
@@ -68,31 +70,56 @@ export function mapSectionsToSkills(
     return [];
   }
   
-  // Create mock money lost data for sections (would normally come from MoneyLost calculation)
-  const moneyLostByArea: Record<string, number> = {};
-  lowScoringSections.forEach(section => {
-    const sectionName = section.name || section.sectionId || 'Unknown';
-    // Estimate loss based on score (lower score = higher estimated loss)
-    const estimatedLoss = Math.round((100 - section.score) * 100); // $100 per missing point
-    moneyLostByArea[sectionName] = estimatedLoss;
-  });
+  let moneyLostData: Record<string, number>;
   
-  const insights = buildNeedAgentIQInsights({
-    signalTags: [],
-    painPoints: [],
-    moneyLostByArea,
-    vertical,
-    businessSize: 'medium' // Default business size
-  });
-  
-  // Convert insights back to legacy format
-  return insights.map(insight => ({
-    painPoint: insight.category,
-    sectionId: lowScoringSections.find(s => s.name && insight.impact.includes(s.name))?.sectionId || 'unknown',
-    recommendedSkills: [insight.metadata.skillId],
-    priority: insight.priority,
-    rationale: insight.description
-  }));
+  if (moneyLostByArea && Object.keys(moneyLostByArea).length > 0) {
+    // Use real MoneyLost data when available
+    console.log('Voice Skill Mapper: Using real MoneyLost data for section mapping');
+    moneyLostData = moneyLostByArea;
+    
+    // Generate insights using core mapSectionsToSkills with real data
+    const insights = mapMoneyLostSectionsToSkills(
+      moneyLostData,
+      vertical,
+      'medium' // Default business size
+    );
+    
+    // Convert insights back to legacy format
+    return insights.map(insight => ({
+      painPoint: insight.category,
+      sectionId: lowScoringSections.find(s => s.name && insight.impact.includes(s.name))?.sectionId || 'unknown',
+      recommendedSkills: [insight.metadata.skillId],
+      priority: insight.priority,
+      rationale: insight.description
+    }));
+  } else {
+    // Fallback: Create mock money lost data for sections
+    console.log('Voice Skill Mapper: Using mock MoneyLost estimation for section mapping');
+    moneyLostData = {};
+    lowScoringSections.forEach(section => {
+      const sectionName = section.name || section.sectionId || 'Unknown';
+      // Estimate loss based on score (lower score = higher estimated loss)
+      const estimatedLoss = Math.round((100 - section.score) * 100); // $100 per missing point
+      moneyLostData[sectionName] = estimatedLoss;
+    });
+    
+    const insights = buildNeedAgentIQInsights({
+      signalTags: [],
+      painPoints: [],
+      moneyLostByArea: moneyLostData,
+      vertical,
+      businessSize: 'medium' // Default business size
+    });
+    
+    // Convert insights back to legacy format
+    return insights.map(insight => ({
+      painPoint: insight.category,
+      sectionId: lowScoringSections.find(s => s.name && insight.impact.includes(s.name))?.sectionId || 'unknown',
+      recommendedSkills: [insight.metadata.skillId],
+      priority: insight.priority,
+      rationale: insight.description
+    }));
+  }
 }
 
 /**
@@ -122,7 +149,7 @@ export function generateNeedAgentIQInsights(input: {
   return insights.map(insight => ({
     title: insight.title,
     description: insight.description,
-    impact: insight.priority, // Map priority to impact for UI
+    impact: insight.impact, // Keep original impact description
     priority: insight.priority,
     category: insight.category,
     rationale: [

@@ -30,7 +30,7 @@ import { SkillScopeOverlay } from '@modules/skillscope/components/SkillScopeOver
 import type { SkillScopePayload } from '@modules/skillscope/types'
 
 // Import Revenue Simulator
-import { RevenueSimulator, mapSolutionToInsight } from '../../modules/revenue'
+import { RevenueSimulator, mapSolutionToInsight, distributeSmartImpacts, extractTelemetryData } from '../../modules/revenue'
 import type { MoneyLostSummary } from '../../modules/moneylost/types'
 import { Badge } from '@/components/ui/badge'
 
@@ -255,20 +255,26 @@ export default function Report() {
         ?? { monthlyUsd: 0, areas: [], source: 'roi_brain_fallback' as const };
     })();
 
-    // Logging telemetria
-    console.log('💰 Revenue Simulator money lost source:', {
-      source: moneyLost.source,
-      monthlyUsd: moneyLost.monthlyUsd,
-      areasCount: moneyLost.areas?.length || 0,
+    // FASE 4.3.1: Enhanced telemetry with area mapping and versions
+    const telemetry = extractTelemetryData(moneyLost, roiBrainReport._roiBrainMetadata)
+    console.log('💰 Revenue Simulator - Enhanced telemetry:', {
+      ...telemetry,
       strictMode: useStrictROIBrain,
       hasROIBrainData: !!roiBrainReport._roiBrainMetadata?.moneyLostSummary,
-      hasLegacyData: !!roiBrainReport.moneyLost
+      hasLegacyData: !!roiBrainReport.moneyLost,
+      monthlyUsd: moneyLost.monthlyUsd,
+      solutionsCount: reportData.solutions.length
     });
 
-    // Convert solutions to insights usando i valori reali da moneyLost
-    const baseMonthlyImpact = moneyLost.monthlyUsd / Math.max(reportData.solutions.length, 1)
-    const insights = reportData.solutions.map(solution => 
-      mapSolutionToInsight(solution, baseMonthlyImpact)
+    // FASE 4.3.1: Smart impact distribution based on area-to-skill mapping
+    const solutionsWithImpacts = distributeSmartImpacts(
+      reportData.solutions,
+      moneyLost.areas || [],
+      moneyLost.monthlyUsd
+    )
+    
+    const insights = solutionsWithImpacts.map(solution => 
+      mapSolutionToInsight(solution, solution.monthlyImpact)
     )
 
     return {

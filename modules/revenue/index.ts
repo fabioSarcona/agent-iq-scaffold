@@ -21,5 +21,7 @@ export {
   formatCurrency, 
   formatPercentage,
   calculateSkillROI,
-  calculateSimulationTotals 
+  calculateSimulationTotals,
+  distributeSmartImpacts,
+  extractTelemetryData
 } from './utils'

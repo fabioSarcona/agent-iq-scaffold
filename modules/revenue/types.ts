@@ -4,6 +4,9 @@ import { z } from 'zod'
 export type { MoneyLostSummary, MoneyLostArea, MoneyLostSource } from '../moneylost/types'
 export type { RecommendedSolution } from '../ai/voicefit/report.types'
 
+// FASE 4.3.1: Export smart distribution functions from utils
+export { distributeSmartImpacts, extractTelemetryData } from './utils'
+
 export type Vertical = 'dental' | 'hvac'
 export type BusinessSize = 'Small' | 'Medium' | 'Large'
 
@@ -91,14 +94,18 @@ export const RevenueSimulatorPropsSchema = z.object({
 
 export type RevenueSimulatorProps = z.infer<typeof RevenueSimulatorPropsSchema>
 
-// Utility to convert RecommendedSolution to Insight
-export function mapSolutionToInsight(solution: any, baseMonthlyImpact: number): Insight {
+/**
+ * Maps a RecommendedSolution to an Insight for revenue simulation
+ * FASE 4.3.1: Now supports smart impact distribution with optional monthlyImpact
+ */
+export function mapSolutionToInsight(solution: any, monthlyImpact?: number): Insight {
   const recoveryRate = solution.estimatedRecoveryPct 
     ? (solution.estimatedRecoveryPct[0] + solution.estimatedRecoveryPct[1]) / 2 / 100
     : 0.5 // Default 50% if no range provided
 
-  // Base cost estimate (can be refined based on business requirements)
-  const baseCost = baseMonthlyImpact * 0.25 // 25% of impact as cost
+  // Use provided impact or fallback to base calculation
+  const impact = monthlyImpact ?? 0
+  const baseCost = impact * 0.25 // 25% of impact as cost
 
   return {
     skill: {
@@ -106,7 +113,7 @@ export function mapSolutionToInsight(solution: any, baseMonthlyImpact: number): 
       cost: baseCost,
       recoveryRate,
     },
-    monthlyImpact: baseMonthlyImpact,
+    monthlyImpact: impact,
     rationale: solution.rationale,
     estimatedRecoveryPct: solution.estimatedRecoveryPct,
   }

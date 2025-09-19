@@ -7,10 +7,16 @@ import { corsHeaders } from '../_shared/env.ts'
 // Import modularized functions
 import { extractBusinessContext, type BusinessContextNormalized } from './businessExtractor.ts'
 import { mergeMoneyLostData } from './moneyLostMerger.ts'
-import { loadFilteredKB, getKBForPrompt, generateKBFilterSignature, KB_VERSION } from './kbLoader.ts'
+import { 
+  loadKBWithSignalTags, 
+  generateKBFilterSignature, 
+  initializeKBValidation,
+  KB_VERSION 
+} from './kbLoader.ts'
 import { generateContextualPrompt, buildClaudePrompt, PROMPT_VERSION } from './promptBuilder.ts'
 import { distributeOutput, validateParts, AIResponseSchema, type AIResponseType } from './outputDistributor.ts'
 import { generateCacheKey, getOrCompute, getCacheMetrics, performCacheCleanup, L1 } from './cache.ts'
+import { SIGNAL_RULES_VERSION } from './signalRules.ts'
 
 // Initialize Supabase for L2 cache
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -219,29 +225,38 @@ Deno.serve(async (req) => {
       totalMonthlyLoss: normalizedContext.moneyLostSummary?.total?.monthlyUsd
     });
     
-    // Step 3: Extract business intelligence from normalized context
+    // Step 3: Initialize KB validation (run once per cold start)
+    const kbValidation = initializeKBValidation();
+    if (kbValidation.warnings.length > 0) {
+      logger.warn('KB validation issues detected', kbValidation.warnings);
+    }
+    
+    // Step 4: Extract business intelligence from normalized context
     const intelligence = extractBusinessContext(normalizedContext);
     logger.info('Business Intelligence extracted', intelligence);
     
-    // Step 4: Extract relevant KB data and generate filter signature
-    const kbPayload = getKBForPrompt(normalizedContext, intelligence.primaryPainPoints);
-    const kbFilterSignature = generateKBFilterSignature({
-      maxItems: { voiceSkills: 8, painPoints: 10, faqItems: 12 },
-      signalTags: intelligence.primaryPainPoints
-    });
+    // Step 5: Load KB with signal-based filtering (Phase 3.2)
+    const kbResult = loadKBWithSignalTags(
+      normalizedContext,
+      normalizedContext.auditAnswers,
+      normalizedContext.vertical
+    );
     
-    // Step 5: Generate enhanced cache key with all parameters
+    // Step 6: Generate enhanced cache key with signal tags
     const cacheKey = await generateCacheKey({
       vertical: normalizedContext.vertical,
       auditAnswers: normalizedContext.auditAnswers,  
       moneyLost: normalizedContext.moneyLostSummary,
       kbVersion: KB_VERSION,
       promptVersion: PROMPT_VERSION,
+      signalRulesVersion: SIGNAL_RULES_VERSION,
       model: MODEL_NAME,
       max_tokens: MAX_TOKENS,
       ...(TEMPERATURE !== undefined && { temperature: TEMPERATURE }),
       locale: validInput.language || 'en',
-      kbFilterSignature
+      kbFilterSignature: kbResult.kbFilterSignature,
+      signalTags: kbResult.signalTags,
+      kbSections: kbResult.kbSectionsSelected
     });
     
     // Enhanced logging for debugging data quality
@@ -256,18 +271,23 @@ Deno.serve(async (req) => {
       totalMonthlyLoss: normalizedContext.moneyLostSummary?.total?.monthlyUsd,
       primaryPainPoints: intelligence.primaryPainPoints,
       cacheKeyPrefix: cacheKey.substring(0, 8),
-      kbFilterSignature: kbFilterSignature.substring(0, 12)
+      kbFilterSignature: kbResult.kbFilterSignature.substring(0, 12),
+      signalTags: kbResult.signalTags,
+      kbSectionsSelected: kbResult.kbSectionsSelected.length,
+      signalRulesMatched: kbResult.metrics?.rulesMatched || 0
     });
     
     // Log KB payload structure for debugging
-    if (kbPayload) {
+    if (kbResult.filteredKB) {
       logger.info('KB payload structure', {
-        voiceSkillsCount: kbPayload.voiceSkills?.length || 0,
-        painPointsCount: kbPayload.painPoints?.length || 0,
-        pricingTiersCount: kbPayload.pricing?.length || 0,
-        faqItemsCount: kbPayload.faq?.length || 0,
-        hasResponseModels: !!kbPayload.responseModels,
-        brandDataPresent: !!kbPayload.brand
+        voiceSkillsCount: kbResult.filteredKB.voiceSkills?.length || 0,
+        painPointsCount: kbResult.filteredKB.painPoints?.length || 0,
+        pricingTiersCount: kbResult.filteredKB.pricing?.length || 0,
+        faqItemsCount: kbResult.filteredKB.faq?.length || 0,
+        hasResponseModels: !!kbResult.filteredKB.responseModels,
+        brandDataPresent: !!kbResult.filteredKB.brand,
+        signalBasedFiltering: true,
+        signalRulesVersion: SIGNAL_RULES_VERSION
       });
     }
 
@@ -296,12 +316,12 @@ Deno.serve(async (req) => {
             ...(TEMPERATURE !== undefined && { temperature: TEMPERATURE }),
             messages: [{
               role: 'user',
-              content: buildClaudePrompt(
-                contextualPrompt,
-                kbPayload,
-                validInput.language || 'en',
-                normalizedContext.vertical
-              )
+            content: buildClaudePrompt(
+              contextualPrompt,
+              kbResult.filteredKB,
+              validInput.language || 'en',
+              normalizedContext.vertical
+            )
             }]
           })
         });
@@ -403,6 +423,18 @@ Deno.serve(async (req) => {
           normalizedContext
         );
         
+        // Add signal-based telemetry to response
+        if (response.consistency) {
+          response.consistency = {
+            ...response.consistency,
+            signalTags: kbResult.signalTags,
+            kbSectionsSelected: kbResult.kbSectionsSelected,
+            kbFilterSignature: kbResult.kbFilterSignature,
+            signalRulesVersion: SIGNAL_RULES_VERSION,
+            signalMetrics: kbResult.metrics
+          };
+        }
+        
         return response;
       },
       (key, value) => storeL2Cache(key, value),
@@ -421,8 +453,11 @@ Deno.serve(async (req) => {
       cacheKeyPrefix: cacheKey.substring(0, 8),
       kbVersion: KB_VERSION,
       promptVersion: PROMPT_VERSION,
+      signalRulesVersion: SIGNAL_RULES_VERSION,
       model: MODEL_NAME,
-      kbFilterSignature: kbFilterSignature.substring(0, 12),
+      kbFilterSignature: kbResult.kbFilterSignature.substring(0, 12),
+      signalTags: kbResult.signalTags,
+      kbSectionsCount: kbResult.kbSectionsSelected.length,
       l1Hit: false, // This was a computation path
       l2Hit: false,
       cacheMetrics,

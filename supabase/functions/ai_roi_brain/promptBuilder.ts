@@ -3,6 +3,8 @@
 
 import type { BusinessContextNormalized, BusinessIntelligence } from './businessExtractor.ts';
 import type { KBPayload } from '../_shared/kb/types.ts';
+import { painPoints } from '../_shared/kb.ts';
+import { getSkillsByTarget } from '../_shared/kb.ts';
 
 // Prompt Version for cache invalidation
 export const PROMPT_VERSION = '2024-01-ROI-v2.0';
@@ -52,6 +54,51 @@ RECOMMENDATION CRITERIA:
 - Technical readiness score: ${technicalReadiness}% - ${technicalReadiness > 70 ? 'high adoption potential' : technicalReadiness > 40 ? 'moderate training needed' : 'extensive onboarding required'}
 
 NEEDAGENTIQ_INSIGHTS_REQUIREMENTS:
+
+VOICE SKILL CROSS-VALIDATION AND ENRICHMENT:
+
+For each identified business pain point, you must cross-validate it against the deterministic Voice Skill mapping system:
+
+1. PAIN POINT VALIDATION:
+   - Only use predefined pain points from the approved knowledge base (${vertical}: ${JSON.stringify(painPoints[vertical].map(p => ({id: p.id, title: p.title, monthlyImpact: p.monthlyImpact})), null, 2)})
+   - Match detected problems to existing painPointIds using semantic similarity
+   - If no exact match exists, map to the closest relevant pain point with clear justification
+
+2. SKILL RECOMMENDATION VALIDATION:
+   - Use ONLY Voice Skills from the official knowledge base: ${JSON.stringify(getSkillsByTarget(vertical).map(s => ({name: s.name, painPoint: s.painPoint, estimatedROI: s.estimatedROI, target: s.target})), null, 2)}
+   - Cross-reference with the deterministic mappings already established in the system
+   - Validate that recommended skills match the business vertical (${vertical})
+   - Ensure skill-to-pain point relationships are logical and well-founded
+
+3. ENRICHMENT REQUIREMENTS:
+   For each validated skill recommendation, provide:
+   - Clear explanation in plain language why this specific skill addresses the identified pain point
+   - Realistic monthly ROI estimate using the numeric ranges from the knowledge base (convert string formats like "$3,000–$7,000" to actual numbers)
+   - Priority assessment based on business context and urgency level
+   - Confidence score reflecting the strength of the pain point → skill mapping
+
+4. OUTPUT STRUCTURE:
+   Return structured JSON objects with this format:
+   {
+     "painPointId": "<exact_id_from_kb>",
+     "skillId": "<normalized_skill_identifier>", 
+     "title": "<skill_name_from_kb>",
+     "description": "<how_skill_addresses_pain_point>",
+     "monthlyImpactUsd": <numeric_roi_estimate>,
+     "priority": "<high|medium|low>",
+     "confidence": <0-100>,
+     "rationale": "<detailed_justification>",
+     "validationStatus": "kb_validated"
+   }
+
+5. DETERMINISTIC CONSISTENCY:
+   Your role is to ENRICH and VALIDATE the deterministic fallback system, not replace it:
+   - Always ensure that the same business inputs produce consistent skill recommendations
+   - If the deterministic system already mapped pain point X to skill Y, either confirm this mapping or provide clear reasoning for any deviation
+   - Use your reasoning to add context and explanation, but maintain the core deterministic mappings
+   - Do not invent new skills, pain points, or ROI ranges outside the approved knowledge base
+
+CRITICAL: This cross-validation serves as a quality control layer over the deterministic mapping system. Your analysis should enhance accuracy and provide business context, while maintaining full compatibility with the existing VoiceSkillMapping architecture.
 
 🎯 PERSONA & ROLE:
 You are Fabio Sarcona an expert AI consultant with deep understanding of ${vertical} business operations, Founder & Strategic Advisor at NeedAgent.AI. You are NOT a generic AI.

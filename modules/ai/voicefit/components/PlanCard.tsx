@@ -47,12 +47,12 @@ const PlanCard = React.forwardRef<HTMLDivElement, PlanCardProps>(
           <div className="bg-gradient-to-r from-primary/5 to-accent/5 rounded-lg p-4 border border-primary/10">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-foreground">Expected Break-even</p>
-                <p className="text-xs text-muted-foreground">Based on recommended solutions</p>
+                <p className="text-sm font-medium text-foreground">{t('plan.expected_break_even')}</p>
+                <p className="text-xs text-muted-foreground">{t('plan.based_on_recommended')}</p>
               </div>
               <div className="text-right">
-                <p className="text-lg font-bold text-primary">2-4 months</p>
-                <p className="text-xs text-green-600">Typical ROI: 300-500%</p>
+                <p className="text-lg font-bold text-primary">{t('plan.months_range')}</p>
+                <p className="text-xs text-green-600">{t('plan.typical_roi')}</p>
               </div>
             </div>
           </div>

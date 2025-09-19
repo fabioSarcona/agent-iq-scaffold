@@ -425,12 +425,13 @@ export default function Report() {
               );
               
               return solutionsWithImpacts.map((solutionWithImpact, index) => {
-                // Find the original solution to get estimatedRecoveryPct
-                const originalSolution = reportData.solutions[index];
+                // Find the original solution by skillId to get estimatedRecoveryPct
+                const originalSolution = reportData.solutions
+                  .find(s => s.skillId === solutionWithImpact.skillId);
                 
-                // Simple priority logic based on monthly impact
-                const priority = solutionWithImpact.monthlyImpact > 1000 ? 'high' : 
-                                solutionWithImpact.monthlyImpact > 500 ? 'medium' : 'low';
+                // Simple priority logic based on monthly impact with safe fallback
+                const mi = solutionWithImpact.monthlyImpact ?? 0;
+                const priority = mi > 2000 ? 'high' : mi > 500 ? 'medium' : 'low';
                 
                 return (
                   <SolutionCard 

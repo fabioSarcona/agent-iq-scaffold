@@ -36,7 +36,11 @@
     "per_month": "/mese",
     "included_features": "Funzionalità Incluse",
     "available_addons": "Add-on Disponibili",
-    "get_started": "Inizia"
+    "get_started": "Inizia",
+    "expected_break_even": "Break-even Atteso",
+    "based_on_recommended": "Basato sulle soluzioni raccomandate",
+    "months_range": "2-4 mesi",
+    "typical_roi": "ROI Tipico: 300-500%"
   },
   "loading": "Generazione del tuo Report VoiceFit...",
   "error": {

@@ -4,6 +4,9 @@
 import type { BusinessContextNormalized, BusinessIntelligence } from './businessExtractor.ts';
 import type { KBPayload } from '../_shared/kb/types.ts';
 
+// Prompt Version for cache invalidation
+export const PROMPT_VERSION = '2024-01-ROI-v2.0';
+
 /**
  * Generates contextual business analysis prompt
  * @param context - Normalized business context

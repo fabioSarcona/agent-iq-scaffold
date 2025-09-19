@@ -5,6 +5,9 @@ import { extractRelevantKB } from '../_shared/kb/roibrain.ts';
 import type { KBPayload } from '../_shared/kb/types.ts';
 import type { BusinessContextNormalized } from './businessExtractor.ts';
 
+// KB Version for cache invalidation
+export const KB_VERSION = 'roibrain-centralized-v1.1';
+
 export interface KBFilter {
   signalTags?: string[];
   excludeCategories?: string[];
@@ -76,6 +79,35 @@ export function loadFilteredKB(
   }
 
   return filteredKB;
+}
+
+/**
+ * Generate KB filter signature for cache key
+ * @param filters - KBFilter object
+ * @returns Deterministic string representing filter configuration
+ */
+export function generateKBFilterSignature(filters?: KBFilter): string {
+  if (!filters) return 'no-filters';
+  
+  const parts = [];
+  
+  if (filters.signalTags && filters.signalTags.length > 0) {
+    parts.push('tags:' + filters.signalTags.sort().join(','));
+  }
+  
+  if (filters.excludeCategories && filters.excludeCategories.length > 0) {
+    parts.push('exclude:' + filters.excludeCategories.sort().join(','));
+  }
+  
+  if (filters.maxItems) {
+    const maxParts = [];
+    if (filters.maxItems.voiceSkills) maxParts.push(`vs:${filters.maxItems.voiceSkills}`);
+    if (filters.maxItems.painPoints) maxParts.push(`pp:${filters.maxItems.painPoints}`);
+    if (filters.maxItems.faqItems) maxParts.push(`faq:${filters.maxItems.faqItems}`);
+    if (maxParts.length > 0) parts.push('max:' + maxParts.join('|'));
+  }
+  
+  return parts.join(';') || 'default';
 }
 
 /**

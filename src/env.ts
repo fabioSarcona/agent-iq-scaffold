@@ -10,6 +10,8 @@ const schema = z.object({
   VITE_ROIBRAIN_NEEDAGENTIQ_ENABLED: z.string().optional().default('false'),
   VITE_ROIBRAIN_SKILLSCOPE_ENABLED: z.string().optional().default('false'),
   VITE_ROIBRAIN_FULL_INTEGRATION_ENABLED: z.string().optional().default('false'),
+  // FASE 4.3: Money Lost Data Strict Mode
+  VITE_ROIBRAIN_MONEYLOST_STRICT: z.string().optional().default('false'),
 });
 
 const parsed = schema.parse({
@@ -20,6 +22,7 @@ const parsed = schema.parse({
   VITE_ROIBRAIN_NEEDAGENTIQ_ENABLED: import.meta.env.VITE_ROIBRAIN_NEEDAGENTIQ_ENABLED,
   VITE_ROIBRAIN_SKILLSCOPE_ENABLED: import.meta.env.VITE_ROIBRAIN_SKILLSCOPE_ENABLED,
   VITE_ROIBRAIN_FULL_INTEGRATION_ENABLED: import.meta.env.VITE_ROIBRAIN_FULL_INTEGRATION_ENABLED,
+  VITE_ROIBRAIN_MONEYLOST_STRICT: import.meta.env.VITE_ROIBRAIN_MONEYLOST_STRICT,
 });
 
 export const env = parsed;
@@ -33,6 +36,8 @@ export const featureFlags = {
   roiBrainNeedAgentIQEnabled: parsed.VITE_ROIBRAIN_NEEDAGENTIQ_ENABLED === 'true',
   roiBrainSkillScopeEnabled: parsed.VITE_ROIBRAIN_SKILLSCOPE_ENABLED === 'true',
   roiBrainFullIntegrationEnabled: parsed.VITE_ROIBRAIN_FULL_INTEGRATION_ENABLED === 'true',
+  // FASE 4.3: Money Lost Strict Mode Flag
+  roiBrainMoneyLostStrict: parsed.VITE_ROIBRAIN_MONEYLOST_STRICT === 'true',
   
   // Determine if user should use ROI Brain (canary rollout)
   shouldUseRoiBrain(): boolean {

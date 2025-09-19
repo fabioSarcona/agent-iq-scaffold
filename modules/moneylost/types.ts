@@ -17,7 +17,25 @@ export interface LossArea {
   rationale: string[];
 }
 
+export interface MoneyLostArea {
+  id: string;           // 'missed_calls', 'patient_no_shows'
+  title: string;        // 'Missed Calls', 'Patient No-Shows'
+  monthlyUsd: number;   // valore numerico preciso
+}
+
+export type MoneyLostSource = 'compute' | 'legacy' | 'roi_brain_fallback';
+
 export interface MoneyLostSummary {
+  dailyUsd?: number;
+  monthlyUsd: number;   // REQUIRED - non più opzionale
+  annualUsd?: number;
+  areas: MoneyLostArea[];
+  source: MoneyLostSource;
+  confidence?: number;  // 0-100
+}
+
+// Legacy interface for backward compatibility
+export interface LegacyMoneyLostSummary {
   total: {
     dailyUsd: number;
     monthlyUsd: number;

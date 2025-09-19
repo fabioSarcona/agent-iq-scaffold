@@ -228,27 +228,52 @@ export default function Report() {
     return solution ? createSkillScopePayload(selectedSkill, solution.title) : null
   }, [selectedSkill, reportData, createSkillScopePayload])
 
-  // Revenue Simulator data preparation
+  // FASE 4.3: Revenue Simulator data preparation - USE REAL DATA FROM ROI BRAIN
   const revenueSimulatorData = React.useMemo(() => {
     if (!reportData) return null
 
-    // Create mock money lost data structure for simulator
-    const mockMoneyLost = {
-      dailyUsd: 250,
-      monthlyUsd: 5500,
-      annualUsd: 66000,
-      areas: []
-    }
+    // Feature flag per rollout graduale
+    const useStrictROIBrain = (import.meta.env.VITE_ROIBRAIN_MONEYLOST_STRICT as string) === 'true';
+    
+    // Type assertion per gestire il union type
+    const roiBrainReport = reportData as any;
+    
+    // Ordine di priorità per money lost data
+    const moneyLost = (() => {
+      if (useStrictROIBrain) {
+        // Modalità strict: solo ROI Brain
+        return roiBrainReport._roiBrainMetadata?.moneyLostSummary || {
+          monthlyUsd: 0,
+          areas: [],
+          source: 'roi_brain_fallback' as const
+        };
+      }
+      
+      // Modalità compatibilità: ordine priorità
+      return roiBrainReport._roiBrainMetadata?.moneyLostSummary
+        ?? roiBrainReport.moneyLost  // legacy voicefit
+        ?? { monthlyUsd: 0, areas: [], source: 'roi_brain_fallback' as const };
+    })();
 
-    // Convert solutions to insights with base monthly impact
-    const baseMonthlyImpact = mockMoneyLost.monthlyUsd / reportData.solutions.length
+    // Logging telemetria
+    console.log('💰 Revenue Simulator money lost source:', {
+      source: moneyLost.source,
+      monthlyUsd: moneyLost.monthlyUsd,
+      areasCount: moneyLost.areas?.length || 0,
+      strictMode: useStrictROIBrain,
+      hasROIBrainData: !!roiBrainReport._roiBrainMetadata?.moneyLostSummary,
+      hasLegacyData: !!roiBrainReport.moneyLost
+    });
+
+    // Convert solutions to insights usando i valori reali da moneyLost
+    const baseMonthlyImpact = moneyLost.monthlyUsd / Math.max(reportData.solutions.length, 1)
     const insights = reportData.solutions.map(solution => 
       mapSolutionToInsight(solution, baseMonthlyImpact)
     )
 
     return {
       insights,
-      moneyLost: mockMoneyLost,
+      moneyLost, // Dati reali dal server, non più mock
       pricing: { setup: 2500, monthly: 299 },
       vertical: (currentVertical === 'dental' ? 'dental' : 'hvac') as 'dental' | 'hvac',
       businessSize: 'Medium' as const,

@@ -84,6 +84,8 @@ export interface ROIBrainOutput {
     contextSummary: string;
     implementationReadiness: number; // 1-100 scale
   };
+  // FASE 4.3: Money Lost Summary - NON opzionale nel client
+  moneyLostSummary: MoneyLostSummary;
   processingTime: number;
   cacheHit: boolean;
   costs?: {
@@ -127,25 +129,27 @@ export async function requestROIBrain(
         logger.error('ROI Brain API error', { error: error.message, processingTime, attempt: attempt + 1 });
         
         if (error.message?.includes('401')) {
-          return {
-            success: false,
-            sessionId: context.sessionId || 'unknown',
-            error: { message: "Authentication required. Please log in and try again." },
-            processingTime,
-            cacheHit: false,
-            voiceFitReport: getEmptyVoiceFitReport()
-          };
+        return {
+          success: false,
+          sessionId: context.sessionId || 'unknown',
+          error: { message: "Authentication required. Please log in and try again." },
+          processingTime,
+          cacheHit: false,
+          voiceFitReport: getEmptyVoiceFitReport(),
+          moneyLostSummary: { monthlyUsd: 0, areas: [], source: 'roi_brain_fallback' as const }
+        };
         }
         
         if (error.message?.includes('422')) {
-          return {
-            success: false,
-            sessionId: context.sessionId || 'unknown',
-            error: { message: "Invalid request data. Please try again." },
-            processingTime,
-            cacheHit: false,
-            voiceFitReport: getEmptyVoiceFitReport()
-          };
+        return {
+          success: false,
+          sessionId: context.sessionId || 'unknown',
+          error: { message: "Invalid request data. Please try again." },
+          processingTime,
+          cacheHit: false,
+          voiceFitReport: getEmptyVoiceFitReport(),
+          moneyLostSummary: { monthlyUsd: 0, areas: [], source: 'roi_brain_fallback' as const }
+        };
         }
         
         // Store error for potential retry
@@ -183,7 +187,8 @@ export async function requestROIBrain(
           error: { message: "Request was cancelled." },
           processingTime: Date.now() - startTime,
           cacheHit: false,
-          voiceFitReport: getEmptyVoiceFitReport()
+          voiceFitReport: getEmptyVoiceFitReport(),
+          moneyLostSummary: { monthlyUsd: 0, areas: [], source: 'roi_brain_fallback' as const }
         };
       }
 
@@ -263,6 +268,18 @@ async function fallbackToLegacyVoiceFit(context: ROIBrainBusinessContext, proces
           answer: f.a
         }))
       },
+      moneyLostSummary: context.moneylost ? {
+        monthlyUsd: (context.moneylost as any).total?.monthlyUsd || (context.moneylost as any).monthlyUsd || 0,
+        dailyUsd: (context.moneylost as any).total?.dailyUsd || (context.moneylost as any).dailyUsd,
+        annualUsd: (context.moneylost as any).total?.annualUsd || (context.moneylost as any).annualUsd,
+        areas: (context.moneylost as any).areas?.map((area: any) => ({
+          id: area.key || area.id || 'unknown',
+          title: area.title || 'Unknown Area',
+          monthlyUsd: area.monthlyUsd || 0
+        })) || [],
+        source: 'legacy' as const,
+        confidence: 75
+      } : { monthlyUsd: 0, areas: [], source: 'roi_brain_fallback' as const },
       processingTime,
       cacheHit: false,
       costs: {
@@ -285,7 +302,8 @@ async function fallbackToLegacyVoiceFit(context: ROIBrainBusinessContext, proces
       error: { message: "Both ROI Brain and legacy systems failed. Please try again later." },
       processingTime,
       cacheHit: false,
-      voiceFitReport: getEmptyVoiceFitReport()
+      voiceFitReport: getEmptyVoiceFitReport(),
+      moneyLostSummary: { monthlyUsd: 0, areas: [], source: 'roi_brain_fallback' as const }
     };
   }
 }
@@ -359,12 +377,17 @@ export function roiBrainToVoiceFitAdapter(roiResponse: ROIBrainOutput) {
     processingTime: roiResponse.processingTime,
     cacheHit: roiResponse.cacheHit,
     sessionId: roiResponse.sessionId,
+    
+    // FASE 4.3: Pass through moneyLostSummary for unified data flow
+    moneyLost: roiResponse.moneyLostSummary,
+    
     _roiBrainMetadata: {
       sessionId: roiResponse.sessionId,
       processingTime: roiResponse.processingTime,
       cacheHit: roiResponse.cacheHit,
       costs: roiResponse.costs,
-      needAgentIQInsights: roiResponse.needAgentIQInsights
+      needAgentIQInsights: roiResponse.needAgentIQInsights,
+      moneyLostSummary: roiResponse.moneyLostSummary
     }
   };
 }

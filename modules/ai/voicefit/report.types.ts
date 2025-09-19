@@ -43,6 +43,54 @@ export interface VoiceFitReportData {
     contextSummary: string;
     implementationReadiness: number; // 1-100 scale
   };
+  
+  // FASE 4.3: Money Lost Data from ROI Brain
+  moneyLost?: {
+    monthlyUsd: number;
+    dailyUsd?: number;
+    annualUsd?: number;
+    areas: Array<{
+      id: string;
+      title: string;
+      monthlyUsd: number;
+    }>;
+    source: 'compute' | 'legacy' | 'roi_brain_fallback';
+    confidence?: number;
+  };
+  
+  // ROI Brain metadata (added by adapter when ROI Brain is used)
+  _roiBrainMetadata?: {
+    sessionId: string;
+    processingTime: number;
+    cacheHit: boolean;
+    costs?: {
+      inputTokens: number;
+      outputTokens: number;
+      totalCost: number;
+    };
+    needAgentIQInsights?: Array<{
+      key: string;
+      title: string;
+      description: string;
+      impact: string;
+      priority: 'low' | 'medium' | 'high';
+      category: string;
+      actionable: boolean;
+      monthlyImpactUsd?: number;
+    }>;
+    moneyLostSummary?: {
+      monthlyUsd: number;
+      dailyUsd?: number;
+      annualUsd?: number;
+      areas: Array<{
+        id: string;
+        title: string;
+        monthlyUsd: number;
+      }>;
+      source: 'compute' | 'legacy' | 'roi_brain_fallback';
+      confidence?: number;
+    };
+  };
 }
 
 // New LLM-based types (from schemas)

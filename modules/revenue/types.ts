@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 // Use relative imports for modules
-export type { MoneyLostSummary } from '../moneylost/types'
+export type { MoneyLostSummary, MoneyLostArea, MoneyLostSource } from '../moneylost/types'
 export type { RecommendedSolution } from '../ai/voicefit/report.types'
 
 export type Vertical = 'dental' | 'hvac'
@@ -69,14 +69,20 @@ export const SaveSimulationDataSchema = z.object({
 
 export type SaveSimulationData = z.infer<typeof SaveSimulationDataSchema>
 
-// Component props
+// Component props - Updated for Phase 4.3
 export const RevenueSimulatorPropsSchema = z.object({
   insights: z.array(InsightSchema),
   moneyLost: z.object({
-    dailyUsd: z.number(),
+    dailyUsd: z.number().optional(),
     monthlyUsd: z.number(),
-    annualUsd: z.number(),
-    areas: z.array(z.any()),
+    annualUsd: z.number().optional(),
+    areas: z.array(z.object({
+      id: z.string(),
+      title: z.string(),
+      monthlyUsd: z.number()
+    })),
+    source: z.enum(['compute', 'legacy', 'roi_brain_fallback']),
+    confidence: z.number().optional()
   }),
   pricing: PricingSchema,
   vertical: z.enum(['dental', 'hvac']),

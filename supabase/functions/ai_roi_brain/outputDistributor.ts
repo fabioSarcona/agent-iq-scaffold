@@ -202,6 +202,15 @@ export function distributeOutput(
     needAgentIQInsights: partsStatus.iq ? aiResponse.needAgentIQInsights : generateFallbackIQInsights(intelligence, businessContext.moneyLostSummary),
     skillScopeContext: partsStatus.skills ? aiResponse.skillScopeContext : null,
     businessIntelligence: intelligence,
+    
+    // FASE 4.3: Always include moneyLostSummary - deterministic fallback if missing
+    moneyLostSummary: businessContext.moneyLostSummary || {
+      monthlyUsd: 0,
+      areas: [],
+      source: 'roi_brain_fallback' as const,
+      confidence: 0
+    },
+    
     contextualPrompt: contextualPrompt.substring(0, 500) + '...',
     processingTime: {
       total: processingMetrics.totalTime,
@@ -232,7 +241,16 @@ export function distributeOutput(
           d.toLowerCase().includes(businessContext.vertical.toLowerCase())
         )
       },
-      phase: 'Claude Integration - Phase 2 Complete'
+      consistency: {
+        moneyLostSource: businessContext.moneyLostSummary?.source ?? 'roi_brain_fallback',
+        versions: {
+          kb: 'v1',
+          prompt: 'v2.0',
+          signalRules: 'v1',
+          voiceSkillMapping: 'v1'
+        }
+      },
+      phase: 'Claude Integration - Phase 4.3 Complete'
     }
   };
 

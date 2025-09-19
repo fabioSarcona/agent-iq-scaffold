@@ -233,6 +233,7 @@ export function AuditEngine({ industry }: AuditEngineProps) {
         vertical: vertical || 'dental',
         sectionId: currentSection.id,
         answersSection: sectionAnswers,
+        moneyLostData: state.moneyLostByArea || {}, // Pass money lost data for ROI calculations
         language: 'en' // Fixed to English for now, ready for multilingual
       };
       

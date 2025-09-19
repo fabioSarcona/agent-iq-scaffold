@@ -181,11 +181,14 @@ export function NeedAgentIQPanel() {
 
   const totalInsights = insights.length + allSectionInsights.length;
   const hasHistoricalData = historicalInsights.length > 0 || allSectionInsights.length > 0;
-  const completedSections = config?.sections?.filter(s => 
-    Object.keys(insightsBySection).includes(s.id) || 
-    insights.some(i => i.sectionId === s.id)
-  ).length || 0;
-  const shouldShowHistorical = hasHistoricalData && completedSections >= 2;
+  // More conservative "Previous Insights" logic - require 4+ completed sections
+  const completedSectionsWithRealInsights = config?.sections?.filter(s => {
+    const sectionInsights = insightsBySection[s.id] || [];
+    const realInsights = sectionInsights.filter(insight => insight.source !== 'seed');
+    return realInsights.length >= 2; // At least 2 real insights per section
+  }).length || 0;
+  
+  const shouldShowHistorical = hasHistoricalData && completedSectionsWithRealInsights >= 4;
 
   // Render insights
   return <Card>

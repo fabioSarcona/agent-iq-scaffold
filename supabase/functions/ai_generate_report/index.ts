@@ -8,6 +8,21 @@ import { VoiceFitInputSchema, VoiceFitOutputSchema } from '../_shared/validation
 import { validateKBSlice } from '../_shared/kb.ts';
 import type { VoiceFitInput, VoiceFitOutput, ErrorResponse } from '../_shared/types.ts';
 
+// Robust JSON parsing utilities
+function stripCodeFence(content: string): string {
+  return content.replace(/^```(?:json)?\s*/i, '').replace(/```$/,'').trim();
+}
+
+function tryParseLooseJson(content: string): any {
+  try { 
+    return JSON.parse(content); 
+  } catch {
+    // Remove trailing commas and try again
+    const cleaned = content.replace(/,\s*([}\]])/g, '$1');
+    return JSON.parse(cleaned);
+  }
+}
+
 // Environment variables validation and system prompt loading
 const SYSTEM_PROMPT = Deno.env.get('VOICEFIT_SYSTEM_PROMPT');
 const AI_MODEL = Deno.env.get('AI_MODEL') || 'claude-sonnet-4-20250514';
@@ -189,12 +204,14 @@ LANGUAGE INSTRUCTIONS:
   }
 
   try {
-    const parsed = JSON.parse(content);
+    const cleanContent = stripCodeFence(content);
+    const parsed = tryParseLooseJson(cleanContent);
     return VoiceFitOutputSchema.parse(parsed);
   } catch (parseError) {
     logger.error('LLM Output validation failed', { 
       error: parseError.message, 
-      content: content.substring(0, 500) 
+      content: content.substring(0, 500),
+      cleanedContent: stripCodeFence(content).substring(0, 500)
     });
     throw new Error(`LLM validation failed: ${parseError.message}`);
   }

@@ -33,6 +33,7 @@ import type { SkillScopePayload } from '@modules/skillscope/types'
 import { RevenueSimulator, mapSolutionToInsight, distributeSmartImpacts, extractTelemetryData } from '../../modules/revenue'
 import type { MoneyLostSummary } from '../../modules/moneylost/types'
 import { Badge } from '@/components/ui/badge'
+import { ConsultationSummaryCard } from '@/components/ConsultationSummaryCard'
 
 export default function Report() {
   const { vertical, answers } = useAuditProgressStore()
@@ -346,6 +347,14 @@ export default function Report() {
           <ScoreGauge score={reportData.score as number} band={reportData.band as string} />
         </CardHeader>
       </Card>
+
+      {/* Consultation Summary */}
+      {revenueSimulatorData && (
+        <ConsultationSummaryCard 
+          reportData={reportData as VoiceFitReportData} 
+          moneyLost={revenueSimulatorData.moneyLost} 
+        />
+      )}
 
       {/* Benchmark Note */}
       <BenchmarkNote notes={reportData.benchmarks || []} />

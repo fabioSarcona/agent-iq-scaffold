@@ -17,6 +17,7 @@ import { generateContextualPrompt, buildClaudePrompt, PROMPT_VERSION } from './p
 import { distributeOutput, validateParts, AIResponseSchema, type AIResponseType } from './outputDistributor.ts'
 import { generateCacheKey, getOrCompute, getCacheMetrics, performCacheCleanup, L1 } from './cache.ts'
 import { SIGNAL_RULES_VERSION } from './signalRules.ts'
+import { getVoiceSkillMapperVersion, validateVoiceSkillMapper } from './voiceSkillMapper.ts'
 
 // Initialize Supabase for L2 cache
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
@@ -231,6 +232,12 @@ Deno.serve(async (req) => {
       logger.warn('KB validation issues detected', kbValidation.warnings);
     }
     
+    // Voice Skill Mapper validation
+    const skillMapperValidation = validateVoiceSkillMapper();
+    if (!skillMapperValidation.isValid) {
+      logger.warn('Voice Skill Mapper validation failed', skillMapperValidation.warnings);
+    }
+    
     // Step 4: Extract business intelligence from normalized context
     const intelligence = extractBusinessContext(normalizedContext);
     logger.info('Business Intelligence extracted', intelligence);
@@ -250,6 +257,7 @@ Deno.serve(async (req) => {
       kbVersion: KB_VERSION,
       promptVersion: PROMPT_VERSION,
       signalRulesVersion: SIGNAL_RULES_VERSION,
+      voiceSkillMapperVersion: getVoiceSkillMapperVersion(),
       model: MODEL_NAME,
       max_tokens: MAX_TOKENS,
       ...(TEMPERATURE !== undefined && { temperature: TEMPERATURE }),
@@ -454,6 +462,7 @@ Deno.serve(async (req) => {
       kbVersion: KB_VERSION,
       promptVersion: PROMPT_VERSION,
       signalRulesVersion: SIGNAL_RULES_VERSION,
+      voiceSkillMapperVersion: getVoiceSkillMapperVersion(),
       model: MODEL_NAME,
       kbFilterSignature: kbResult.kbFilterSignature.substring(0, 12),
       signalTags: kbResult.signalTags,

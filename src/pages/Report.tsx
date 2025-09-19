@@ -41,7 +41,7 @@ export default function Report() {
   const { t } = useTranslation('report')
   
   // SkillScope overlay state
-  const [selectedSkill, setSelectedSkill] = React.useState<string | null>(null)
+  const [selectedSkill, setSelectedSkill] = React.useState<{ skillId: string; title: string } | null>(null)
   const [isSkillScopeOpen, setIsSkillScopeOpen] = React.useState(false)
   
   // ROI Brain Integration - Single source of truth for all AI analysis
@@ -218,15 +218,15 @@ export default function Report() {
 
   // Handle learn more click
   const handleLearnMore = React.useCallback((skillId: string, skillTitle: string) => {
-    setSelectedSkill(skillId)
+    setSelectedSkill({ skillId, title: skillTitle })
     setIsSkillScopeOpen(true)
   }, [])
 
   // Current skill scope payload
   const skillScopePayload = React.useMemo(() => {
     if (!selectedSkill || !reportData) return null
-    const solution = reportData.solutions?.find(s => s.skillId === selectedSkill)
-    return solution ? createSkillScopePayload(selectedSkill, solution.title) : null
+    const solution = reportData.solutions?.find(s => s.skillId === selectedSkill.skillId)
+    return solution ? createSkillScopePayload(selectedSkill.skillId, selectedSkill.title) : null
   }, [selectedSkill, reportData, createSkillScopePayload])
 
   // FASE 4.3: Revenue Simulator data preparation - USE REAL DATA FROM ROI BRAIN
@@ -479,10 +479,10 @@ export default function Report() {
       </div>
 
       {/* SkillScope Overlay - ROI Brain First (Phase 5.3) */}
-      {selectedSkill && (
+      {selectedSkill?.skillId && (
         <SkillScopeOverlay
           isOpen={isSkillScopeOpen}
-          skillId={selectedSkill}
+          skillId={selectedSkill.skillId}
           context={(reportData as any)?.skillScopeContext}
           fallbackPayload={skillScopePayload || undefined}
           onClose={() => {

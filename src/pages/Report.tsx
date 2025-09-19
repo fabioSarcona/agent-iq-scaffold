@@ -9,12 +9,12 @@ import { useAuditProgressStore } from '@modules/audit'
 import { 
   ScoreGauge, 
   BenchmarkNote, 
-  SolutionCard,
   FAQAccordion, 
   PlanCard,
   requestVoiceFitReport,
   type VoiceFitReportData
 } from '@modules/ai/voicefit'
+import { SolutionCard } from '../../modules/ai/voicefit/components/SolutionCard'
 
 // ROI Brain Integration
 import { 

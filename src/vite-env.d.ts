@@ -75,8 +75,10 @@ declare module '@modules/registration/types' {
 declare module '@modules/skillscope/components/SkillScopeOverlay' {
   export const SkillScopeOverlay: React.ComponentType<{
     isOpen: boolean;
+    skillId: string;
+    context?: any;
+    fallbackPayload?: any;
     onClose: () => void;
-    payload: any;
   }>;
 }
 
@@ -86,6 +88,32 @@ declare module '@modules/skillscope/types' {
     skill: any;
     audit: any;
     kb: any;
+  }
+  
+  export interface SkillScopeItem {
+    skillId: string;
+    title: string;
+    summary: string;
+    rationale?: string;
+    integrations?: string[];
+    phases?: Array<{
+      id: string;
+      title: string;
+      weeks?: number;
+      steps: string[];
+    }>;
+    implementationReadiness?: number;
+    priority?: 'high'|'medium'|'low';
+    monthlyImpactUsd?: number;
+    sources?: string[];
+    locale?: string;
+  }
+  
+  export interface SkillScopeContext {
+    version: string;
+    items: SkillScopeItem[];
+    generatedAt: string;
+    source: 'roi_brain'|'api'|'merge';
   }
 }
 

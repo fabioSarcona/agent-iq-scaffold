@@ -1,3 +1,31 @@
+// New Production-Ready Phase 5.3 Interfaces
+export interface SkillScopeItem {
+  skillId: string;               // anchor key (never null)
+  title: string;
+  summary: string;
+  rationale?: string;            // personalized from ROI Brain
+  integrations?: string[];       // ["CRM", "PMS", "phone"]
+  phases?: Array<{
+    id: string;
+    title: string;
+    weeks?: number;
+    steps: string[];
+  }>;
+  implementationReadiness?: number; // 0-100
+  priority?: 'high'|'medium'|'low';
+  monthlyImpactUsd?: number;
+  sources?: string[];            // ["roi_brain", "kb:services"]
+  locale?: string;
+}
+
+export interface SkillScopeContext {
+  version: string;               // "sscope-v1"
+  items: SkillScopeItem[];
+  generatedAt: string;
+  source: 'roi_brain'|'api'|'merge';
+}
+
+// Legacy API Interface (for fallback)
 export interface SkillScopePayload {
   context: {
     auditId: string;

@@ -478,15 +478,17 @@ export default function Report() {
         />
       </div>
 
-      {/* SkillScope Overlay */}
-      {skillScopePayload && (
+      {/* SkillScope Overlay - ROI Brain First (Phase 5.3) */}
+      {selectedSkill && (
         <SkillScopeOverlay
           isOpen={isSkillScopeOpen}
+          skillId={selectedSkill}
+          context={(reportData as any)?.skillScopeContext}
+          fallbackPayload={skillScopePayload || undefined}
           onClose={() => {
             setIsSkillScopeOpen(false)
             setSelectedSkill(null)
           }}
-          payload={skillScopePayload}
         />
       )}
     </div>

@@ -243,7 +243,8 @@ function applyKBSectionLimits(kbSections: string[], maxSections: number): string
 }
 
 /**
- * Apply KB section filtering to base KB payload
+ * Apply KB section filtering to base KB payload - REAL IMPLEMENTATION
+ * Maps section IDs to actual KB content and filters accordingly
  * @param baseKB - Base KB payload from extractRelevantKB
  * @param kbSections - Array of section IDs to include
  * @param filters - Additional filters to apply
@@ -254,13 +255,60 @@ function applyKBSectionFiltering(
   kbSections: string[], 
   filters?: KBFilter
 ): KBPayload {
-  // For now, return the base KB since section-based filtering
-  // requires mapping section IDs to actual KB data structures
-  // This is a placeholder for the detailed implementation
-  
-  let filteredKB = { ...baseKB };
-  
-  // Apply existing category exclusions
+  // Create filtered copy
+  let filteredKB: KBPayload = {
+    brand: baseKB.brand, // Always include brand
+    voiceSkills: [],
+    painPoints: [],
+    faq: [],
+    pricing: baseKB.pricing || [], // Always include pricing
+    responseModels: baseKB.responseModels, // Always include response models
+    external: baseKB.external // Always include external sources
+  };
+
+  // If no sections specified, return empty filtered KB (except core data)
+  if (!kbSections || kbSections.length === 0) {
+    return filteredKB;
+  }
+
+  // Create section sets for efficient lookups
+  const skillSections = new Set(kbSections.filter(id => id.startsWith('skills.')));
+  const claimSections = new Set(kbSections.filter(id => id.startsWith('claims.')));
+  const benchmarkSections = new Set(kbSections.filter(id => id.startsWith('benchmarks.')));
+  const faqSections = new Set(kbSections.filter(id => id.startsWith('faq.')));
+
+  // Filter Voice Skills based on skill sections
+  if (baseKB.voiceSkills && skillSections.size > 0) {
+    filteredKB.voiceSkills = baseKB.voiceSkills.filter(skill => {
+      // Map skill to section ID based on skill name/tags
+      const skillSectionId = mapSkillToSectionId(skill);
+      return skillSectionId && skillSections.has(skillSectionId);
+    });
+  }
+
+  // Filter Pain Points based on claim/benchmark sections
+  if (baseKB.painPoints && (claimSections.size > 0 || benchmarkSections.size > 0)) {
+    filteredKB.painPoints = baseKB.painPoints.filter(painPoint => {
+      // Map pain point to section ID based on category/tags
+      const painSectionIds = mapPainPointToSectionIds(painPoint);
+      return painSectionIds.some(id => 
+        claimSections.has(id) || benchmarkSections.has(id)
+      );
+    });
+  }
+
+  // Filter FAQ based on faq sections or related claims
+  if (baseKB.faq && (faqSections.size > 0 || claimSections.size > 0)) {
+    filteredKB.faq = baseKB.faq.filter(faqItem => {
+      // Map FAQ to section ID based on category/tags
+      const faqSectionIds = mapFAQToSectionIds(faqItem);
+      return faqSectionIds.some(id => 
+        faqSections.has(id) || claimSections.has(id)
+      );
+    });
+  }
+
+  // Apply additional category exclusions
   if (filters?.excludeCategories && filters.excludeCategories.length > 0) {
     if (filteredKB.painPoints) {
       filteredKB.painPoints = filteredKB.painPoints.filter(point => 
@@ -279,7 +327,7 @@ function applyKBSectionFiltering(
     }
   }
 
-  // Apply max item limits (legacy support)
+  // Apply max item limits
   if (filters?.maxItems) {
     if (filters.maxItems.voiceSkills && filteredKB.voiceSkills) {
       filteredKB.voiceSkills = filteredKB.voiceSkills.slice(0, filters.maxItems.voiceSkills);
@@ -294,7 +342,157 @@ function applyKBSectionFiltering(
     }
   }
 
+  // Log filtering results for debugging
+  console.log(`KB Filtering Applied - Sections: ${kbSections.length}, Skills: ${filteredKB.voiceSkills?.length || 0}, Pain Points: ${filteredKB.painPoints?.length || 0}, FAQ: ${filteredKB.faq?.length || 0}`);
+
   return filteredKB;
+}
+
+/**
+ * Map voice skill to corresponding section ID
+ * @param skill - Voice skill object from KB
+ * @returns Section ID or null if no mapping found
+ */
+function mapSkillToSectionId(skill: any): string | null {
+  if (!skill || !skill.name) return null;
+
+  const skillName = skill.name.toLowerCase();
+  const skillTags = skill.tags || [];
+
+  // Map skill names to section IDs based on content
+  if (skillName.includes('24/7') || skillName.includes('reception') || skillTags.includes('reception')) {
+    return 'skills.reception_247';
+  }
+  if (skillName.includes('call handling') || skillName.includes('call management')) {
+    return 'skills.call_handling';
+  }
+  if (skillName.includes('after hours') || skillName.includes('emergency')) {
+    return 'skills.after_hours';
+  }
+  if (skillName.includes('no show') || skillName.includes('cancellation')) {
+    return 'skills.prevention_no_show';
+  }
+  if (skillName.includes('reminder') || skillName.includes('follow up')) {
+    return 'skills.reminders';
+  }
+  if (skillName.includes('waitlist') || skillName.includes('scheduling')) {
+    return 'skills.waitlist_management';
+  }
+  if (skillName.includes('treatment plan') || skillName.includes('closer')) {
+    return 'skills.treatment_plan_closer';
+  }
+  if (skillName.includes('follow up agent') || skillName.includes('follow-up')) {
+    return 'skills.follow_up_agent';
+  }
+  if (skillName.includes('payment') || skillName.includes('financing')) {
+    return 'skills.payment_options';
+  }
+  if (skillName.includes('dispatch') || skillName.includes('emergency')) {
+    return 'skills.emergency_dispatch';
+  }
+  if (skillName.includes('job confirmation') || skillName.includes('appointment confirmation')) {
+    return 'skills.job_confirmation';
+  }
+  if (skillName.includes('deposit') || skillName.includes('payment collection')) {
+    return 'skills.deposit_collection';
+  }
+  if (skillName.includes('quote follow') || skillName.includes('estimate follow')) {
+    return 'skills.quote_followup';
+  }
+  if (skillName.includes('contract') || skillName.includes('sales closer')) {
+    return 'skills.contract_closer';
+  }
+  if (skillName.includes('objection') || skillName.includes('sales support')) {
+    return 'skills.objection_handling';
+  }
+  if (skillName.includes('online scheduling') || skillName.includes('web scheduling')) {
+    return 'skills.online_scheduling';
+  }
+  if (skillName.includes('website integration') || skillName.includes('web integration')) {
+    return 'skills.website_integration';
+  }
+  if (skillName.includes('customer portal') || skillName.includes('client portal')) {
+    return 'skills.customer_portal';
+  }
+
+  return null; // No mapping found
+}
+
+/**
+ * Map pain point to corresponding section IDs
+ * @param painPoint - Pain point object from KB
+ * @returns Array of section IDs that relate to this pain point
+ */
+function mapPainPointToSectionIds(painPoint: any): string[] {
+  if (!painPoint || !painPoint.problem) return [];
+
+  const problem = painPoint.problem.toLowerCase();
+  const category = painPoint.category?.toLowerCase() || '';
+  const sectionIds: string[] = [];
+
+  // Map based on problem content
+  if (problem.includes('missed call') || problem.includes('unanswered call')) {
+    sectionIds.push('claims.call_recovery_stats', 'benchmarks.call_response_time', 'benchmarks.call_capture_rate');
+  }
+  if (problem.includes('24/7') || problem.includes('after hours')) {
+    sectionIds.push('claims.24_7_availability', 'claims.emergency_response');
+  }
+  if (problem.includes('no show') || problem.includes('cancellation')) {
+    sectionIds.push('claims.no_show_reduction', 'claims.cancellation_reduction', 'benchmarks.no_show_industry');
+  }
+  if (problem.includes('revenue') || problem.includes('money') || problem.includes('loss')) {
+    sectionIds.push('claims.revenue_protection');
+  }
+  if (problem.includes('treatment') || problem.includes('conversion')) {
+    sectionIds.push('claims.treatment_conversion', 'claims.conversion_improvement', 'benchmarks.treatment_acceptance');
+  }
+  if (problem.includes('quote') || problem.includes('estimate')) {
+    sectionIds.push('claims.quote_conversion', 'benchmarks.hvac_quote_close_rate');
+  }
+  if (problem.includes('online') || problem.includes('digital') || problem.includes('website')) {
+    sectionIds.push('claims.booking_convenience', 'claims.digital_transformation', 'claims.digital_convenience');
+  }
+  if (problem.includes('competitive') || problem.includes('advantage')) {
+    sectionIds.push('claims.competitive_advantage');
+  }
+
+  return sectionIds;
+}
+
+/**
+ * Map FAQ item to corresponding section IDs
+ * @param faqItem - FAQ item object from KB
+ * @returns Array of section IDs that relate to this FAQ
+ */
+function mapFAQToSectionIds(faqItem: any): string[] {
+  if (!faqItem || !faqItem.question) return [];
+
+  const question = faqItem.question.toLowerCase();
+  const answer = faqItem.answer?.toLowerCase() || '';
+  const category = faqItem.category?.toLowerCase() || '';
+  const sectionIds: string[] = [];
+
+  // Map based on FAQ content
+  if (question.includes('call') || answer.includes('call')) {
+    sectionIds.push('claims.call_recovery_stats', 'claims.24_7_availability');
+  }
+  if (question.includes('appointment') || answer.includes('appointment')) {
+    sectionIds.push('claims.no_show_reduction', 'claims.booking_convenience');
+  }
+  if (question.includes('treatment') || answer.includes('treatment')) {
+    sectionIds.push('claims.treatment_conversion');
+  }
+  if (question.includes('quote') || answer.includes('quote')) {
+    sectionIds.push('claims.quote_conversion');
+  }
+  if (question.includes('online') || question.includes('digital')) {
+    sectionIds.push('claims.digital_transformation', 'claims.booking_convenience');
+  }
+  if (question.includes('emergency') || answer.includes('emergency')) {
+    sectionIds.push('claims.emergency_response', 'claims.24_7_availability');
+  }
+
+  return sectionIds;
 }
 
 /**

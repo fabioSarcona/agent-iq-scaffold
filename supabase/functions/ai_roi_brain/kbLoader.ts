@@ -111,13 +111,14 @@ export function loadFilteredKB(
  * @returns Deterministic string representing complete filter configuration
  */
 export function generateKBFilterSignature(
+  vertical: 'dental' | 'hvac',
   filters?: KBFilter, 
   signalTags?: string[], 
   kbSections?: string[]
 ): string {
   // Build comprehensive filter object for stable stringification
   const filterConfig = {
-    v: '', // vertical will be set by caller
+    v: vertical, // Include vertical in signature for proper cache isolation
     signalTags: signalTags ? signalTags.sort() : [],
     kbSections: kbSections ? kbSections.sort() : [],
     excludeCategories: filters?.excludeCategories ? filters.excludeCategories.sort() : [],
@@ -190,7 +191,7 @@ export function loadKBWithSignalTags(
   const filteredKB = applyKBSectionFiltering(baseKB, limitedKBSections, filters);
   
   // Step 6: Generate comprehensive filter signature
-  const kbFilterSignature = generateKBFilterSignature(filters, signalTags, limitedKBSections);
+  const kbFilterSignature = generateKBFilterSignature(vertical, filters, signalTags, limitedKBSections);
   
   // Step 7: Log KB selection telemetry
   console.log(`KB Signal Filtering - Vertical: ${vertical}, Tags: ${signalTags.length}, Sections: ${limitedKBSections.length}`, {
@@ -455,6 +456,24 @@ function mapPainPointToSectionIds(painPoint: any): string[] {
   if (problem.includes('competitive') || problem.includes('advantage')) {
     sectionIds.push('claims.competitive_advantage');
   }
+  if (problem.includes('sales') || problem.includes('closing') || problem.includes('conversion')) {
+    sectionIds.push('claims.sales_improvement');
+  }
+  if (problem.includes('digital convenience') || problem.includes('user experience')) {
+    sectionIds.push('claims.digital_convenience');
+  }
+  if (problem.includes('industry standard') || problem.includes('acceptance rate')) {
+    sectionIds.push('benchmarks.industry_acceptance_rates');
+  }
+  if (problem.includes('job completion') || problem.includes('completion rate')) {
+    sectionIds.push('benchmarks.hvac_job_completion');
+  }
+  if (problem.includes('industry conversion') || category.includes('hvac')) {
+    sectionIds.push('benchmarks.hvac_industry_conversion');
+  }
+  if (problem.includes('online booking') || problem.includes('digital adoption')) {
+    sectionIds.push('benchmarks.online_booking_adoption', 'benchmarks.hvac_digital_adoption');
+  }
 
   return sectionIds;
 }
@@ -490,6 +509,21 @@ function mapFAQToSectionIds(faqItem: any): string[] {
   }
   if (question.includes('emergency') || answer.includes('emergency')) {
     sectionIds.push('claims.emergency_response', 'claims.24_7_availability');
+  }
+  if (question.includes('sales') || answer.includes('conversion')) {
+    sectionIds.push('claims.sales_improvement');
+  }
+  if (question.includes('digital convenience') || answer.includes('user experience')) {
+    sectionIds.push('claims.digital_convenience');
+  }
+  if (question.includes('industry') || answer.includes('benchmark')) {
+    sectionIds.push('benchmarks.industry_acceptance_rates', 'benchmarks.hvac_industry_conversion');
+  }
+  if (question.includes('completion') || answer.includes('job completion')) {
+    sectionIds.push('benchmarks.hvac_job_completion');
+  }
+  if (question.includes('digital adoption') || answer.includes('online booking')) {
+    sectionIds.push('benchmarks.online_booking_adoption', 'benchmarks.hvac_digital_adoption');
   }
 
   return sectionIds;

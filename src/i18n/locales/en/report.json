@@ -25,7 +25,12 @@
   },
   "solution": {
     "learn_more": "Learn More",
-    "estimated_recovery": "Estimated recovery"
+    "estimated_recovery": "Estimated recovery",
+    "monthly_roi": "Monthly ROI",
+    "priority": "Priority",
+    "priority_high": "High",
+    "priority_medium": "Medium", 
+    "priority_low": "Low"
   },
   "plan": {
     "per_month": "/month",

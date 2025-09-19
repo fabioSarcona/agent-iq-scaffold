@@ -411,16 +411,41 @@ export default function Report() {
         </CardHeader>
         <CardContent>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {reportData.solutions?.map((solution, index) => (
-              <SolutionCard 
-                key={index} 
-                skillId={solution.skillId}
-                title={solution.title}
-                rationale={solution.rationale}
-                estimatedRecoveryPct={solution.estimatedRecoveryPct}
-                {...({ onLearnMore: () => handleLearnMore(solution.skillId, solution.title) } as any)}
-              />
-            ))}
+            {(() => {
+              // Get enhanced solutions data with monthly impact and priority
+              const roiBrainReport = reportData as any;
+              const moneyLost = roiBrainReport._roiBrainMetadata?.moneyLostSummary
+                ?? roiBrainReport.moneyLost  
+                ?? { monthlyUsd: 0, areas: [], source: 'fallback' as const };
+              
+              const solutionsWithImpacts = distributeSmartImpacts(
+                reportData.solutions,
+                moneyLost.areas || [],
+                moneyLost.monthlyUsd
+              );
+              
+              return solutionsWithImpacts.map((solutionWithImpact, index) => {
+                // Find the original solution to get estimatedRecoveryPct
+                const originalSolution = reportData.solutions[index];
+                
+                // Simple priority logic based on monthly impact
+                const priority = solutionWithImpact.monthlyImpact > 1000 ? 'high' : 
+                                solutionWithImpact.monthlyImpact > 500 ? 'medium' : 'low';
+                
+                return (
+                  <SolutionCard 
+                    key={index} 
+                    skillId={solutionWithImpact.skillId}
+                    title={solutionWithImpact.title}
+                    rationale={solutionWithImpact.rationale}
+                    estimatedRecoveryPct={originalSolution?.estimatedRecoveryPct}
+                    monthlyImpact={solutionWithImpact.monthlyImpact}
+                    priority={priority as 'high' | 'medium' | 'low'}
+                    onLearnMore={() => handleLearnMore(solutionWithImpact.skillId, solutionWithImpact.title)}
+                  />
+                );
+              });
+            })()}
           </div>
         </CardContent>
       </Card>

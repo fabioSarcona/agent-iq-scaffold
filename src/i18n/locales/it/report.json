@@ -25,7 +25,12 @@
   },
   "solution": {
     "learn_more": "Scopri di Più",
-    "estimated_recovery": "Recupero stimato"
+    "estimated_recovery": "Recupero stimato",
+    "monthly_roi": "ROI Mensile",
+    "priority": "Priorità",
+    "priority_high": "Alta",
+    "priority_medium": "Media",
+    "priority_low": "Bassa"
   },
   "plan": {
     "per_month": "/mese",

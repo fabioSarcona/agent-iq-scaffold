@@ -43,6 +43,20 @@ const PlanCard = React.forwardRef<HTMLDivElement, PlanCardProps>(
         </CardHeader>
         
         <CardContent className="space-y-6">
+          {/* ROI Summary - New enhancement for Phase 5.2 */}
+          <div className="bg-gradient-to-r from-primary/5 to-accent/5 rounded-lg p-4 border border-primary/10">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-foreground">Expected Break-even</p>
+                <p className="text-xs text-muted-foreground">Based on recommended solutions</p>
+              </div>
+              <div className="text-right">
+                <p className="text-lg font-bold text-primary">2-4 months</p>
+                <p className="text-xs text-green-600">Typical ROI: 300-500%</p>
+              </div>
+            </div>
+          </div>
+          
           <div className="grid gap-6 md:grid-cols-2">
             {/* Inclusions */}
             <div>

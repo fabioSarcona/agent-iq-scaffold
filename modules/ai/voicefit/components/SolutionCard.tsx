@@ -2,7 +2,7 @@ import * as React from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
-import { Bot, Phone, Calendar, Shield, Users, Settings, Info } from "lucide-react"
+import { Bot, Phone, Calendar, Shield, Users, Settings, Info, DollarSign } from "lucide-react"
 import { useTranslation } from '@/hooks/useTranslation'
 
 interface SolutionCardProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -10,6 +10,8 @@ interface SolutionCardProps extends React.HTMLAttributes<HTMLDivElement> {
   title: string;
   rationale: string;
   estimatedRecoveryPct?: [number, number];
+  monthlyImpact?: number;
+  priority?: 'high' | 'medium' | 'low';
   onLearnMore?: () => void;
   // Legacy props for backward compatibility
   auditContext?: {
@@ -56,7 +58,7 @@ const iconMap = {
 }
 
 const SolutionCard = React.forwardRef<HTMLDivElement, SolutionCardProps>(
-  ({ className, skillId, title, rationale, estimatedRecoveryPct, onLearnMore, auditContext, kb, solution, ...props }, ref) => {
+  ({ className, skillId, title, rationale, estimatedRecoveryPct, monthlyImpact, priority, onLearnMore, auditContext, kb, solution, ...props }, ref) => {
     
     // Support both old and new prop patterns
     const actualSkillId = skillId || solution?.skillId || '';
@@ -73,6 +75,23 @@ const SolutionCard = React.forwardRef<HTMLDivElement, SolutionCardProps>(
       }
     };
 
+    const formatCurrency = (amount: number) => {
+      return new Intl.NumberFormat('en-US', { 
+        style: 'currency', 
+        currency: 'USD',
+        maximumFractionDigits: 0 
+      }).format(amount);
+    };
+
+    const getPriorityColor = (priority?: string) => {
+      switch (priority) {
+        case 'high': return 'bg-red-100 text-red-800 border-red-200';
+        case 'medium': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+        case 'low': return 'bg-green-100 text-green-800 border-green-200';
+        default: return 'bg-muted text-muted-foreground border-border';
+      }
+    };
+
     return (
       <>
         <Card 
@@ -84,24 +103,45 @@ const SolutionCard = React.forwardRef<HTMLDivElement, SolutionCardProps>(
           {...props}
         >
           <CardHeader className="pb-3">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                <IconComponent className="h-5 w-5 text-primary" />
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <IconComponent className="h-5 w-5 text-primary" />
+                </div>
+                <CardTitle className="text-lg font-semibold text-foreground">
+                  {actualTitle}
+                </CardTitle>
               </div>
-              <CardTitle className="text-lg font-semibold text-foreground">
-                {actualTitle}
-              </CardTitle>
+              {priority && (
+                <div className={cn(
+                  "px-2 py-1 rounded-md text-xs font-medium border",
+                  getPriorityColor(priority)
+                )}>
+                  {t(`solution.priority_${priority}`)}
+                </div>
+              )}
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
             <p className="text-sm text-muted-foreground leading-relaxed">
               {actualRationale}
             </p>
-            {actualRecoveryPct && (
+            {(actualRecoveryPct || monthlyImpact) && (
               <div className="pt-2 border-t border-border/50">
-                <p className="text-xs font-medium text-primary">
-                  {t('solution.estimated_recovery')}: {actualRecoveryPct[0]}–{actualRecoveryPct[1]}%
-                </p>
+                <div className="flex items-center justify-between text-xs">
+                  {actualRecoveryPct && (
+                    <p className="font-medium text-primary">
+                      {t('solution.estimated_recovery')}: {actualRecoveryPct[0]}–{actualRecoveryPct[1]}%
+                    </p>
+                  )}
+                  {monthlyImpact && (
+                    <div className="flex items-center space-x-1 font-medium text-green-600">
+                      <DollarSign className="h-3 w-3" />
+                      <span>{formatCurrency(monthlyImpact)}</span>
+                      <span className="text-muted-foreground">/{t('plan.per_month').replace('/', '')}</span>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
             {onLearnMore && (

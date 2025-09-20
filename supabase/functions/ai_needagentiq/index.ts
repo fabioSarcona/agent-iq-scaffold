@@ -6,9 +6,197 @@ import { corsHeaders } from '../_shared/env.ts';
 import { logger } from '../_shared/logger.ts';
 import { NeedAgentIQSimpleInputSchema, NeedAgentIQSimpleOutputSchema } from '../_shared/validation.ts';
 
-// Deterministic mapping modules (import from ROI Brain)
-import { extractSignalTags } from '../ai_roi_brain/signalRules.ts';
-import { mapSignalTagsToSkills, type SkillInsight } from '../ai_roi_brain/voiceSkillMapping.ts';
+// Inline deterministic mapping to avoid cross-function imports
+const THRESHOLDS = {
+  MISSED_CALLS_MEDIUM: 4,
+  MISSED_CALLS_HIGH: 11,
+  NO_SHOWS_HIGH: 7,
+  NO_SHOWS_CRITICAL: 11,
+  COLD_PLANS_HIGH: 10,
+  PENDING_QUOTES_HIGH: 20,
+  TREATMENT_ACCEPTANCE_LOW: 40,
+  QUOTE_ACCEPTANCE_LOW: 3,
+} as const;
+
+const SIGNAL_RULES: Array<{
+  when: (answers: Record<string, unknown>, vertical: string) => boolean;
+  add: string[];
+}> = [
+  // MISSED CALLS SIGNALS
+  { when: (a, v) => v === 'dental' && a.daily_unanswered_calls_choice === '4_10', add: ['missed_calls_medium'] },
+  { when: (a, v) => v === 'dental' && ['11_20', '21_plus'].includes(String(a.daily_unanswered_calls_choice)), add: ['missed_calls_high'] },
+  { when: (a, v) => v === 'hvac' && ['1_3', '4_6'].includes(String(a.hvac_daily_unanswered_calls_choice)), add: ['missed_calls_medium'] },
+  { when: (a, v) => v === 'hvac' && a.hvac_daily_unanswered_calls_choice === 'gt_6', add: ['missed_calls_high'] },
+  
+  // NO SHOWS / CANCELLATIONS SIGNALS
+  { when: (a, v) => v === 'dental' && a.weekly_no_shows_choice === '7_10', add: ['no_shows_high'] },
+  { when: (a, v) => v === 'dental' && a.weekly_no_shows_choice === '11_plus', add: ['no_shows_critical'] },
+  { when: (a, v) => v === 'hvac' && ['3_5', 'gt_5'].includes(String(a.weekly_job_cancellations_choice)), add: ['job_cancellations_high'] },
+  
+  // TREATMENT PLANS / QUOTES SIGNALS
+  { when: (a, v) => v === 'dental' && Number(a.monthly_cold_treatment_plans) > THRESHOLDS.COLD_PLANS_HIGH, add: ['treatment_plans_high'] },
+  { when: (a, v) => v === 'dental' && ['lt_30', '30_60'].includes(String(a.treatment_acceptance_rate_choice)), add: ['treatment_conversion_low'] },
+  { when: (a, v) => v === 'hvac' && Number(a.monthly_pending_quotes) > THRESHOLDS.PENDING_QUOTES_HIGH, add: ['quotes_pending_high'] },
+  { when: (a, v) => v === 'hvac' && ['0_2', '3_5'].includes(String(a.immediate_quote_acceptance_choice)), add: ['quote_conversion_low'] },
+  
+  // TECHNOLOGY GAP SIGNALS
+  { when: (a, v) => v === 'dental' && ['not_connected', 'no_website'].includes(String(a.website_scheduling_connection_choice)), add: ['no_online_booking'] },
+  { when: (a, v) => v === 'hvac' && ['not_connected', 'no_website'].includes(String(a.website_system_connection_choice)), add: ['no_online_booking'] },
+];
+
+const SKILL_DETAILS: Record<string, {
+  title: string;
+  description: string;
+  roiUsdRange: { min: number; max: number };
+  recoveryRateRange: { min: number; max: number };
+  monthlyPriceUsd: number;
+  category: string;
+  vertical: 'dental' | 'hvac' | 'both';
+}> = {
+  'reception-24-7': {
+    title: 'Reception 24/7 Agent',
+    description: 'AI agent that answers calls 24/7, provides info, sends estimates, and books appointments',
+    roiUsdRange: { min: 3000, max: 7000 },
+    recoveryRateRange: { min: 0.15, max: 0.30 },
+    monthlyPriceUsd: 199,
+    category: 'call-handling',
+    vertical: 'dental'
+  },
+  'prevention-no-show': {
+    title: 'Prevention & No-Show Agent',
+    description: 'AI agent that prevents no-shows with voice reminders and waitlist management',
+    roiUsdRange: { min: 3000, max: 5000 },
+    recoveryRateRange: { min: 0.40, max: 0.60 },
+    monthlyPriceUsd: 199,
+    category: 'scheduling',
+    vertical: 'dental'
+  },
+  'treatment-plan-closer': {
+    title: 'Treatment Plan Closer Agent',
+    description: 'AI agent specialized in closing pending treatment plans with payment options',
+    roiUsdRange: { min: 10000, max: 20000 },
+    recoveryRateRange: { min: 0.15, max: 0.25 },
+    monthlyPriceUsd: 199,
+    category: 'sales',
+    vertical: 'dental'
+  },
+  'follow-up-agent': {
+    title: 'Follow-Up Agent',
+    description: 'AI agent that follows up on unconfirmed treatment plans and estimates',
+    roiUsdRange: { min: 8000, max: 12000 },
+    recoveryRateRange: { min: 0.25, max: 0.35 },
+    monthlyPriceUsd: 199,
+    category: 'sales',
+    vertical: 'dental'
+  },
+  'hvac-reception-24-7': {
+    title: 'Reception 24/7 Agent and Emergency Management',
+    description: 'AI agent that handles HVAC calls 24/7, filters emergencies, and dispatches jobs',
+    roiUsdRange: { min: 4000, max: 8000 },
+    recoveryRateRange: { min: 0.20, max: 0.35 },
+    monthlyPriceUsd: 199,
+    category: 'call-handling',
+    vertical: 'hvac'
+  },
+  'hvac-no-show-reminder': {
+    title: 'No-Show & Reminder Agent',
+    description: 'AI agent that prevents HVAC job cancellations with reminders and confirmations',
+    roiUsdRange: { min: 2000, max: 4000 },
+    recoveryRateRange: { min: 0.35, max: 0.50 },
+    monthlyPriceUsd: 199,
+    category: 'scheduling',
+    vertical: 'hvac'
+  },
+  'quote-follow-up': {
+    title: 'Quote Follow-Up Agent',
+    description: 'AI agent that follows up on HVAC quotes, handles objections, and closes deals',
+    roiUsdRange: { min: 6000, max: 10000 },
+    recoveryRateRange: { min: 0.20, max: 0.30 },
+    monthlyPriceUsd: 199,
+    category: 'sales',
+    vertical: 'hvac'
+  },
+  'contract-closer': {
+    title: 'Contract Closer Agent',
+    description: 'AI agent that follows up after HVAC jobs to close maintenance contracts',
+    roiUsdRange: { min: 5000, max: 8000 },
+    recoveryRateRange: { min: 0.25, max: 0.40 },
+    monthlyPriceUsd: 199,
+    category: 'sales',
+    vertical: 'hvac'
+  }
+};
+
+const SIGNAL_TO_SKILLS: Record<string, string[]> = {
+  'dental.missed_calls_medium': ['reception-24-7'],
+  'dental.missed_calls_high': ['reception-24-7', 'follow-up-agent'],
+  'dental.no_shows_high': ['prevention-no-show'],
+  'dental.no_shows_critical': ['prevention-no-show'],
+  'dental.treatment_plans_high': ['treatment-plan-closer', 'follow-up-agent'],
+  'dental.treatment_conversion_low': ['treatment-plan-closer', 'follow-up-agent'],
+  'dental.no_online_booking': ['prevention-no-show', 'reception-24-7'],
+  
+  'hvac.missed_calls_medium': ['hvac-reception-24-7'],
+  'hvac.missed_calls_high': ['hvac-reception-24-7', 'quote-follow-up'],
+  'hvac.job_cancellations_high': ['hvac-no-show-reminder'],
+  'hvac.quotes_pending_high': ['quote-follow-up', 'contract-closer'],
+  'hvac.quote_conversion_low': ['quote-follow-up', 'contract-closer'],
+  'hvac.no_online_booking': ['hvac-no-show-reminder', 'hvac-reception-24-7']
+};
+
+// Inline functions to avoid cross-function imports
+function extractSignalTags(auditAnswers: Record<string, unknown>, vertical: 'dental' | 'hvac'): string[] {
+  if (!auditAnswers || typeof auditAnswers !== 'object') return [];
+  
+  const signals = new Set<string>();
+  for (const rule of SIGNAL_RULES) {
+    try {
+      if (rule.when(auditAnswers, vertical)) {
+        rule.add.forEach(tag => signals.add(tag));
+      }
+    } catch (error) {
+      console.warn(`Signal rule evaluation failed:`, error, rule);
+    }
+  }
+  
+  return Array.from(signals).map(tag => `${vertical}.${tag}`).sort();
+}
+
+function mapSignalTagsToSkills(signalTags: string[], moneyLostData: Record<string, number> = {}, vertical: 'dental' | 'hvac'): any[] {
+  const insights: any[] = [];
+  
+  signalTags.forEach(signalTag => {
+    const skillIds = SIGNAL_TO_SKILLS[signalTag];
+    if (!skillIds || skillIds.length === 0) return;
+    
+    skillIds.forEach(skillId => {
+      const skillDetail = SKILL_DETAILS[skillId];
+      if (!skillDetail || skillDetail.vertical !== vertical) return;
+      
+      const avgMoneyLost = Object.values(moneyLostData).reduce((a, b) => a + b, 0) / Math.max(Object.keys(moneyLostData).length, 1) || 5000;
+      const monthlyImpact = Math.round(avgMoneyLost * ((skillDetail.recoveryRateRange.min + skillDetail.recoveryRateRange.max) / 2));
+      
+      const insight = {
+        title: skillDetail.title,
+        description: skillDetail.description,
+        impact: 'high',
+        priority: monthlyImpact >= 5000 ? 'high' : monthlyImpact >= 2000 ? 'medium' : 'low',
+        rationale: [`Addresses ${signalTag.replace(`${vertical}.`, '').replace(/_/g, ' ')} signals`, `Category: ${skillDetail.category}`],
+        category: skillDetail.category,
+        key: `${vertical}_${signalTag.replace(`${vertical}.`, '')}_${skillId}`.replace(/[^a-z0-9_]/g, '_'),
+        monthlyImpactUsd: monthlyImpact,
+        skill: {
+          name: skillDetail.title,
+          id: skillId
+        }
+      };
+      
+      insights.push(insight);
+    });
+  });
+  
+  return insights;
+}
 
 // Helper functions for response formatting
 

@@ -658,7 +658,45 @@ Generate insights using ONLY the provided services and claims:`;
   } catch (error) {
     console.error('❌ Enhanced AI fallback error:', error);
     
-    // Emergency fallback - always return at least one insight
+    // KB-aware emergency fallback - use top ranked service if available
+    try {
+      const [approvedClaimsText, servicesText] = await Promise.all([
+        Deno.readTextFile('./kb/approved_claims.json'),
+        Deno.readTextFile('./kb/services.json')
+      ]);
+      
+      const allServices: ExtendedKBService[] = JSON.parse(servicesText);
+      const targetMap = { dental: 'Dental', hvac: 'HVAC' } as const;
+      const target = targetMap[vertical as keyof typeof targetMap] || 'Both';
+      
+      const servicesForVertical = allServices.filter(service => 
+        service.target === target || service.target === 'Both'
+      );
+      
+      if (servicesForVertical.length > 0) {
+        const topService = servicesForVertical[0];
+        const areaUsd = getAreaMonthlyUsd(moneyLost, topService.areaId || '');
+        const roiEstimate = areaUsd > 0 ? Math.min(areaUsd, (topService.roiRangeMonthly?.[1] || 5000)) 
+                           : Math.round(((topService.roiRangeMonthly?.[0] || 2000) + (topService.roiRangeMonthly?.[1] || 5000)) / 2);
+        
+        return [{
+          title: topService.name || `${vertical.charAt(0).toUpperCase() + vertical.slice(1)} Operations Enhancement`,
+          description: topService.problem || `Improve your ${vertical} practice efficiency and customer experience`,
+          impact: 'medium',
+          priority: 'medium',
+          rationale: [topService.how || 'Operational optimization drives growth', 'Recommended based on audit analysis'],
+          category: topService.areaId || 'operations',
+          key: `${vertical}_${topService.areaId}_${topService.id}_emergency`,
+          monthlyImpactUsd: roiEstimate,
+          skill: { id: topService.id || 'kb_emergency', name: topService.name || 'Operations Enhancement' },
+          source: 'kb-emergency'
+        }];
+      }
+    } catch (kbError) {
+      console.error('❌ KB emergency fallback also failed:', kbError);
+    }
+    
+    // Last resort fallback
     return [{
       title: `Optimize ${vertical.charAt(0).toUpperCase() + vertical.slice(1)} Operations`,
       description: `Enhance your ${vertical} practice efficiency and customer experience`,
@@ -666,148 +704,13 @@ Generate insights using ONLY the provided services and claims:`;
       priority: 'medium',
       rationale: ['Operational optimization drives growth', 'Customer experience improvements increase retention'],
       category: 'operations',
-      key: `${vertical}_${sectionId}_emergency_fallback`,
+      key: `${vertical}_${sectionId}_last_resort_fallback`,
       monthlyImpactUsd: 2500,
       skill: { id: 'operations_optimization', name: 'Operations Enhancement' },
-      source: 'kb-fallback'
+      source: 'last-resort'
     }];
   }
 }
-  // 🐛 DEBUG: Enhanced system prompt validation
-  const basePrompt = Deno.env.get('NEEDAGENT_IQ_SYSTEM_PROMPT') ?? '';
-  
-  // Enhanced system prompt that explicitly requests insights
-  const systemPrompt = `${basePrompt}
-
-LANGUAGE INSTRUCTIONS:
-- Respond in ${language === 'it' ? 'Italian' : 'English'}
-- Use professional ${language === 'it' ? 'Italian' : 'English'} terminology appropriate for business contexts
-- Maintain the same JSON structure regardless of language
-
-CRITICAL OUTPUT REQUIREMENTS:
-- You MUST generate at least 1-3 actionable insights based on the provided data
-- NEVER return an empty array []
-- Focus on identifying specific opportunities for improvement based on the audit answers
-- Each insight must include: title, description, impact, priority, rationale, and category
-- If no major issues are found, provide optimization opportunities or best practices
-
-OUTPUT FORMAT (JSON Array):
-[
-  {
-    "title": "Specific actionable insight title",
-    "description": "Clear explanation of the opportunity or issue",
-    "impact": "high|medium|low",
-    "priority": "urgent|high|medium|low", 
-    "rationale": ["Reason 1", "Reason 2"],
-    "category": "efficiency|revenue|customer_experience|technology|operations"
-  }
-]
-
-EXAMPLE INSIGHTS:
-- For dental practices with 1-2 chairs: "Scale Operations with Additional Treatment Rooms"
-- For practices without online scheduling: "Implement Online Appointment Booking System" 
-- For practices with high unanswered calls: "Deploy AI Phone Assistant for Call Management"
-
-ALWAYS provide valuable, actionable insights that help businesses grow and improve.`;
-
-  console.log('🐛 DEBUG: Enhanced system prompt check:', {
-    exists: !!systemPrompt,
-    length: systemPrompt.length,
-    preview: systemPrompt.slice(0, 200) + (systemPrompt.length > 200 ? '...' : '')
-  });
-  
-  if (!systemPrompt) {
-    throw new Error('Missing system prompt');
-  }
-
-  // Load Anthropic API key
-  const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
-  if (!anthropicApiKey) {
-    throw new Error('Missing API key');
-  }
-
-  // 🐛 DEBUG: Enhanced user message preparation
-  const contextualMessage = `Please analyze this ${vertical} practice audit data for section "${sectionId}" and provide 1-3 actionable insights:
-
-AUDIT DATA:
-${JSON.stringify({ vertical, sectionId, answersSection }, null, 2)}
-
-REQUIREMENTS:
-- Identify specific opportunities for improvement
-- Focus on actionable recommendations that can drive business value
-- Consider the practice size and current setup from the answers provided
-- Each insight should be practical and implementable
-- Return insights in the specified JSON format
-
-Generate meaningful business insights now:`;
-
-  console.log('🐛 DEBUG: Enhanced user message:', {
-    vertical,
-    sectionId,
-    answersCount: Object.keys(answersSection).length,
-    answerKeys: Object.keys(answersSection),
-    messageLength: contextualMessage.length
-  });
-
-  // 🐛 DEBUG: Anthropic request body
-  const anthropicRequest = {
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: 2000, // Increased for better insight generation
-    messages: [
-      {
-        role: 'user',
-        content: contextualMessage
-      }
-    ],
-    system: systemPrompt
-  };
-  
-  console.log('🐛 DEBUG: Anthropic request:', {
-    model: anthropicRequest.model,
-    max_tokens: anthropicRequest.max_tokens,
-    messageLength: anthropicRequest.messages[0].content.length,
-    systemPromptLength: anthropicRequest.system.length
-  });
-
-  // Call Anthropic API
-  const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': anthropicApiKey,
-      'anthropic-version': '2023-06-01'
-    },
-    body: JSON.stringify(anthropicRequest)
-  });
-
-  if (!anthropicResponse.ok) {
-    const errorText = await anthropicResponse.text();
-    console.log('🐛 DEBUG: Anthropic API error:', {
-      status: anthropicResponse.status,
-      statusText: anthropicResponse.statusText,
-      errorText: errorText.slice(0, 500)
-    });
-    
-    throw new Error(`AI processing failed: ${errorText.slice(0, 160)}`);
-  }
-
-  const anthropicData = await anthropicResponse.json();
-  console.log('🐛 DEBUG: Anthropic response structure:', {
-    hasContent: !!anthropicData.content,
-    contentLength: anthropicData.content?.length || 0,
-    contentType: Array.isArray(anthropicData.content) ? 'array' : typeof anthropicData.content,
-    usage: anthropicData.usage,
-    model: anthropicData.model
-  });
-  
-  const content = anthropicData.content?.[0]?.text;
-  
-  if (!content) {
-    throw new Error('No content received from AI');
-  }
-
-  // Enhanced parsing with fallback
-  return parseAIResponse(content, vertical, sectionId);
 }
 
 /**

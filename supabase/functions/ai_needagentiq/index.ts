@@ -284,12 +284,14 @@ serve(async (req) => {
         category: insight.category,
         key: insight.key,
         monthlyImpactUsd: insight.monthlyImpactUsd,
+        source: 'mapping',
         skill: {
           name: insight.title,
-          id: insight.metadata.skillId
+          id: insight.skill?.id || ''
         }
       }));
       
+      console.log('[ai_needagentiq] mapped_insights', finalInsights.length);
       console.log('✅ Using deterministic insights:', {
         source: 'voice_skill_mapping',
         count: finalInsights.length,

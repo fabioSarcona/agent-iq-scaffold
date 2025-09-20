@@ -123,7 +123,7 @@ export function NeedAgentIQPanel() {
     ...roiBrainInsights, // All ROI Brain insights are "new"
     ...legacyInsights.slice(0, Math.max(0, 2 - roiBrainInsights.length)) // Fill remaining with legacy
   ];
-  const historicalInsights = legacyInsights.slice(Math.max(0, 2 - roiBrainInsights.length));
+  const historicalInsights = legacyInsights.slice(Math.max(0, 2 - roiBrainInsights.length)).slice(0, 8);
 
   // Create a Set of recent insight keys for efficient deduplication
   const recentInsightKeys = new Set(recentInsights.map(insight => insight.key));

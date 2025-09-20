@@ -4,25 +4,19 @@ import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 // Shared modules
 import { corsHeaders } from '../_shared/env.ts';
 import { logger } from '../_shared/logger.ts';
-import { NeedAgentIQSimpleInputSchema, NeedAgentIQSimpleOutputSchema, KBServiceSchema } from '../_shared/validation.ts';
-import { filterServicesByVertical, filterServicesByTags } from '../_shared/kb.ts';
+import { NeedAgentIQSimpleInputSchema, NeedAgentIQSimpleOutputSchema } from '../_shared/validation.ts';
+import { filterServicesByVertical, filterServicesByTags, type KBService, type KBSlice } from '../_shared/kb.ts';
 
-// Enhanced KB types for PLAN C
-interface KBService {
-  id: string;
-  name: string;
-  target: 'Dental' | 'HVAC' | 'Both';
-  description: string;
-  problem: string;
-  how: string;
-  roiRangeMonthly?: [number, number];
-  tags?: string[];
+// Extended KB types for this function (includes additional fields from actual KB)
+interface ExtendedKBService extends KBService {
+  id?: string;
+  description?: string;
   areaId?: string;
 }
 
-interface KBSlice {
+interface ExtendedKBSlice {
   approved_claims: string[];
-  services: KBService[];
+  services: ExtendedKBService[];
 }
 
 // Area to money lost mapping
@@ -45,7 +39,7 @@ function getAreaMonthlyUsd(moneyLost: any, areaId: string): number {
   return area?.monthlyUsd || 0;
 }
 
-function scoreService(service: KBService, signalTags: string[], moneyLost: any): number {
+function scoreService(service: ExtendedKBService, signalTags: string[], moneyLost: any): number {
   let score = 0;
   
   // Tag relevance (weight: 3)
@@ -427,6 +421,23 @@ serve(async (req) => {
 
     return jsonOk(finalInsights);
 
+  } catch (error) {
+    console.error('❌ Error in NeedAgentIQ:', error);
+    logError('needagentiq_error', { 
+      msg: error?.message?.slice(0, 160),
+      code: error?.code,
+      name: error?.name
+    });
+
+    if (error.name === 'ZodError') {
+      console.log('🔍 Zod validation error:', error.issues);
+      return jsonError('Invalid input format', 400);
+    }
+
+    return jsonError('Internal server error', 500);
+  }
+});
+
 /**
  * AI Enhancement fallback with KB-aware scoring (PLAN C ENHANCED)
  */
@@ -450,7 +461,7 @@ async function enhanceWithAI(
     ]);
     
     const approvedClaims: string[] = JSON.parse(approvedClaimsText);
-    const allServices: KBService[] = JSON.parse(servicesText);
+    const allServices: ExtendedKBService[] = JSON.parse(servicesText);
     
     console.log('📚 KB loaded:', {
       claims: approvedClaims.length,
@@ -468,9 +479,9 @@ async function enhanceWithAI(
     // Enhance services with inferred data if missing
     const enhancedServices = servicesForVertical.map(service => ({
       ...service,
-      tags: service.tags || inferTagsFromId(service.id),
-      areaId: service.areaId || inferAreaFromId(service.id),
-      roiRangeMonthly: service.roiRangeMonthly || getDefaultROIRange(service.id)
+      tags: service.tags || inferTagsFromId(service.id || ''),
+      areaId: service.areaId || inferAreaFromId(service.id || ''),
+      roiRangeMonthly: service.roiRangeMonthly || getDefaultROIRange(service.id || '')
     }));
     
     // Score and rank services
@@ -484,7 +495,7 @@ async function enhanceWithAI(
       .map(x => x.service);
     
     console.log('🎯 Services ranked:', {
-      candidates: rankedServices.map(s => ({ id: s.id, score: scoreService(s, signalTags, moneyLost) })),
+      candidates: rankedServices.map(s => ({ id: s.id || 'unknown', score: scoreService(s, signalTags, moneyLost) })),
       signalTags,
       moneyLostTotal: moneyLost?.monthlyUsd || 0
     });
@@ -492,7 +503,7 @@ async function enhanceWithAI(
     // Step 3: Build grounded prompt with KB context
     const claimsTop = approvedClaims.slice(0, 5);
     const servicesForPrompt = rankedServices.map(s => ({
-      id: s.id,
+      id: s.id || 'unknown',
       name: s.name,
       areaId: s.areaId,
       problem: s.problem,
@@ -1036,20 +1047,3 @@ function parseAIResponse(content: string, vertical: string, sectionId: string): 
 
   return insights;
 }
-
-  } catch (error) {
-    console.error('❌ Error in NeedAgentIQ:', error);
-    logError('needagentiq_error', { 
-      msg: error?.message?.slice(0, 160),
-      code: error?.code,
-      name: error?.name
-    });
-
-    if (error.name === 'ZodError') {
-      console.log('🔍 Zod validation error:', error.issues);
-      return jsonError('Invalid input format', 400);
-    }
-
-    return jsonError('Internal server error', 500);
-  }
-});

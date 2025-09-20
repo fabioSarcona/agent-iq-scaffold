@@ -4,7 +4,111 @@ import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 // Shared modules
 import { corsHeaders } from '../_shared/env.ts';
 import { logger } from '../_shared/logger.ts';
-import { NeedAgentIQSimpleInputSchema, NeedAgentIQSimpleOutputSchema } from '../_shared/validation.ts';
+import { NeedAgentIQSimpleInputSchema, NeedAgentIQSimpleOutputSchema, KBServiceSchema } from '../_shared/validation.ts';
+import { filterServicesByVertical, filterServicesByTags } from '../_shared/kb.ts';
+
+// Enhanced KB types for PLAN C
+interface KBService {
+  id: string;
+  name: string;
+  target: 'Dental' | 'HVAC' | 'Both';
+  description: string;
+  problem: string;
+  how: string;
+  roiRangeMonthly?: [number, number];
+  tags?: string[];
+  areaId?: string;
+}
+
+interface KBSlice {
+  approved_claims: string[];
+  services: KBService[];
+}
+
+// Area to money lost mapping
+type AreaMap = {
+  missed_calls: 'missed_calls';
+  no_shows: 'no_shows';
+  treatment_plans: 'treatment_plans';
+  quotes: 'quotes';
+  reactivation: 'reactivation';
+};
+
+// Helper functions for PLAN C Enhanced
+function getAreaMonthlyUsd(moneyLost: any, areaId: string): number {
+  if (!moneyLost?.areas || !Array.isArray(moneyLost.areas)) return 0;
+  
+  const area = moneyLost.areas.find((a: any) => 
+    a.id === areaId || a.key === areaId || a.title?.toLowerCase().includes(areaId.replace('_', ' '))
+  );
+  
+  return area?.monthlyUsd || 0;
+}
+
+function scoreService(service: KBService, signalTags: string[], moneyLost: any): number {
+  let score = 0;
+  
+  // Tag relevance (weight: 3)
+  if (service.tags) {
+    const tagHits = signalTags.filter(tag => 
+      service.tags?.some(serviceTag => tag.includes(serviceTag))
+    ).length;
+    score += tagHits * 3;
+  }
+  
+  // Area money impact (weight: 2)
+  if (service.areaId) {
+    const areaUsd = getAreaMonthlyUsd(moneyLost, service.areaId);
+    if (areaUsd > 0) score += 2;
+  }
+  
+  // Vertical match (weight: 1)
+  score += 1;
+  
+  return score;
+}
+
+function inferTagsFromId(serviceId: string): string[] {
+  const tagMap: Record<string, string[]> = {
+    'appointment_booking': ['no_online_booking', 'scheduling'],
+    'lead_qualification': ['lead_conversion', 'sales'],
+    'emergency_routing': ['missed_calls_high', 'emergency'],
+    'payment_processing': ['treatment_conversion_low', 'payment'],
+    'no_show_prevention': ['no_shows_high', 'no_shows_critical'],
+    'treatment_plan_closer': ['treatment_plans_high', 'treatment_conversion_low'],
+    'hvac_emergency_dispatch': ['missed_calls_high', 'emergency'],
+    'quote_follow_up': ['quotes_pending_high', 'quote_conversion_low']
+  };
+  return tagMap[serviceId] || [];
+}
+
+function inferAreaFromId(serviceId: string): string {
+  const areaMap: Record<string, string> = {
+    'appointment_booking': 'missed_calls',
+    'lead_qualification': 'treatment_plans',
+    'emergency_routing': 'missed_calls',
+    'payment_processing': 'treatment_plans',
+    'no_show_prevention': 'no_shows',
+    'treatment_plan_closer': 'treatment_plans',
+    'hvac_emergency_dispatch': 'missed_calls',
+    'quote_follow_up': 'quotes'
+  };
+  return areaMap[serviceId] || 'operations';
+}
+
+function getDefaultROIRange(serviceId: string): [number, number] {
+  const roiMap: Record<string, [number, number]> = {
+    'appointment_booking': [2000, 4000],
+    'lead_qualification': [3000, 6000],
+    'emergency_routing': [1500, 3000],
+    'payment_processing': [4000, 8000],
+    'no_show_prevention': [3000, 5000],
+    'treatment_plan_closer': [10000, 20000],
+    'hvac_emergency_dispatch': [4000, 8000],
+    'quote_follow_up': [6000, 10000]
+  };
+  return roiMap[serviceId] || [2000, 5000];
+}
 
 // Inline deterministic mapping to avoid cross-function imports
 const THRESHOLDS = {
@@ -302,7 +406,7 @@ serve(async (req) => {
       // Fallback to AI enhancement when no deterministic mapping available
       console.log('⚠️ No deterministic insights found, falling back to AI enhancement...');
       
-      const enhancedInsights = await enhanceWithAI(answersSection, vertical, sectionId, language);
+      const enhancedInsights = await enhanceWithAI(answersSection, vertical, sectionId, language, signalTags, moneyLostData);
       finalInsights = enhancedInsights;
       
       console.log('🤖 AI enhanced insights:', {
@@ -324,14 +428,240 @@ serve(async (req) => {
     return jsonOk(finalInsights);
 
 /**
- * AI Enhancement fallback when deterministic mapping produces no results
+ * AI Enhancement fallback with KB-aware scoring (PLAN C ENHANCED)
  */
 async function enhanceWithAI(
   answersSection: Record<string, unknown>,
   vertical: string, 
   sectionId: string,
-  language: string
+  language: string,
+  signalTags: string[] = [],
+  moneyLost: any = {}
 ): Promise<any[]> {
+  const startTime = Date.now();
+  
+  try {
+    // Step 1: Load and validate KB data
+    console.log('🔧 Loading KB data for enhanced fallback...');
+    
+    const [approvedClaimsText, servicesText] = await Promise.all([
+      Deno.readTextFile('./kb/approved_claims.json'),
+      Deno.readTextFile('./kb/services.json')
+    ]);
+    
+    const approvedClaims: string[] = JSON.parse(approvedClaimsText);
+    const allServices: KBService[] = JSON.parse(servicesText);
+    
+    console.log('📚 KB loaded:', {
+      claims: approvedClaims.length,
+      services: allServices.length
+    });
+    
+    // Step 2: Filter and score services by vertical and signal relevance
+    const targetMap = { dental: 'Dental', hvac: 'HVAC' } as const;
+    const target = targetMap[vertical as keyof typeof targetMap] || 'Both';
+    
+    const servicesForVertical = allServices.filter(service => 
+      service.target === target || service.target === 'Both'
+    );
+    
+    // Enhance services with inferred data if missing
+    const enhancedServices = servicesForVertical.map(service => ({
+      ...service,
+      tags: service.tags || inferTagsFromId(service.id),
+      areaId: service.areaId || inferAreaFromId(service.id),
+      roiRangeMonthly: service.roiRangeMonthly || getDefaultROIRange(service.id)
+    }));
+    
+    // Score and rank services
+    const rankedServices = enhancedServices
+      .map(service => ({
+        service,
+        score: scoreService(service, signalTags, moneyLost)
+      }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 5)
+      .map(x => x.service);
+    
+    console.log('🎯 Services ranked:', {
+      candidates: rankedServices.map(s => ({ id: s.id, score: scoreService(s, signalTags, moneyLost) })),
+      signalTags,
+      moneyLostTotal: moneyLost?.monthlyUsd || 0
+    });
+    
+    // Step 3: Build grounded prompt with KB context
+    const claimsTop = approvedClaims.slice(0, 5);
+    const servicesForPrompt = rankedServices.map(s => ({
+      id: s.id,
+      name: s.name,
+      areaId: s.areaId,
+      problem: s.problem,
+      how: s.how,
+      roiRangeMonthly: s.roiRangeMonthly
+    }));
+    
+    const grounding = {
+      vertical,
+      signalTags,
+      moneylostSummary: {
+        monthlyUsd: moneyLost?.monthlyUsd || 0,
+        areas: (moneyLost?.areas || []).map((a: any) => ({ 
+          id: a.id || a.key, 
+          monthlyUsd: a.monthlyUsd 
+        }))
+      },
+      services: servicesForPrompt,
+      approvedClaims: claimsTop
+    };
+    
+    // Enhanced system prompt with KB grounding
+    const basePrompt = Deno.env.get('NEEDAGENT_IQ_SYSTEM_PROMPT') ?? '';
+    const systemPrompt = `${basePrompt}
+
+LANGUAGE INSTRUCTIONS:
+- Respond in ${language === 'it' ? 'Italian' : 'English'}
+- Use professional terminology appropriate for ${vertical} business contexts
+
+KB-GROUNDED CONTEXT:
+Available AI Services for ${target}:
+${servicesForPrompt.map(s => `- ${s.id}: ${s.name} (Area: ${s.areaId}, Problem: ${s.problem})`).join('\n')}
+
+Approved Claims to Reference:
+${claimsTop.map(claim => `- "${claim}"`).join('\n')}
+
+CRITICAL OUTPUT REQUIREMENTS:
+- Generate EXACTLY 1-3 insights maximum
+- Each insight MUST use skill.id from the available services list above
+- skill.id MUST be one of: ${servicesForPrompt.map(s => s.id).join(', ')}
+- Calculate monthlyImpactUsd based on the moneylost area data when possible
+- source must be "kb-fallback"
+
+JSON SCHEMA:
+[
+  {
+    "title": "Specific actionable insight title",
+    "description": "Clear explanation referencing approved claims",
+    "impact": "high|medium|low",
+    "priority": "high|medium|low",
+    "rationale": ["Reason with approved claim", "Reason 2"],
+    "category": "efficiency|revenue|customer_experience|operations",
+    "monthlyImpactUsd": number,
+    "skill": { "id": "service_id_from_list", "name": "service_name" },
+    "source": "kb-fallback"
+  }
+]`;
+
+    console.log('🎯 Enhanced prompt prepared:', {
+      servicesCount: servicesForPrompt.length,
+      claimsCount: claimsTop.length,
+      promptLength: systemPrompt.length
+    });
+    
+    // Step 4: Call AI with enhanced prompt
+    const anthropicApiKey = Deno.env.get('ANTHROPIC_API_KEY');
+    if (!anthropicApiKey) {
+      throw new Error('Missing ANTHROPIC_API_KEY');
+    }
+    
+    const contextualMessage = `Analyze this ${vertical} practice audit data and provide 1-3 KB-grounded actionable insights:
+
+CONTEXT:
+${JSON.stringify(grounding, null, 2)}
+
+AUDIT ANSWERS:
+${JSON.stringify({ sectionId, answersSection }, null, 2)}
+
+Generate insights using ONLY the provided services and claims:`;
+
+    const anthropicRequest = {
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 2000,
+      messages: [{ role: 'user', content: contextualMessage }],
+      system: systemPrompt
+    };
+    
+    const anthropicResponse = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': anthropicApiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify(anthropicRequest)
+    });
+
+    if (!anthropicResponse.ok) {
+      const errorText = await anthropicResponse.text();
+      throw new Error(`AI processing failed: ${errorText.slice(0, 160)}`);
+    }
+
+    const anthropicData = await anthropicResponse.json();
+    const content = anthropicData.content?.[0]?.text;
+    
+    if (!content) {
+      throw new Error('No content received from AI');
+    }
+
+    // Step 5: Parse and validate AI response with whitelist check
+    const parsedInsights = parseAIResponseEnhanced(content, servicesForPrompt, moneyLost);
+    
+    // Step 6: Fallback to deterministic if AI fails validation
+    if (parsedInsights.length === 0 && rankedServices.length > 0) {
+      console.log('🔄 AI validation failed, using deterministic fallback...');
+      const topService = rankedServices[0];
+      const areaUsd = getAreaMonthlyUsd(moneyLost, topService.areaId || '');
+      const roiEstimate = areaUsd > 0 ? Math.min(areaUsd, (topService.roiRangeMonthly?.[1] || 5000)) 
+                         : Math.round(((topService.roiRangeMonthly?.[0] || 2000) + (topService.roiRangeMonthly?.[1] || 5000)) / 2);
+      
+      parsedInsights.push({
+        title: topService.name,
+        description: topService.problem,
+        impact: 'medium',
+        priority: 'medium',
+        rationale: [topService.how, 'Recommended based on audit analysis'],
+        category: topService.areaId || 'operations',
+        key: `${vertical}_${topService.areaId}_${topService.id}`,
+        monthlyImpactUsd: roiEstimate,
+        skill: { id: topService.id, name: topService.name },
+        source: 'kb-fallback'
+      });
+    }
+
+    // Step 7: Final telemetry
+    const processingTime = Date.now() - startTime;
+    console.log('[IQ kb-fallback]', {
+      vertical, 
+      sectionId, 
+      signalTags,
+      candidates: servicesForPrompt.map(s => s.id),
+      picked: parsedInsights.map(i => i.skill?.id),
+      money: {
+        total: moneyLost?.monthlyUsd || 0,
+        areas: (moneyLost?.areas || []).map((a: any) => ({ id: a.id || a.key, usd: a.monthlyUsd }))
+      },
+      processingTimeMs: processingTime
+    });
+
+    return parsedInsights;
+    
+  } catch (error) {
+    console.error('❌ Enhanced AI fallback error:', error);
+    
+    // Emergency fallback - always return at least one insight
+    return [{
+      title: `Optimize ${vertical.charAt(0).toUpperCase() + vertical.slice(1)} Operations`,
+      description: `Enhance your ${vertical} practice efficiency and customer experience`,
+      impact: 'medium',
+      priority: 'medium',
+      rationale: ['Operational optimization drives growth', 'Customer experience improvements increase retention'],
+      category: 'operations',
+      key: `${vertical}_${sectionId}_emergency_fallback`,
+      monthlyImpactUsd: 2500,
+      skill: { id: 'operations_optimization', name: 'Operations Enhancement' },
+      source: 'kb-fallback'
+    }];
+  }
+}
   // 🐛 DEBUG: Enhanced system prompt validation
   const basePrompt = Deno.env.get('NEEDAGENT_IQ_SYSTEM_PROMPT') ?? '';
   
@@ -470,7 +800,102 @@ Generate meaningful business insights now:`;
 }
 
 /**
- * Robust AI response parsing with fallbacks
+ * Enhanced AI response parsing with KB validation (PLAN C)
+ */
+function parseAIResponseEnhanced(content: string, servicesForPrompt: any[], moneyLost: any): any[] {
+  console.log('🔍 Enhanced parsing with KB validation:', {
+    contentLength: content?.length || 0,
+    servicesCount: servicesForPrompt.length,
+    serviceIds: servicesForPrompt.map(s => s.id)
+  });
+
+  let insights = [];
+  
+  try {
+    // Clean content
+    let cleanContent = content.trim();
+    if (cleanContent.toLowerCase().startsWith('```json')) {
+      cleanContent = cleanContent.replace(/^```json\s*/i, '').replace(/\s*```$/, '');
+    } else if (cleanContent.startsWith('```')) {
+      cleanContent = cleanContent.replace(/^```\s*/, '').replace(/\s*```$/, '');
+    }
+    cleanContent = cleanContent.replace(/^`+/, '').replace(/`+$/, '');
+    
+    if (!cleanContent || cleanContent === '[]' || cleanContent.length < 10) {
+      console.log('🔍 Empty AI response, returning empty array for deterministic fallback');
+      return [];
+    }
+    
+    const parsed = JSON.parse(cleanContent);
+    console.log('🔍 Parsed AI response:', { isArray: Array.isArray(parsed), length: Array.isArray(parsed) ? parsed.length : 0 });
+    
+    if (!Array.isArray(parsed)) {
+      console.log('🔍 AI response not array, returning empty');
+      return [];
+    }
+    
+    // Whitelist validation - critical security check
+    const serviceIdSet = new Set(servicesForPrompt.map(s => s.id));
+    console.log('🔍 Validating against service whitelist:', Array.from(serviceIdSet));
+    
+    const sanitized = parsed
+      .filter((insight: any) => {
+        const hasValidSkillId = insight.skill?.id && serviceIdSet.has(insight.skill.id);
+        console.log('🔍 Insight validation:', { 
+          title: insight.title?.slice(0, 30), 
+          skillId: insight.skill?.id, 
+          valid: hasValidSkillId 
+        });
+        return hasValidSkillId;
+      })
+      .map((insight: any) => {
+        // Calculate area-specific monthlyImpactUsd
+        const service = servicesForPrompt.find(s => s.id === insight.skill.id);
+        let monthlyImpactUsd = insight.monthlyImpactUsd || 0;
+        
+        if (!monthlyImpactUsd && service?.areaId) {
+          const areaUsd = getAreaMonthlyUsd(moneyLost, service.areaId);
+          if (areaUsd > 0) {
+            monthlyImpactUsd = Math.min(areaUsd, service.roiRangeMonthly?.[1] || 5000);
+          } else if (service.roiRangeMonthly) {
+            monthlyImpactUsd = Math.round((service.roiRangeMonthly[0] + service.roiRangeMonthly[1]) / 2);
+          }
+        }
+        
+        return {
+          ...insight,
+          monthlyImpactUsd: Math.max(0, Math.round(monthlyImpactUsd)),
+          source: 'kb-fallback',
+          key: insight.key || `${insight.skill.id}_${Date.now()}`,
+          skill: {
+            id: insight.skill.id,
+            name: service?.name || insight.skill.name
+          }
+        };
+      });
+    
+    console.log('🔍 Final sanitized insights:', {
+      count: sanitized.length,
+      insights: sanitized.map((i: any) => ({ 
+        title: i.title?.slice(0, 30), 
+        skillId: i.skill?.id, 
+        monthlyImpact: i.monthlyImpactUsd 
+      }))
+    });
+    
+    return sanitized;
+    
+  } catch (parseError) {
+    console.log('🔍 Enhanced parse error:', {
+      error: parseError.message,
+      content: content?.slice(0, 200)
+    });
+    return [];
+  }
+}
+
+/**
+ * Robust AI response parsing with fallbacks (LEGACY - kept for compatibility)
  */
 function parseAIResponse(content: string, vertical: string, sectionId: string): any[] {
   console.log('🐛 DEBUG: Raw Claude content:', {

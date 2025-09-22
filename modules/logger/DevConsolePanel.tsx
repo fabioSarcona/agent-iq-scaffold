@@ -12,7 +12,7 @@ import { RefreshCw, Trash2, Search, Activity, DollarSign, AlertTriangle, Setting
 import { useLogEvents, useEventFilter, useAutoRefresh, useIQErrors } from './hooks';
 import { EventCategory, LogEntry } from './types';
 import { cn } from '@/lib/utils';
-import { NeedAgentIQDebugPanel } from '@modules/audit/NeedAgentIQDebugPanel';
+import { NeedAgentIQDebugPanel } from '../audit/NeedAgentIQDebugPanel';
 
 const EventCard = ({ event, index }: { event: LogEntry; index: number }) => {
   const [isExpanded, setIsExpanded] = useState(false);

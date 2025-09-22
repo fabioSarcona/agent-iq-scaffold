@@ -16,15 +16,15 @@ const ALLOWED_BY_SECTION: Record<string, {
 }> = {
   // Dental sections with correct IDs from config.dental.json
   practice_profile: {
-    allowSkills: true,
-    allowROI: true,
-    allowedServiceIds: ['appointment_booking', 'lead_qualification', 'emergency_routing', 'payment_processing'],
+    allowSkills: false,
+    allowROI: false,
+    allowedServiceIds: ['appointment_booking'],
     mode: 'foundational'
   },
   financial_overview: {
-    allowSkills: true,
-    allowROI: true,
-    allowedServiceIds: ['appointment_booking', 'lead_qualification', 'emergency_routing', 'payment_processing'],
+    allowSkills: false,
+    allowROI: false,
+    allowedServiceIds: ['appointment_booking', 'lead_qualification'],
     mode: 'foundational'
   },
   call_handling_conversion: {
@@ -52,9 +52,9 @@ const ALLOWED_BY_SECTION: Record<string, {
     mode: 'skills'
   },
   reviews_reputation: {
-    allowSkills: true,
-    allowROI: true,
-    allowedServiceIds: ['appointment_booking', 'lead_qualification', 'emergency_routing', 'payment_processing'],
+    allowSkills: false,
+    allowROI: false,
+    allowedServiceIds: ['appointment_booking'],
     mode: 'foundational'
   }
 };
@@ -400,7 +400,7 @@ serve(async (req) => {
 
     // FASE 3: Determine section mode and policy
     const policy = ALLOWED_BY_SECTION[sectionId] || ALLOWED_BY_SECTION.section_3; // Default fallback
-    const mode = policy.allowSkills ? 'skills' : 'foundational';
+    const mode = policy.mode || (policy.allowSkills ? 'skills' : 'foundational');
     
     console.log('🎯 Section policy determined:', {
       sectionId,

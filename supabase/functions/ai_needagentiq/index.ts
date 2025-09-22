@@ -710,8 +710,7 @@ Generate insights using ONLY the provided services and claims:`;
       source: 'last-resort'
     }];
   }
-}
-}
+  }
 
 /**
  * Enhanced AI response parsing with KB validation (PLAN C)

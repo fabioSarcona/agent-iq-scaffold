@@ -58,8 +58,9 @@ export const NeedAgentIQDebugger = {
       // Count by source
       insights.forEach(insight => {
         const source = insight.source || 'unknown';
-        if (source in debugStore[sectionId].sources) {
-          debugStore[sectionId].sources[source as keyof typeof debugStore[sectionId].sources]++;
+        const sources = debugStore[sectionId].sources;
+        if (source in sources && source in { mapping: 0, aiEnhanced: 0, kbFallback: 0, foundational: 0 }) {
+          sources[source as keyof typeof sources]++;
         }
       });
     }

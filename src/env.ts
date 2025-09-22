@@ -13,7 +13,7 @@ const schema = z.object({
   // FASE 4.3: Money Lost Data Strict Mode
   VITE_ROIBRAIN_MONEYLOST_STRICT: z.string().optional().default('false'),
   // PLAN D: Timeout Configuration
-  VITE_REPORT_TIMEOUT_MS: z.string().optional().default('45000'),
+  VITE_REPORT_TIMEOUT_MS: z.string().optional().default('60000'),
 });
 
 const parsed = schema.parse({

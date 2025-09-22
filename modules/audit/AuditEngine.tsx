@@ -192,7 +192,6 @@ export function AuditEngine({ industry }: AuditEngineProps) {
       debugMode: mode,
       policy: policy
     });
-    });
     
     if (!currentSection) {
       console.log('🐛 DEBUG: No current section, returning');

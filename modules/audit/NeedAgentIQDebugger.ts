@@ -143,4 +143,39 @@ if (typeof window !== 'undefined' && import.meta.env.DEV) {
   window.addEventListener('beforeunload', () => {
     NeedAgentIQDebugger.clearSessions();
   });
+  
+  // Add global access for manual testing in dev console
+  (window as any).NeedAgentIQDebugger = NeedAgentIQDebugger;
+}
+
+// FASE 7: Demo/Test utilities for development
+export const createDemoSession = () => {
+  if (!import.meta.env.DEV) return;
+  
+  // Create a demo session for testing
+  const demoPolicy = {
+    allowSkills: true,
+    allowROI: true,
+    allowedServiceIds: ['appointment_booking', 'lead_qualification', 'emergency_routing']
+  };
+  
+  NeedAgentIQDebugger.startSession('section_3_demo', 'skills', demoPolicy);
+  
+  // Simulate some insights
+  const demoInsights = [
+    { title: 'Smart Appointment Booking', source: 'mapping', skill: { id: 'appointment_booking' }, monthlyImpactUsd: 2500 },
+    { title: 'Lead Qualification System', source: 'kb-fallback', skill: { id: 'lead_qualification' }, monthlyImpactUsd: 3000 },
+    { title: 'Emergency Call Router', source: 'mapping', skill: { id: 'emergency_routing' }, monthlyImpactUsd: 1800 }
+  ];
+  
+  NeedAgentIQDebugger.logServerResponse('section_3_demo', demoInsights, 1250);
+  NeedAgentIQDebugger.logClientFilter('section_3_demo', 3, 3, []);
+  NeedAgentIQDebugger.completeSession('section_3_demo', 1450);
+  
+  console.log('🎯 Demo NeedAgentIQ session created! Check the Debug Panel.');
+};
+
+// Export demo function for development
+if (import.meta.env.DEV) {
+  (window as any).createDemoNeedAgentIQSession = createDemoSession;
 }

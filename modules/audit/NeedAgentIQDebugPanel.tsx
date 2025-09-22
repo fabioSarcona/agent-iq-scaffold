@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { NeedAgentIQDebugger, type NeedAgentIQDebugInfo } from './NeedAgentIQDebugger';
+import { NeedAgentIQDebugger, type NeedAgentIQDebugInfo, createDemoSession } from './NeedAgentIQDebugger';
 
 // FASE 7: Debug panel component for DevConsole integration
 export function NeedAgentIQDebugPanel() {
@@ -52,6 +52,11 @@ export function NeedAgentIQDebugPanel() {
           <Button variant="outline" size="sm" onClick={generateFullSummary}>
             Console Summary
           </Button>
+          {import.meta.env.DEV && (
+            <Button variant="secondary" size="sm" onClick={createDemoSession}>
+              Create Demo
+            </Button>
+          )}
           <Button variant="destructive" size="sm" onClick={clearSessions}>
             Clear
           </Button>
@@ -61,9 +66,22 @@ export function NeedAgentIQDebugPanel() {
       {sessionEntries.length === 0 ? (
         <Card>
           <CardContent className="pt-6">
-            <p className="text-muted-foreground text-center">
-              No debug sessions recorded yet. Start an audit to see debug information.
-            </p>
+            <div className="text-center space-y-4">
+              <p className="text-muted-foreground">
+                No debug sessions recorded yet. Start an audit to see debug information.
+              </p>
+              {import.meta.env.DEV && (
+                <div className="bg-muted/20 p-4 rounded-lg text-left space-y-2">
+                  <h4 className="text-sm font-semibold">Development Mode - Quick Start:</h4>
+                  <ul className="text-xs text-muted-foreground space-y-1">
+                    <li>• Click "Create Demo" to generate test data</li>
+                    <li>• Start an audit to see live debug sessions</li>
+                    <li>• Use browser console: <code className="bg-background px-1 rounded">NeedAgentIQDebugger.generateSummary()</code></li>
+                    <li>• Call demo function: <code className="bg-background px-1 rounded">createDemoNeedAgentIQSession()</code></li>
+                  </ul>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
       ) : (

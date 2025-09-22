@@ -376,17 +376,19 @@ serve(async (req) => {
       finalInsights = baseInsights.map(insight => ({
         title: insight.title,
         description: insight.description,
-        impact: insight.priority, // Map priority to impact
+        impact: insight.impact,
         priority: insight.priority,
-        rationale: [insight.impact, `Category: ${insight.category}`],
+        rationale: Array.isArray(insight.rationale) 
+          ? insight.rationale.slice(0, 5) 
+          : [],
         category: insight.category,
         key: insight.key,
         monthlyImpactUsd: insight.monthlyImpactUsd,
-        source: 'mapping',
         skill: {
           name: insight.title,
           id: insight.skill?.id || ''
-        }
+        },
+        source: 'mapping'
       }));
       
       console.log('[ai_needagentiq] mapped_insights', finalInsights.length);

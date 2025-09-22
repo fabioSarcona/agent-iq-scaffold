@@ -184,8 +184,11 @@ export function NeedAgentIQPanel() {
   // Calculate badge count based on actually rendered insights
   const totalRendered = recentInsights.length + (historicalInsights.length > 0 ? historicalInsights.length : 0);
   
-  // Show historical when there are insights from previous sections
-  const shouldShowHistorical = historicalInsights.length > 0;
+  // Show historical when there are insights from previous sections and at least 2 sections completed
+  const completedSectionsCount = Object.keys(insightsBySection).filter(sectionId => 
+    insightsBySection[sectionId].length > 0
+  ).length;
+  const shouldShowHistorical = historicalInsights.length > 0 && completedSectionsCount >= 2;
 
   // Render insights
   return <Card>

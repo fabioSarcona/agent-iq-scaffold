@@ -376,7 +376,7 @@ export const useAuditProgressStore = create<AuditProgressState>()(
             ...i,
             createdAt: i.createdAt ?? Date.now()
           }));
-          const orderedInsights = [...withMeta, ...otherInsights];
+          const orderedInsights = [...withMeta, ...allInsights.slice(-10)];
           
           console.log('🧠 DEBUG: ROI Brain insights processed:', {
             totalInsights: orderedInsights.length,
@@ -388,7 +388,7 @@ export const useAuditProgressStore = create<AuditProgressState>()(
           
           return {
             insightsBySection: newInsightsBySection,
-            insights: orderedInsights,
+            insights: orderedInsights.slice(0, 12),
             lastEmittedKeys: [...state.lastEmittedKeys, ...roiBrainInsights.map(i => i.key)]
           };
         });

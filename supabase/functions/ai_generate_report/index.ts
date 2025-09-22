@@ -2,7 +2,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 // Shared modules
-import { validateAIEnv, checkAIEnv, corsHeaders } from '../_shared/env.ts';
+import { checkAIEnv, corsHeaders } from '../_shared/env.ts';
 import { logger } from '../_shared/logger.ts';
 import { VoiceFitInputSchema, VoiceFitOutputSchema } from '../_shared/validation.ts';
 import { validateKBSlice } from '../_shared/kb.ts';
@@ -162,7 +162,10 @@ async function callClaude(systemPrompt: string, llmInput: VoiceFitInput, languag
   // PLAN D: Use non-throwing validation for structured error handling
   const envCheck = checkAIEnv();
   if (!envCheck.success) {
-    throw new Error(envCheck.error.message);
+    // Create error with specific code for structured handling
+    const error = new Error(envCheck.error.message);
+    (error as any).code = envCheck.error.code;
+    throw error;
   }
   const env = envCheck.config;
   const startTime = Date.now();
@@ -229,6 +232,32 @@ serve(async (req) => {
 
   const startTime = Date.now();
   
+  // PLAN D: Check AI environment at the start with structured error handling
+  const envCheck = checkAIEnv();
+  if (!envCheck.success) {
+    const errorResponse: ErrorResponse = {
+      success: false,
+      error: {
+        message: envCheck.error.message,
+        code: envCheck.error.code
+      },
+      metadata: {
+        processing_time_ms: Date.now() - startTime,
+        warnings: ['AI service configuration required'],
+        diagnostic: {
+          errorType: 'ConfigurationError',
+          timeoutOccurred: false,
+          apiKeyConfigured: false
+        }
+      }
+    };
+
+    return new Response(JSON.stringify(errorResponse), {
+      status: 503, // Service Unavailable
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+  
   try {
     const request = await req.json();
     logger.info('Processing VoiceFit report request', { vertical: request.vertical });
@@ -290,12 +319,15 @@ serve(async (req) => {
     let errorCode = 'INTERNAL_ERROR';
     let httpStatus = 500;
     
-    if (error.name === 'ZodError') {
+    // Use error code from checkAIEnv if available
+    if ((error as any).code) {
+      errorCode = (error as any).code;
+      if (errorCode === 'MISSING_API_KEY') {
+        httpStatus = 503; // Service Unavailable
+      }
+    } else if (error.name === 'ZodError') {
       errorCode = 'VALIDATION_ERROR';
       httpStatus = 422;
-    } else if (error.message?.includes('ANTHROPIC_API_KEY')) {
-      errorCode = 'MISSING_API_KEY';
-      httpStatus = 503; // Service Unavailable
     } else if (error.message?.includes('validation')) {
       errorCode = 'VALIDATION_ERROR';
       httpStatus = 422;

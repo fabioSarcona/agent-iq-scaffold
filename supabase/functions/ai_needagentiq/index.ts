@@ -7,46 +7,55 @@ import { logger } from '../_shared/logger.ts';
 import { NeedAgentIQSimpleInputSchema, NeedAgentIQSimpleOutputSchema } from '../_shared/validation.ts';
 import { filterServicesByVertical, filterServicesByTags, validateKBSlice, type KBService, type KBSlice } from '../_shared/kb.ts';
 
-// FASE 2: Section Policy per differenziare comportamento tra sezioni
+// FASE 2: Section Policy per differenziare comportamento tra sezioni - FIXED with correct dental section IDs
 const ALLOWED_BY_SECTION: Record<string, {
   allowSkills: boolean;
   allowROI: boolean;
   allowedServiceIds: string[];
+  mode: 'skills' | 'foundational';
 }> = {
-  section_1: {
-    allowSkills: false,
-    allowROI: false,
-    allowedServiceIds: ['appointment_booking'] // Solo servizi foundazionali
-  },
-  section_2: {
-    allowSkills: false,
-    allowROI: false,
-    allowedServiceIds: ['appointment_booking', 'lead_qualification'] // Setup base
-  },
-  section_3: {
+  // Dental sections with correct IDs from config.dental.json
+  practice_profile: {
     allowSkills: true,
     allowROI: true,
-    allowedServiceIds: ['appointment_booking', 'lead_qualification', 'emergency_routing', 'payment_processing']
+    allowedServiceIds: ['appointment_booking', 'lead_qualification', 'emergency_routing', 'payment_processing'],
+    mode: 'foundational'
   },
-  section_4: {
+  financial_overview: {
     allowSkills: true,
     allowROI: true,
-    allowedServiceIds: ['appointment_booking', 'lead_qualification', 'emergency_routing', 'payment_processing']
+    allowedServiceIds: ['appointment_booking', 'lead_qualification', 'emergency_routing', 'payment_processing'],
+    mode: 'foundational'
   },
-  section_5: {
+  call_handling_conversion: {
     allowSkills: true,
     allowROI: true,
-    allowedServiceIds: ['appointment_booking', 'lead_qualification', 'emergency_routing', 'payment_processing']
+    allowedServiceIds: ['appointment_booking', 'lead_qualification', 'emergency_routing', 'payment_processing'],
+    mode: 'skills'
   },
-  section_6: {
+  scheduling_no_shows: {
     allowSkills: true,
     allowROI: true,
-    allowedServiceIds: ['appointment_booking', 'lead_qualification', 'emergency_routing', 'payment_processing']
+    allowedServiceIds: ['appointment_booking', 'lead_qualification', 'emergency_routing', 'payment_processing'],
+    mode: 'skills'
   },
-  section_7: {
+  treatment_plan_conversion: {
     allowSkills: true,
     allowROI: true,
-    allowedServiceIds: ['appointment_booking', 'lead_qualification', 'emergency_routing', 'payment_processing']
+    allowedServiceIds: ['appointment_booking', 'lead_qualification', 'emergency_routing', 'payment_processing'],
+    mode: 'skills'
+  },
+  patient_retention_recall: {
+    allowSkills: true,
+    allowROI: true,
+    allowedServiceIds: ['appointment_booking', 'lead_qualification', 'emergency_routing', 'payment_processing'],
+    mode: 'skills'
+  },
+  reviews_reputation: {
+    allowSkills: true,
+    allowROI: true,
+    allowedServiceIds: ['appointment_booking', 'lead_qualification', 'emergency_routing', 'payment_processing'],
+    mode: 'foundational'
   }
 };
 

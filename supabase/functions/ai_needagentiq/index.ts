@@ -405,6 +405,7 @@ serve(async (req) => {
     console.log('🔄 FASE 3: Starting conditional pipeline...');
     
     let finalInsights: any[] = [];
+    let baseInsights: any[] = []; // Declare baseInsights for both modes
 
     if (mode === 'skills') {
       // SKILLS MODE: Use deterministic voice skill mapping
@@ -418,7 +419,7 @@ serve(async (req) => {
       });
 
       // Step 2: Map signal tags to skills with ROI calculations  
-      const baseInsights = mapSignalTagsToSkills(
+      baseInsights = mapSignalTagsToSkills(
         signalTags,
         moneyLostData, // Pass money lost data for accurate ROI calculations
         vertical as 'dental' | 'hvac',
@@ -515,7 +516,7 @@ serve(async (req) => {
       vertical,
       insights: finalInsights.length,
       processingTime,
-      source: baseInsights.length > 0 ? 'deterministic' : 'ai_enhanced'
+      source: baseInsights.length > 0 ? 'deterministic' : (mode === 'foundational' ? 'foundational' : 'ai_enhanced')
     });
 
     return jsonOk(finalInsights);

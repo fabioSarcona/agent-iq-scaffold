@@ -30,6 +30,50 @@ import { loadAuditConfig } from './config.loader';
 import { logger } from '@/lib/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { featureFlags } from '@/env';
+import { NeedAgentIQDebugger } from './NeedAgentIQDebugger';
+
+// FASE 6: Client-side security policy (mirrors edge function policy)
+const CLIENT_SECTION_POLICY: Record<string, {
+  allowSkills: boolean;
+  allowROI: boolean;
+  allowedServiceIds: string[];
+}> = {
+  section_1: {
+    allowSkills: false,
+    allowROI: false,
+    allowedServiceIds: ['appointment_booking']
+  },
+  section_2: {
+    allowSkills: false,
+    allowROI: false,
+    allowedServiceIds: ['appointment_booking', 'lead_qualification']
+  },
+  section_3: {
+    allowSkills: true,
+    allowROI: true,
+    allowedServiceIds: ['appointment_booking', 'lead_qualification', 'emergency_routing', 'payment_processing']
+  },
+  section_4: {
+    allowSkills: true,
+    allowROI: true,
+    allowedServiceIds: ['appointment_booking', 'lead_qualification', 'emergency_routing', 'payment_processing']
+  },
+  section_5: {
+    allowSkills: true,
+    allowROI: true,
+    allowedServiceIds: ['appointment_booking', 'lead_qualification', 'emergency_routing', 'payment_processing']
+  },
+  section_6: {
+    allowSkills: true,
+    allowROI: true,
+    allowedServiceIds: ['appointment_booking', 'lead_qualification', 'emergency_routing', 'payment_processing']
+  },
+  section_7: {
+    allowSkills: true,
+    allowROI: true,
+    allowedServiceIds: ['appointment_booking', 'lead_qualification', 'emergency_routing', 'payment_processing']
+  }
+};
 
 interface AuditEngineProps {
   industry: 'dental' | 'hvac';
@@ -128,6 +172,15 @@ export function AuditEngine({ industry }: AuditEngineProps) {
     const state = useAuditProgressStore.getState();
     const { vertical, answers, appendInsights, setIqError } = state;
     
+    // FASE 7: Start debug session
+    const startTime = Date.now();
+    const policy = CLIENT_SECTION_POLICY[currentSection?.id || 'section_1'] || CLIENT_SECTION_POLICY.section_3;
+    const mode = policy.allowSkills ? 'skills' : 'foundational';
+    
+    if (currentSection?.id) {
+      NeedAgentIQDebugger.startSession(currentSection.id, mode, policy);
+    }
+    
     console.log('🐛 DEBUG: triggerNeedAgentIQIfReady called:', {
       currentSectionId: currentSection?.id,
       hasCurrentSection: !!currentSection,
@@ -135,7 +188,10 @@ export function AuditEngine({ industry }: AuditEngineProps) {
       totalAnswers: Object.keys(answers).length,
       useRoiBrainNeedAgentIQ: featureFlags.shouldUseRoiBrainNeedAgentIQ(),
       shouldUseRoiBrain: featureFlags.shouldUseRoiBrain(),
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      debugMode: mode,
+      policy: policy
+    });
     });
     
     if (!currentSection) {
@@ -285,10 +341,75 @@ export function AuditEngine({ industry }: AuditEngineProps) {
         
         console.log('🐛 DEBUG: Enriched insights:', enrichedInsights);
         
-        appendInsights(currentSection.id, enrichedInsights);
+        // FASE 7: Log server response for debugging
+        const serverResponseTime = Date.now() - startTime;
+        if (currentSection?.id) {
+          NeedAgentIQDebugger.logServerResponse(currentSection.id, enrichedInsights, serverResponseTime);
+        }
+        
+        // FASE 6: Client-side security filter before appending insights
+        const policy = CLIENT_SECTION_POLICY[currentSection.id] || CLIENT_SECTION_POLICY.section_3;
+        const preFilterCount = enrichedInsights.length;
+        
+        const filteredInsights = enrichedInsights.filter(insight => {
+          const okSkill = policy.allowSkills ? true : !insight.skill?.id;
+          const okService = insight.skill?.id ? policy.allowedServiceIds.includes(insight.skill.id) : true;
+          const okROI = policy.allowROI ? true : (insight.monthlyImpactUsd || 0) === 0;
+          
+          const passed = okSkill && okService && okROI;
+          if (!passed) {
+            console.log('🚫 CLIENT FILTER: Insight blocked:', {
+              title: insight.title,
+              skillId: insight.skill?.id,
+              monthlyImpact: insight.monthlyImpactUsd,
+              sectionId: currentSection.id,
+              reasons: {
+                skill: !okSkill ? 'skills not allowed in this section' : 'ok',
+                service: !okService ? 'service not allowed in this section' : 'ok',
+                roi: !okROI ? 'ROI not allowed in this section' : 'ok'
+              }
+            });
+          }
+          
+          return passed;
+        });
+        
+        console.log('✅ CLIENT FILTER: Applied security policy:', {
+          sectionId: currentSection.id,
+          preFilter: preFilterCount,
+          postFilter: filteredInsights.length,
+          blocked: preFilterCount - filteredInsights.length,
+          policy: {
+            allowSkills: policy.allowSkills,
+            allowROI: policy.allowROI,
+            allowedServiceIds: policy.allowedServiceIds
+          }
+        });
+        
+        // FASE 7: Log client filtering for debugging
+        const blockedInsights = enrichedInsights.filter(insight => !filteredInsights.includes(insight));
+        if (currentSection?.id) {
+          NeedAgentIQDebugger.logClientFilter(currentSection.id, preFilterCount, filteredInsights.length, blockedInsights);
+        }
+        
+        appendInsights(currentSection.id, filteredInsights);
+        
+        // FASE 7: Complete debug session and generate summary in dev mode
+        const totalTime = Date.now() - startTime;
+        if (currentSection?.id) {
+          NeedAgentIQDebugger.completeSession(currentSection.id, totalTime);
+          
+          // Auto-generate summary in development
+          if (import.meta.env.DEV) {
+            NeedAgentIQDebugger.generateSummary(currentSection.id);
+          }
+        }
+        
         logger.event('needagentiq_request_success', { 
           sectionId: currentSection.id, 
-          insights: data.length 
+          insights: filteredInsights.length,
+          blocked: blockedInsights.length,
+          totalTimeMs: totalTime
         });
       } else {
         console.log('🐛 DEBUG: No insights returned or empty array:', {

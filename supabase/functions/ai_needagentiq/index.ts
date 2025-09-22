@@ -7,6 +7,49 @@ import { logger } from '../_shared/logger.ts';
 import { NeedAgentIQSimpleInputSchema, NeedAgentIQSimpleOutputSchema } from '../_shared/validation.ts';
 import { filterServicesByVertical, filterServicesByTags, validateKBSlice, type KBService, type KBSlice } from '../_shared/kb.ts';
 
+// FASE 2: Section Policy per differenziare comportamento tra sezioni
+const ALLOWED_BY_SECTION: Record<string, {
+  allowSkills: boolean;
+  allowROI: boolean;
+  allowedServiceIds: string[];
+}> = {
+  section_1: {
+    allowSkills: false,
+    allowROI: false,
+    allowedServiceIds: ['appointment_booking'] // Solo servizi foundazionali
+  },
+  section_2: {
+    allowSkills: false,
+    allowROI: false,
+    allowedServiceIds: ['appointment_booking', 'lead_qualification'] // Setup base
+  },
+  section_3: {
+    allowSkills: true,
+    allowROI: true,
+    allowedServiceIds: ['appointment_booking', 'lead_qualification', 'emergency_routing', 'payment_processing']
+  },
+  section_4: {
+    allowSkills: true,
+    allowROI: true,
+    allowedServiceIds: ['appointment_booking', 'lead_qualification', 'emergency_routing', 'payment_processing']
+  },
+  section_5: {
+    allowSkills: true,
+    allowROI: true,
+    allowedServiceIds: ['appointment_booking', 'lead_qualification', 'emergency_routing', 'payment_processing']
+  },
+  section_6: {
+    allowSkills: true,
+    allowROI: true,
+    allowedServiceIds: ['appointment_booking', 'lead_qualification', 'emergency_routing', 'payment_processing']
+  },
+  section_7: {
+    allowSkills: true,
+    allowROI: true,
+    allowedServiceIds: ['appointment_booking', 'lead_qualification', 'emergency_routing', 'payment_processing']
+  }
+};
+
 // Extended KB types for this function (includes additional fields from actual KB)
 interface ExtendedKBService extends KBService {
   id?: string;
@@ -346,70 +389,124 @@ serve(async (req) => {
       answersCount: Object.keys(answersSection).length
     });
 
-    // FASE 3: Deterministic Pipeline - Use voice skill mapping first
-    console.log('🔄 FASE 3: Starting deterministic signal extraction...');
+    // FASE 3: Determine section mode and policy
+    const policy = ALLOWED_BY_SECTION[sectionId] || ALLOWED_BY_SECTION.section_3; // Default fallback
+    const mode = policy.allowSkills ? 'skills' : 'foundational';
     
-    // Step 1: Extract signal tags from audit answers
-    const signalTags = extractSignalTags(answersSection, vertical as 'dental' | 'hvac');
-    console.log('📊 Signal tags extracted:', {
-      count: signalTags.length,
-      tags: signalTags
+    console.log('🎯 Section policy determined:', {
+      sectionId,
+      mode,
+      allowSkills: policy.allowSkills,
+      allowROI: policy.allowROI,
+      allowedServiceIds: policy.allowedServiceIds
     });
 
-    // Step 2: Map signal tags to skills with ROI calculations  
-    const baseInsights = mapSignalTagsToSkills(
-      signalTags,
-      moneyLostData, // Pass money lost data for accurate ROI calculations
-      vertical as 'dental' | 'hvac',
-      'medium' // Default business size
-    );
+    // FASE 3: Conditional Pipeline - Skip deterministic mapping for foundational mode
+    console.log('🔄 FASE 3: Starting conditional pipeline...');
     
-    console.log('💡 Base insights from deterministic mapping:', {
-      count: baseInsights.length,
-      insights: baseInsights.map(i => ({ key: i.key, title: i.title, monthlyImpact: i.monthlyImpactUsd }))
-    });
-
     let finalInsights: any[] = [];
 
-    if (baseInsights.length > 0) {
-      // Use deterministic insights - convert to NeedAgentIQ format
-      finalInsights = baseInsights.map(insight => ({
-        title: insight.title,
-        description: insight.description,
-        impact: insight.impact,
-        priority: insight.priority,
-        rationale: Array.isArray(insight.rationale) 
-          ? insight.rationale.slice(0, 5) 
-          : [],
-        category: insight.category,
-        key: insight.key,
-        monthlyImpactUsd: insight.monthlyImpactUsd,
-        skill: {
-          name: insight.title,
-          id: insight.skill?.id || ''
-        },
-        source: 'mapping'
-      }));
+    if (mode === 'skills') {
+      // SKILLS MODE: Use deterministic voice skill mapping
+      console.log('💪 SKILLS MODE: Running deterministic signal extraction...');
       
-      console.log('[ai_needagentiq] mapped_insights', finalInsights.length);
-      console.log('✅ Using deterministic insights:', {
-        source: 'voice_skill_mapping',
-        count: finalInsights.length,
-        totalMonthlyImpact: finalInsights.reduce((sum, i) => sum + i.monthlyImpactUsd, 0)
+      // Step 1: Extract signal tags from audit answers
+      const signalTags = extractSignalTags(answersSection, vertical as 'dental' | 'hvac');
+      console.log('📊 Signal tags extracted:', {
+        count: signalTags.length,
+        tags: signalTags
       });
+
+      // Step 2: Map signal tags to skills with ROI calculations  
+      const baseInsights = mapSignalTagsToSkills(
+        signalTags,
+        moneyLostData, // Pass money lost data for accurate ROI calculations
+        vertical as 'dental' | 'hvac',
+        'medium' // Default business size
+      );
       
+      console.log('💡 Base insights from deterministic mapping:', {
+        count: baseInsights.length,
+        insights: baseInsights.map(i => ({ key: i.key, title: i.title, monthlyImpact: i.monthlyImpactUsd }))
+      });
+
+      if (baseInsights.length > 0) {
+        // Use deterministic insights - convert to NeedAgentIQ format
+        finalInsights = baseInsights.map(insight => ({
+          title: insight.title,
+          description: insight.description,
+          impact: insight.impact,
+          priority: insight.priority,
+          rationale: Array.isArray(insight.rationale) 
+            ? insight.rationale.slice(0, 5) 
+            : [],
+          category: insight.category,
+          key: insight.key,
+          monthlyImpactUsd: insight.monthlyImpactUsd,
+          skill: {
+            name: insight.title,
+            id: insight.skill?.id || ''
+          },
+          source: 'mapping'
+        }));
+        
+        console.log('[ai_needagentiq] mapped_insights', finalInsights.length);
+      }
     } else {
-      // Fallback to AI enhancement when no deterministic mapping available
-      console.log('⚠️ No deterministic insights found, falling back to AI enhancement...');
+      // FOUNDATIONAL MODE: Skip deterministic mapping
+      console.log('🏗️ FOUNDATIONAL MODE: Skipping deterministic mapping, going direct to AI...');
+    }
+
+    // Fallback to AI enhancement when no insights are available or in foundational mode
+    if (finalInsights.length === 0 || mode === 'foundational') {
+      console.log('⚠️ Using AI enhancement fallback...');
       
-      const enhancedInsights = await enhanceWithAI(answersSection, vertical, sectionId, language, signalTags, moneyLostData);
+      const enhancedInsights = await enhanceWithAI(answersSection, vertical, sectionId, language, [], moneyLostData, mode, policy);
       finalInsights = enhancedInsights;
       
       console.log('🤖 AI enhanced insights:', {
         source: 'ai_enhanced',
         count: finalInsights.length
       });
+    } else {
+      console.log('✅ Using deterministic insights:', {
+        source: 'voice_skill_mapping',
+        count: finalInsights.length,
+        totalMonthlyImpact: finalInsights.reduce((sum, i) => sum + (i.monthlyImpactUsd || 0), 0)
+      });
     }
+
+    // FASE 4: Filter insights based on section policy
+    console.log('🔍 FASE 4: Applying section policy filter...');
+    const preFilterCount = finalInsights.length;
+    
+    finalInsights = finalInsights.filter(insight => {
+      const okSkill = policy.allowSkills ? true : !insight.skill?.id;
+      const okService = insight.skill?.id ? policy.allowedServiceIds.includes(insight.skill.id) : true;
+      const okROI = policy.allowROI ? true : (insight.monthlyImpactUsd || 0) === 0;
+      
+      const passed = okSkill && okService && okROI;
+      if (!passed) {
+        console.log('🚫 Filtered out insight:', {
+          title: insight.title,
+          skillId: insight.skill?.id,
+          monthlyImpact: insight.monthlyImpactUsd,
+          reasons: {
+            skill: !okSkill ? 'skills not allowed in this section' : 'ok',
+            service: !okService ? 'service not allowed in this section' : 'ok',
+            roi: !okROI ? 'ROI not allowed in this section' : 'ok'
+          }
+        });
+      }
+      
+      return passed;
+    });
+    
+    console.log('✅ Policy filter applied:', {
+      preFilter: preFilterCount,
+      postFilter: finalInsights.length,
+      filtered: preFilterCount - finalInsights.length
+    });
 
     const processingTime = Date.now() - startTime;
 
@@ -449,7 +546,9 @@ async function enhanceWithAI(
   sectionId: string,
   language: string,
   signalTags: string[] = [],
-  moneyLost: any = {}
+  moneyLost: any = {},
+  mode: string = 'skills',
+  policy: any = null
 ): Promise<any[]> {
   const startTime = Date.now();
   
@@ -528,11 +627,32 @@ async function enhanceWithAI(
       approvedClaims: claimsTop
     };
     
-    // Enhanced system prompt with KB grounding
+    // Enhanced system prompt with KB grounding and mode-specific instructions
     const basePrompt = Deno.env.get('NEEDAGENT_IQ_SYSTEM_PROMPT') ?? '';
+    const modeInstructions = mode === 'foundational' 
+      ? `
+FOUNDATIONAL MODE (Sections 1-2):
+- DO NOT assign specific voice skills or operational ROI estimates
+- Focus on foundational business insights like web presence, basic CRM, contact methods
+- Set monthlyImpactUsd to 0 for all insights
+- Use only basic services from allowedServiceIds: ${policy?.allowedServiceIds?.join(', ') || 'none'}
+- source must be "foundational"`
+      : `
+SKILLS MODE (Sections 3-7):
+- Generate operational insights with specific voice skills and ROI calculations
+- Limit to maximum 2 skills per section
+- Use only services from allowedServiceIds: ${policy?.allowedServiceIds?.join(', ') || 'all'}
+- Calculate realistic monthlyImpactUsd based on money lost data
+- source must be "kb-fallback"`;
+
     const systemPrompt = `${basePrompt}
 
 LANGUAGE INSTRUCTIONS:
+${language === 'it' ? 'Respond in Italian' : 'Respond in English'}
+
+${modeInstructions}
+
+KB-GROUNDED CONTEXT:
 - Respond in ${language === 'it' ? 'Italian' : 'English'}
 - Use professional terminology appropriate for ${vertical} business contexts
 

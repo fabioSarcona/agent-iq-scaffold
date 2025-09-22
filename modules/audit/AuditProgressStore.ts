@@ -389,7 +389,10 @@ export const useAuditProgressStore = create<AuditProgressState>()(
           });
           
           return {
-            insightsBySection: newInsightsBySection,
+            insightsBySection: {
+              ...state.insightsBySection,  // Preserva insights sezioni precedenti
+              ...newInsightsBySection      // Aggiunge nuovi insights
+            },
             insights: merged, // No cap - store keeps full history
             lastEmittedKeys: [...state.lastEmittedKeys, ...roiBrainInsights.map(i => i.key)]
           };

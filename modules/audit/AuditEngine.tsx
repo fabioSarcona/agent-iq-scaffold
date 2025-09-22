@@ -38,40 +38,40 @@ const CLIENT_SECTION_POLICY: Record<string, {
   allowROI: boolean;
   allowedServiceIds: string[];
 }> = {
-  section_1: {
+  practice_profile: {
     allowSkills: false,
     allowROI: false,
     allowedServiceIds: ['appointment_booking']
   },
-  section_2: {
+  financial_overview: {
     allowSkills: false,
     allowROI: false,
     allowedServiceIds: ['appointment_booking', 'lead_qualification']
   },
-  section_3: {
+  call_handling_conversion: {
     allowSkills: true,
     allowROI: true,
     allowedServiceIds: ['appointment_booking', 'lead_qualification', 'emergency_routing', 'payment_processing']
   },
-  section_4: {
+  scheduling_no_shows: {
     allowSkills: true,
     allowROI: true,
     allowedServiceIds: ['appointment_booking', 'lead_qualification', 'emergency_routing', 'payment_processing']
   },
-  section_5: {
+  treatment_plan_conversion: {
     allowSkills: true,
     allowROI: true,
     allowedServiceIds: ['appointment_booking', 'lead_qualification', 'emergency_routing', 'payment_processing']
   },
-  section_6: {
+  patient_retention_recall: {
     allowSkills: true,
     allowROI: true,
     allowedServiceIds: ['appointment_booking', 'lead_qualification', 'emergency_routing', 'payment_processing']
   },
-  section_7: {
-    allowSkills: true,
-    allowROI: true,
-    allowedServiceIds: ['appointment_booking', 'lead_qualification', 'emergency_routing', 'payment_processing']
+  reviews_reputation: {
+    allowSkills: false,
+    allowROI: false,
+    allowedServiceIds: ['appointment_booking']
   }
 };
 

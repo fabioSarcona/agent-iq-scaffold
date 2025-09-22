@@ -2,89 +2,25 @@
   {
     "id": "appointment_booking",
     "name": "Smart Appointment Booking",
-    "target": "Both",
-    "description": "AI-powered appointment scheduling with intelligent availability management",
-    "problem": "Manual scheduling leads to double bookings, missed opportunities, and poor customer experience",
-    "how": "Automated scheduling with calendar integration, availability optimization, and confirmation management",
-    "roiRangeMonthly": [2000, 4000],
-    "tags": ["no_online_booking", "scheduling", "automation"],
-    "areaId": "missed_calls"
+    "vertical": "Both",
+    "description": "AI-powered appointment scheduling with intelligent availability management"
   },
   {
     "id": "lead_qualification", 
     "name": "Intelligent Lead Qualification",
-    "target": "Both",
-    "description": "Automated lead scoring and qualification based on conversation analysis",
-    "problem": "Sales team wastes time on unqualified leads while high-value prospects slip through",
-    "how": "AI analyzes conversations to score leads, routes qualified prospects to sales team automatically",
-    "roiRangeMonthly": [3000, 6000],
-    "tags": ["lead_conversion", "sales", "qualification"],
-    "areaId": "treatment_plans"
+    "vertical": "Both",
+    "description": "Automated lead scoring and qualification based on conversation analysis"
   },
   {
     "id": "emergency_routing",
     "name": "Emergency Call Routing", 
-    "target": "Both",
-    "description": "Smart routing of urgent calls to appropriate staff members",
-    "problem": "Emergency calls get mixed with routine inquiries, causing delays in critical situations",
-    "how": "AI identifies urgent calls and routes them directly to on-call staff with escalation protocols",
-    "roiRangeMonthly": [1500, 3000],
-    "tags": ["missed_calls_high", "emergency", "routing"],
-    "areaId": "missed_calls"
+    "vertical": "Both",
+    "description": "Smart routing of urgent calls to appropriate staff members"
   },
   {
     "id": "payment_processing",
     "name": "Voice Payment Processing",
-    "target": "Both", 
-    "description": "Secure payment collection through conversational interface",
-    "problem": "Manual payment processing creates friction and delays in treatment acceptance",
-    "how": "AI handles payment discussions, presents financing options, and processes payments securely",
-    "roiRangeMonthly": [4000, 8000],
-    "tags": ["treatment_conversion_low", "payment", "financing"],
-    "areaId": "treatment_plans"
-  },
-  {
-    "id": "no_show_prevention",
-    "name": "No-Show Prevention Agent",
-    "target": "Dental",
-    "description": "AI agent that prevents no-shows with voice reminders and waitlist management",
-    "problem": "No-shows cost practices thousands in lost revenue and disrupt daily operations",
-    "how": "Proactive voice reminders, flexible rescheduling, and intelligent waitlist management",
-    "roiRangeMonthly": [3000, 5000],
-    "tags": ["no_shows_high", "no_shows_critical", "scheduling"],
-    "areaId": "no_shows"
-  },
-  {
-    "id": "treatment_plan_closer",
-    "name": "Treatment Plan Closer Agent",
-    "target": "Dental",
-    "description": "AI agent specialized in closing pending treatment plans with payment options",
-    "problem": "Cold treatment plans represent thousands in unrealized revenue sitting on the books",
-    "how": "Systematic follow-up on pending plans with financing options and objection handling",
-    "roiRangeMonthly": [10000, 20000],
-    "tags": ["treatment_plans_high", "treatment_conversion_low", "sales"],
-    "areaId": "treatment_plans"
-  },
-  {
-    "id": "hvac_emergency_dispatch",
-    "name": "Emergency Dispatch Agent",
-    "target": "HVAC",
-    "description": "AI agent that handles HVAC calls 24/7, filters emergencies, and dispatches jobs",
-    "problem": "After-hours emergencies generate the highest revenue but often go unanswered",
-    "how": "24/7 call handling with emergency detection, immediate dispatch, and customer updates",
-    "roiRangeMonthly": [4000, 8000],
-    "tags": ["missed_calls_high", "emergency", "dispatch"],
-    "areaId": "missed_calls"
-  },
-  {
-    "id": "quote_follow_up",
-    "name": "Quote Follow-Up Agent",
-    "target": "HVAC",
-    "description": "AI agent that follows up on HVAC quotes, handles objections, and closes deals",
-    "problem": "Most quotes die in follow-up, leaving thousands in potential revenue uncaptured",
-    "how": "Systematic quote follow-up with objection handling and competitive positioning",
-    "roiRangeMonthly": [6000, 10000],
-    "tags": ["quotes_pending_high", "quote_conversion_low", "sales"],
-    "areaId": "quotes"
+    "vertical": "Both", 
+    "description": "Secure payment collection through conversational interface"
   }
 ]

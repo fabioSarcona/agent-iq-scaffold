@@ -44,16 +44,16 @@ async function loadKBData() {
     pricingText,
     aiTechnologyText
   ] = await Promise.all([
-    Deno.readTextFile('./kb/approved_claims.json'),
-    Deno.readTextFile('./kb/services.json'),
-    Deno.readTextFile('./kb/voice_skills.json'),
-    Deno.readTextFile('./kb/pain_points.json'),
-    Deno.readTextFile('./kb/brand.json'),
-    Deno.readTextFile('./kb/external_sources.json'),
-    Deno.readTextFile('./kb/response_models.json'),
-    Deno.readTextFile('./kb/faq.json'),
-    Deno.readTextFile('./kb/pricing.json'),
-    Deno.readTextFile('./kb/ai_technology.json')
+    Deno.readTextFile('../_shared/kb/approved_claims.json'),
+    Deno.readTextFile('../_shared/kb/services.json'),
+    Deno.readTextFile('../_shared/kb/voice_skills.json'),
+    Deno.readTextFile('../_shared/kb/pain_points.json'),
+    Deno.readTextFile('../_shared/kb/brand.json'),
+    Deno.readTextFile('../_shared/kb/external_sources.json'),
+    Deno.readTextFile('../_shared/kb/response_models.json'),
+    Deno.readTextFile('../_shared/kb/faq.json'),
+    Deno.readTextFile('../_shared/kb/pricing.json'),
+    Deno.readTextFile('../_shared/kb/ai_technology.json')
   ]);
 
   return {

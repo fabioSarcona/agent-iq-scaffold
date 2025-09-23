@@ -3,8 +3,7 @@
 
 import type { BusinessContextNormalized, BusinessIntelligence } from './businessExtractor.ts';
 import type { KBPayload } from '../_shared/kb/types.ts';
-import { painPoints } from '../_shared/kb.ts';
-import { getSkillsByTarget } from '../_shared/kb.ts';
+import { getPainPointsByVertical, getSkillsByTarget } from '../_shared/kb/index.ts';
 
 // Prompt Version for cache invalidation
 export const PROMPT_VERSION = '2024-01-ROI-v2.0';
@@ -15,10 +14,16 @@ export const PROMPT_VERSION = '2024-01-ROI-v2.0';
  * @param intelligence - Extracted business intelligence
  * @returns Formatted business context string for AI prompt
  */
-export function generateContextualPrompt(
+export async function generateContextualPrompt(
   context: BusinessContextNormalized, 
   intelligence: BusinessIntelligence
-): string {
+): Promise<string> {
+  const { vertical, moneyLostSummary } = context;
+  const { businessSize, urgencyLevel, primaryPainPoints, technicalReadiness, implementationComplexity } = intelligence;
+
+  // Load KB data asynchronously
+  const painPoints = await getPainPointsByVertical(vertical);
+  const skills = await getSkillsByTarget(vertical === 'dental' ? 'Dental' : 'HVAC');
   const { vertical, moneyLostSummary } = context;
   const { businessSize, urgencyLevel, primaryPainPoints, technicalReadiness, implementationComplexity } = intelligence;
 
@@ -27,7 +32,7 @@ export function generateContextualPrompt(
   const areas = moneyLostSummary?.areas ?? [];
   const topAreas = areas.slice(0, 3);
 
-  return `
+   return `
 BUSINESS ANALYSIS CONTEXT:
 - Vertical: ${vertical.toUpperCase()}
 - Size: ${businessSize} (${businessSize === 'small' ? '<3 staff' : businessSize === 'large' ? '>8 staff' : '3-8 staff'})
@@ -60,12 +65,12 @@ VOICE SKILL CROSS-VALIDATION AND ENRICHMENT:
 For each identified business pain point, you must cross-validate it against the deterministic Voice Skill mapping system:
 
 1. PAIN POINT VALIDATION:
-   - Only use predefined pain points from the approved knowledge base (${vertical}: ${JSON.stringify(painPoints[vertical].map(p => ({id: p.id, title: p.title, monthlyImpact: p.monthlyImpact})), null, 2)})
+   - Only use predefined pain points from the approved knowledge base (${vertical}: ${JSON.stringify(painPoints.map(p => ({id: p.id, title: p.title, monthlyImpact: p.monthlyImpact})), null, 2)})
    - Match detected problems to existing painPointIds using semantic similarity
    - If no exact match exists, map to the closest relevant pain point with clear justification
 
 2. SKILL RECOMMENDATION VALIDATION:
-   - Use ONLY Voice Skills from the official knowledge base: ${JSON.stringify(getSkillsByTarget(vertical).map(s => ({name: s.name, painPoint: s.painPoint, estimatedROI: s.estimatedROI, target: s.target})), null, 2)}
+   - Use ONLY Voice Skills from the official knowledge base: ${JSON.stringify(skills.map(s => ({name: s.name, painPoint: s.painPoint, estimatedROI: s.estimatedROI, target: s.target})), null, 2)}
    - Cross-reference with the deterministic mappings already established in the system
    - Validate that recommended skills match the business vertical (${vertical})
    - Ensure skill-to-pain point relationships are logical and well-founded

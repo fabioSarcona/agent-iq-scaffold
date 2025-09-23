@@ -1,0 +1,81 @@
+{
+  "purpose": "Frequently asked questions and responses organized by industry and category",
+  "dental": [
+    {
+      "id": "dental-integration-pms",
+      "question": "We already use OpenDental/Dentrix. Can this integrate?",
+      "answer": "Yes, fully compatible with all major PMS platforms including OpenDental, Dentrix, Eaglesoft, and others. We also integrate via Make.com/N8N for custom workflows.",
+      "category": "integration",
+      "tags": ["PMS", "OpenDental", "Dentrix", "integration"],
+      "priority": "high",
+      "industry": "dental"
+    },
+    {
+      "id": "dental-not-chatbot",
+      "question": "Is this just another chatbot?",
+      "answer": "No. Our Voice AI Agents sound completely natural, handle complex objections, and follow intelligent conversational flows - not rigid IVR menus. Patients often don't realize they're speaking with AI.",
+      "category": "competitive",
+      "tags": ["chatbot", "voice quality", "natural conversation"],
+      "priority": "high",
+      "industry": "dental"
+    },
+    {
+      "id": "dental-hipaa-compliance",
+      "question": "Is this HIPAA compliant for patient information?",
+      "answer": "Yes, all systems are HIPAA compliant with enterprise-grade encryption, secure data handling, and proper BAA agreements. Patient data never leaves secure, compliant servers.",
+      "category": "compliance",
+      "tags": ["HIPAA", "security", "compliance"],
+      "priority": "high",
+      "industry": "dental"
+    }
+  ],
+  "hvac": [
+    {
+      "id": "hvac-emergency-handling",
+      "question": "Can it handle true emergency calls at 2 AM?",
+      "answer": "Absolutely. Our Emergency Management Agent operates 24/7, instantly routes urgent calls to on-call technicians, and follows your exact emergency protocols.",
+      "category": "implementation",
+      "tags": ["emergency", "24/7", "routing"],
+      "priority": "high",
+      "industry": "hvac"
+    },
+    {
+      "id": "hvac-crm-integration",
+      "question": "We use ServiceTitan/HouseCallPro. Will it sync?",
+      "answer": "Yes, we integrate with all major HVAC software including ServiceTitan, HouseCallPro, FieldEdge, and others. Appointments, customer data, and job details sync automatically.",
+      "category": "integration",
+      "tags": ["ServiceTitan", "HouseCallPro", "integration"],
+      "priority": "high",
+      "industry": "hvac"
+    },
+    {
+      "id": "hvac-seasonal-scaling",
+      "question": "Can it handle seasonal call volume spikes?",
+      "answer": "Yes, our system automatically scales during peak seasons. No busy signals, no missed emergency calls, and no need to hire seasonal staff.",
+      "category": "implementation",
+      "tags": ["seasonal", "scaling", "peak volume"],
+      "priority": "medium",
+      "industry": "hvac"
+    }
+  ],
+  "general": [
+    {
+      "id": "general-setup-time",
+      "question": "How long does setup take?",
+      "answer": "Most implementations are completed within 2-4 weeks. We handle all the technical setup while you focus on running your business.",
+      "category": "implementation",
+      "tags": ["setup", "timeline", "implementation"],
+      "priority": "high",
+      "industry": "general"
+    },
+    {
+      "id": "general-pricing-model",
+      "question": "What's the pricing structure?",
+      "answer": "We offer transparent monthly plans starting at $199/month per Voice Agent. No hidden fees, no per-call charges. ROI typically covers costs within 30-60 days.",
+      "category": "pricing",
+      "tags": ["pricing", "cost", "ROI"],
+      "priority": "high",
+      "industry": "general"
+    }
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "purpose": "Provides pre-approved response models for audits, sales calls, follow-ups, and solution presentations",
+  "ctaPhrases": [
+    {
+      "id": "cta-001",
+      "content": "Let's uncover where your business is leaking revenue.",
+      "category": "cta",
+      "urgency": "medium",
+      "tags": ["revenue", "discovery"]
+    },
+    {
+      "id": "cta-002",
+      "content": "Start your free AI-readiness audit now.",
+      "category": "cta",
+      "urgency": "low",
+      "tags": ["audit", "free"]
+    },
+    {
+      "id": "cta-003",
+      "content": "See exactly how much you're losing to missed opportunities.",
+      "category": "cta",
+      "urgency": "high",
+      "tags": ["loss", "opportunity"]
+    }
+  ],
+  "insightExamples": [
+    {
+      "id": "insight-001",
+      "content": "Your practice is missing 15-20 calls per month during peak hours. This represents $3,000-$5,000 in lost revenue monthly.",
+      "category": "insight",
+      "type": "needagentiq",
+      "vertical": "dental"
+    },
+    {
+      "id": "insight-002", 
+      "content": "Emergency response delays are costing you premium rates on 8-12 jobs monthly, representing $8,000-$15,000 in lost revenue.",
+      "category": "insight",
+      "type": "needagentiq",
+      "vertical": "hvac"
+    }
+  ],
+  "followUpPrompts": [
+    {
+      "id": "followup-001",
+      "content": "Based on your audit results, you have significant revenue recovery potential. Would you like to see a personalized implementation plan?",
+      "category": "follow-up",
+      "type": "inactive-users",
+      "timing": "immediate"
+    },
+    {
+      "id": "followup-002",
+      "content": "I understand you might need time to review. Can I schedule a brief 15-minute call to answer any questions about the Voice AI recommendations?",
+      "category": "follow-up",
+      "type": "need-time",
+      "timing": "delayed"
+    }
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "dental": [
+    {
+      "name": "Reception 24/7 Agent",
+      "painPoint": "Missed after-hours calls & repetitive questions", 
+      "howItWorks": "Answers 24/7, provides info (hours, pricing, availability), sends WhatsApp estimates, books visits",
+      "estimatedROI": "Recovers 15–30 calls/month = +$3,000–$7,000",
+      "monthlyPrice": 199,
+      "includedIn": ["Elite Impact"],
+      "target": "Dental"
+    },
+    {
+      "name": "Treatment Plan Closer Agent",
+      "painPoint": "Unaccepted treatment plan follow-up",
+      "howItWorks": "Schedules treatment plans, follows up on commitments, and manages patient concerns", 
+      "estimatedROI": "+25% acceptance = +$6,000–$12,000/month",
+      "monthlyPrice": 199,
+      "includedIn": ["Elite Impact"],
+      "target": "Dental"
+    }
+  ],
+  "hvac": [
+    {
+      "name": "Reception 24/7 Agent",
+      "painPoint": "Missed service calls & after-hours emergencies",
+      "howItWorks": "24/7 call handling, emergency triage, appointment scheduling, and customer service",
+      "estimatedROI": "Captures 20+ missed calls/month = +$5,000–$15,000", 
+      "monthlyPrice": 299,
+      "includedIn": ["Elite Impact"],
+      "target": "HVAC"
+    },
+    {
+      "name": "Quote Follow-Up Agent", 
+      "painPoint": "Cold leads & unclosed estimates",
+      "howItWorks": "Systematic follow-up on pending quotes with decision assistance",
+      "estimatedROI": "+20% quote closure = +$4,000–$12,000/month",
+      "monthlyPrice": 199,
+      "includedIn": ["Elite Impact"],
+      "target": "HVAC"
+    }
+  ]
+}

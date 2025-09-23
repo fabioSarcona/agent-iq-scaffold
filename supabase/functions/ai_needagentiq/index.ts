@@ -389,13 +389,13 @@ serve(async (req) => {
     // Parse and validate input
     const body = await req.json();
     console.log('📋 Body received:', JSON.stringify(body).slice(0, 200));
-    const { vertical, sectionId, answersSection, language = 'en', moneyLostData = {} } = NeedAgentIQSimpleInputSchema.parse(body);
+    const { vertical, sectionId, answers, language = 'en', moneyLostData = {} } = NeedAgentIQSimpleInputSchema.parse(body);
     console.log('✅ Input validated successfully');
 
     logger.info('Processing NeedAgentIQ request', { 
       sectionId, 
       vertical,
-      answersCount: Object.keys(answersSection).length
+      answersCount: Object.keys(answers).length
     });
 
     // FASE 3: Determine section mode and policy
@@ -422,7 +422,7 @@ serve(async (req) => {
       console.log('💪 SKILLS MODE: Running deterministic signal extraction...');
       
       // Step 1: Extract signal tags from audit answers
-      const signalTags = extractSignalTags(answersSection, vertical as 'dental' | 'hvac');
+      const signalTags = extractSignalTags(answers, vertical as 'dental' | 'hvac');
       console.log('📊 Signal tags extracted:', {
         count: signalTags.length,
         tags: signalTags
@@ -472,7 +472,7 @@ serve(async (req) => {
     if (finalInsights.length === 0 || mode === 'foundational') {
       console.log('⚠️ Using AI enhancement fallback...');
       
-      const enhancedInsights = await enhanceWithAI(answersSection, vertical, sectionId, language, [], moneyLostData, mode, policy);
+      const enhancedInsights = await enhanceWithAI(answers, vertical, sectionId, language, [], moneyLostData, mode, policy);
       finalInsights = enhancedInsights;
       
       console.log('🤖 AI enhanced insights:', {
@@ -552,7 +552,7 @@ serve(async (req) => {
  * AI Enhancement fallback with KB-aware scoring (PLAN C ENHANCED)
  */
 async function enhanceWithAI(
-  answersSection: Record<string, unknown>,
+  answers: Record<string, unknown>,
   vertical: string, 
   sectionId: string,
   language: string,
@@ -568,8 +568,8 @@ async function enhanceWithAI(
     console.log('🔧 Loading KB data for enhanced fallback...');
     
     const [approvedClaimsText, servicesText] = await Promise.all([
-      Deno.readTextFile('./kb/approved_claims.json'),
-      Deno.readTextFile('./kb/services.json')
+      Deno.readTextFile('../_shared/kb/approved_claims.json'),
+      Deno.readTextFile('../_shared/kb/services.json')
     ]);
     
     // Validate KB slice using shared helper
@@ -668,7 +668,7 @@ KB-GROUNDED CONTEXT:
 - Use professional terminology appropriate for ${vertical} business contexts
 
 KB-GROUNDED CONTEXT:
-Available AI Services for ${target}:
+Available AI Services for ${vertical}:
 ${servicesForPrompt.map(s => `- ${s.id}: ${s.name} (Area: ${s.areaId}, Problem: ${s.problem})`).join('\n')}
 
 Approved Claims to Reference:
@@ -714,7 +714,7 @@ CONTEXT:
 ${JSON.stringify(grounding, null, 2)}
 
 AUDIT ANSWERS:
-${JSON.stringify({ sectionId, answersSection }, null, 2)}
+${JSON.stringify({ sectionId, answers }, null, 2)}
 
 Generate insights using ONLY the provided services and claims:`;
 

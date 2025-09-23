@@ -805,8 +805,8 @@ Generate insights using ONLY the provided services and claims:`;
     // KB-aware emergency fallback - use top ranked service if available
     try {
       const [approvedClaimsText, servicesText] = await Promise.all([
-        Deno.readTextFile('./kb/approved_claims.json'),
-        Deno.readTextFile('./kb/services.json')
+        Deno.readTextFile('../_shared/kb/approved_claims.json'),
+        Deno.readTextFile('../_shared/kb/services.json')
       ]);
       
       const allServices: ExtendedKBService[] = JSON.parse(servicesText);

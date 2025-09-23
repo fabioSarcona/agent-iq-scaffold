@@ -400,7 +400,7 @@ serve(async (req) => {
 
     // FASE 3: Determine section mode and policy
     const fallbackSectionId = Object.keys(ALLOWED_BY_SECTION)[0] || 'practice_profile';
-    const policy = ALLOWED_BY_SECTION[sectionId] || ALLOWED_BY_SECTION[fallbackSectionId]; // Default fallback
+    const policy = ALLOWED_BY_SECTION[sectionId] || ALLOWED_BY_SECTION[fallbackSectionId] || { mode: 'foundational', allowSkills: false, allowROI: false }; // Null-safe fallback
     const mode = policy.mode || (policy.allowSkills ? 'skills' : 'foundational');
     
     console.log('🎯 Section policy determined:', {

@@ -24,8 +24,6 @@ export async function generateContextualPrompt(
   // Load KB data asynchronously
   const painPoints = await getPainPointsByVertical(vertical);
   const skills = await getSkillsByTarget(vertical === 'dental' ? 'Dental' : 'HVAC');
-  const { vertical, moneyLostSummary } = context;
-  const { businessSize, urgencyLevel, primaryPainPoints, technicalReadiness, implementationComplexity } = intelligence;
 
   // Null-safe access to moneyLostSummary
   const totalLoss = moneyLostSummary?.total?.monthlyUsd ?? 30000;

@@ -44,16 +44,16 @@ async function loadKBData() {
     pricingText,
     aiTechnologyText
   ] = await Promise.all([
-    Deno.readTextFile('./approved_claims.json'),
-    Deno.readTextFile('./services.json'),
-    Deno.readTextFile('./voice_skills.json'),
-    Deno.readTextFile('./pain_points.json'),
-    Deno.readTextFile('./brand.json'),
-    Deno.readTextFile('./external_sources.json'),
-    Deno.readTextFile('./response_models.json'),
-    Deno.readTextFile('./faq.json'),
-    Deno.readTextFile('./pricing.json'),
-    Deno.readTextFile('./ai_technology.json')
+    Deno.readTextFile(new URL('./approved_claims.json', import.meta.url)),
+    Deno.readTextFile(new URL('./services.json', import.meta.url)),
+    Deno.readTextFile(new URL('./voice_skills.json', import.meta.url)),
+    Deno.readTextFile(new URL('./pain_points.json', import.meta.url)),
+    Deno.readTextFile(new URL('./brand.json', import.meta.url)),
+    Deno.readTextFile(new URL('./external_sources.json', import.meta.url)),
+    Deno.readTextFile(new URL('./response_models.json', import.meta.url)),
+    Deno.readTextFile(new URL('./faq.json', import.meta.url)),
+    Deno.readTextFile(new URL('./pricing.json', import.meta.url)),
+    Deno.readTextFile(new URL('./ai_technology.json', import.meta.url))
   ]);
 
   return {

@@ -51,8 +51,8 @@ async function getCachedKB(): Promise<{ approved_claims: string[], services: any
   
   try {
     const [claimsText, servicesText] = await Promise.all([
-      Deno.readTextFile('../_shared/kb/approved_claims.json'),
-      Deno.readTextFile('../_shared/kb/services.json')
+      Deno.readTextFile(new URL('../_shared/kb/approved_claims.json', import.meta.url)),
+      Deno.readTextFile(new URL('../_shared/kb/services.json', import.meta.url))
     ]);
     
     kbCache = {

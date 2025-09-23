@@ -44,16 +44,16 @@ async function loadKBData() {
     pricingText,
     aiTechnologyText
   ] = await Promise.all([
-    Deno.readTextFile('../_shared/kb/approved_claims.json'),
-    Deno.readTextFile('../_shared/kb/services.json'),
-    Deno.readTextFile('../_shared/kb/voice_skills.json'),
-    Deno.readTextFile('../_shared/kb/pain_points.json'),
-    Deno.readTextFile('../_shared/kb/brand.json'),
-    Deno.readTextFile('../_shared/kb/external_sources.json'),
-    Deno.readTextFile('../_shared/kb/response_models.json'),
-    Deno.readTextFile('../_shared/kb/faq.json'),
-    Deno.readTextFile('../_shared/kb/pricing.json'),
-    Deno.readTextFile('../_shared/kb/ai_technology.json')
+    Deno.readTextFile(new URL('../_shared/kb/approved_claims.json', import.meta.url)),
+    Deno.readTextFile(new URL('../_shared/kb/services.json', import.meta.url)),
+    Deno.readTextFile(new URL('../_shared/kb/voice_skills.json', import.meta.url)),
+    Deno.readTextFile(new URL('../_shared/kb/pain_points.json', import.meta.url)),
+    Deno.readTextFile(new URL('../_shared/kb/brand.json', import.meta.url)),
+    Deno.readTextFile(new URL('../_shared/kb/external_sources.json', import.meta.url)),
+    Deno.readTextFile(new URL('../_shared/kb/response_models.json', import.meta.url)),
+    Deno.readTextFile(new URL('../_shared/kb/faq.json', import.meta.url)),
+    Deno.readTextFile(new URL('../_shared/kb/pricing.json', import.meta.url)),
+    Deno.readTextFile(new URL('../_shared/kb/ai_technology.json', import.meta.url))
   ]);
 
   return {

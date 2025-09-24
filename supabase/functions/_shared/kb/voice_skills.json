@@ -2,113 +2,23 @@
   "dental": [
     {
       "name": "Reception 24/7 Agent",
-      "painPoint": "Missed after-hours calls & repetitive questions",
-      "howItWorks": "Answers 24/7, provides info (hours, pricing, availability), sends WhatsApp estimates, books visits",
-      "estimatedROI": "Recovers 15–30 calls/month = +$3,000–$7,000",
-      "monthlyPrice": 199,
-      "includedIn": ["Elite Impact"],
-      "target": "Dental"
-    },
-    {
-      "name": "Review Booster Agent", 
-      "painPoint": "Few reviews, rating <4.5★",
-      "howItWorks": "Contacts happy patients post-visit, guides to Google review; routes negatives to support",
-      "estimatedROI": "+1★ = +5–9% revenue (~$4,000/month)",
-      "monthlyPrice": 199,
-      "includedIn": ["Elite Impact"],
-      "target": "Dental"
-    },
-    {
-      "name": "Recall & Reactivation Agent",
-      "painPoint": "Inactive patients & missed recalls", 
-      "howItWorks": "Sends voice/WhatsApp messages to patients inactive for 6+ months",
-      "estimatedROI": "+20% reactivated = +$5,000–$10,000/month",
-      "monthlyPrice": 199,
-      "includedIn": ["Elite Impact"],
-      "target": "Dental"
-    },
-    {
-      "name": "Follow-Up Agent",
-      "painPoint": "Unconfirmed treatments or quotes",
-      "howItWorks": "Automatically follows up with patients holding treatment plans or estimates",
-      "estimatedROI": "+30% confirmed = +$8,000/month",
-      "monthlyPrice": 199, 
-      "includedIn": ["Elite Impact"],
-      "target": "Dental"
-    },
-    {
-      "name": "Prevention & No-Show Agent",
-      "painPoint": "Forgotten appointments & no-shows",
-      "howItWorks": "Voice reminders + waitlist management to fill empty slots",
-      "estimatedROI": "-60% no-shows = +$3,000/month",
-      "monthlyPrice": 199,
-      "includedIn": ["Elite Impact"], 
-      "target": "Dental"
-    },
-    {
-      "name": "Treatment Plan Closer Agent",
-      "painPoint": "Unaccepted treatment plan follow-up",
-      "howItWorks": "Schedules treatment plans, follows up on commitments, and manages patient concerns",
-      "estimatedROI": "+25% acceptance = +$6,000–$12,000/month",
-      "monthlyPrice": 199,
-      "includedIn": ["Elite Impact"],
-      "target": "Dental"
+      "target": "Dental",
+      "painPoint": "Missed calls during lunch breaks, after hours, and busy periods",
+      "howItWorks": "AI agent answers all calls with natural conversation, books appointments, and handles basic inquiries 24/7",
+      "estimatedROI": "$3,000-8,000/month",
+      "monthlyPrice": 297,
+      "includedIn": ["Growth Performance", "Elite Impact"]
     }
   ],
   "hvac": [
     {
-      "name": "Reception 24/7 Agent",
-      "painPoint": "Missed service calls & after-hours emergencies",
-      "howItWorks": "24/7 call handling, emergency triage, appointment scheduling, and customer service",
-      "estimatedROI": "Captures 20+ missed calls/month = +$5,000–$15,000",
-      "monthlyPrice": 299,
-      "includedIn": ["Elite Impact"],
-      "target": "HVAC"
-    },
-    {
-      "name": "Emergency Management Agent",
-      "painPoint": "Emergency response delays & missed urgent calls",
-      "howItWorks": "Instant emergency call routing, technician dispatch, and customer status updates",
-      "estimatedROI": "+15 emergency jobs/month = +$8,000–$20,000",
-      "monthlyPrice": 399,
-      "includedIn": ["Elite Impact"],
-      "target": "HVAC"
-    },
-    {
-      "name": "Quote Follow-Up Agent",
-      "painPoint": "Cold leads & unclosed estimates",
-      "howItWorks": "Systematic follow-up on pending quotes with decision assistance",
-      "estimatedROI": "+20% quote closure = +$4,000–$12,000/month",
-      "monthlyPrice": 199,
-      "includedIn": ["Elite Impact"],
-      "target": "HVAC"
-    },
-    {
-      "name": "Maintenance Contract Closer",
-      "painPoint": "Low maintenance agreement enrollment",
-      "howItWorks": "Proactive outreach to existing customers for service agreements",
-      "estimatedROI": "+30 contracts/month = +$6,000–$18,000",
-      "monthlyPrice": 299,
-      "includedIn": ["Elite Impact"],
-      "target": "HVAC"
-    },
-    {
-      "name": "Review Booster Agent",
-      "painPoint": "Poor online reputation & few reviews",
-      "howItWorks": "Automated post-service review requests and reputation management",
-      "estimatedROI": "+1★ rating = +10–15% jobs (~$5,000/month)",
-      "monthlyPrice": 199,
-      "includedIn": ["Elite Impact"],
-      "target": "HVAC"
-    },
-    {
-      "name": "Contract Closer Agent",
-      "painPoint": "Slow contract processing & follow-up",
-      "howItWorks": "Automated contract management and customer follow-up for service agreements",
-      "estimatedROI": "+25% contract closure = +$7,000–$15,000/month",
-      "monthlyPrice": 299,
-      "includedIn": ["Elite Impact"],
-      "target": "HVAC"
+      "name": "Reception 24/7 Agent", 
+      "target": "HVAC",
+      "painPoint": "Missed calls during off-hours and peak seasons",
+      "howItWorks": "AI agent handles all incoming calls, schedules service appointments, and manages emergency dispatch",
+      "estimatedROI": "$5,000-12,000/month",
+      "monthlyPrice": 397,
+      "includedIn": ["Growth Performance", "Elite Impact"]
     }
   ]
 }

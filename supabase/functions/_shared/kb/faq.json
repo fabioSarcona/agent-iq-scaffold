@@ -1,5 +1,4 @@
 {
-  "purpose": "Frequently asked questions and responses organized by industry and category",
   "dental": [
     {
       "id": "dental-integration-pms",
@@ -20,60 +19,96 @@
       "industry": "dental"
     },
     {
+      "id": "dental-staff-replacement",
+      "question": "Why automate if our staff already answers calls?",
+      "answer": "AI enhances your staff by covering gaps they can't fill: after-hours calls, forgotten follow-ups, simultaneous conversations, and perfect consistency. Your team focuses on patients, not phone tag.",
+      "category": "implementation",
+      "tags": ["staff enhancement", "after-hours", "consistency"],
+      "priority": "high",
+      "industry": "dental"
+    },
+    {
       "id": "dental-hipaa-compliance",
-      "question": "Is this HIPAA compliant for patient information?",
-      "answer": "Yes, all systems are HIPAA compliant with enterprise-grade encryption, secure data handling, and proper BAA agreements. Patient data never leaves secure, compliant servers.",
+      "question": "Is this HIPAA compliant?",
+      "answer": "Yes - our platform uses Retell AI + Keragon with full HIPAA compliance, BAA agreements, encryption, and audit logs. All patient data is protected according to healthcare regulations.",
       "category": "compliance",
-      "tags": ["HIPAA", "security", "compliance"],
+      "tags": ["HIPAA", "compliance", "security", "BAA"],
+      "priority": "high",
+      "industry": "dental"
+    },
+    {
+      "id": "dental-pricing-roi",
+      "question": "What does this cost and what ROI can I expect?",
+      "answer": "Setup: $2,799. Monthly: $997. Our clients typically recover $5K-$18K per month in previously lost revenue. Most see full payback within 30-60 days.",
+      "category": "pricing",
+      "tags": ["pricing", "ROI", "payback period"],
       "priority": "high",
       "industry": "dental"
     }
   ],
   "hvac": [
     {
-      "id": "hvac-emergency-handling",
-      "question": "Can it handle true emergency calls at 2 AM?",
-      "answer": "Absolutely. Our Emergency Management Agent operates 24/7, instantly routes urgent calls to on-call technicians, and follows your exact emergency protocols.",
-      "category": "implementation",
-      "tags": ["emergency", "24/7", "routing"],
-      "priority": "high",
-      "industry": "hvac"
-    },
-    {
-      "id": "hvac-crm-integration",
-      "question": "We use ServiceTitan/HouseCallPro. Will it sync?",
-      "answer": "Yes, we integrate with all major HVAC software including ServiceTitan, HouseCallPro, FieldEdge, and others. Appointments, customer data, and job details sync automatically.",
+      "id": "hvac-integration-dispatch",
+      "question": "Does this work with ServiceTitan and HouseCallPro?",
+      "answer": "Yes, fully integrates with ServiceTitan, HouseCallPro, and other dispatch systems. It enhances your existing workflow rather than replacing it.",
       "category": "integration",
-      "tags": ["ServiceTitan", "HouseCallPro", "integration"],
+      "tags": ["ServiceTitan", "HouseCallPro", "dispatch integration"],
       "priority": "high",
       "industry": "hvac"
     },
     {
-      "id": "hvac-seasonal-scaling",
-      "question": "Can it handle seasonal call volume spikes?",
-      "answer": "Yes, our system automatically scales during peak seasons. No busy signals, no missed emergency calls, and no need to hire seasonal staff.",
+      "id": "hvac-vs-competitors",
+      "question": "How is this different from other HVAC software?",
+      "answer": "Other platforms offer routing and SMS. NeedAgent builds true Voice AI that books jobs, follows up on quotes, re-engages cold leads, and handles objections through actual conversations.",
+      "category": "competitive",
+      "tags": ["competitive advantage", "voice AI", "conversation handling"],
+      "priority": "high",
+      "industry": "hvac"
+    },
+    {
+      "id": "hvac-quote-followup",
+      "question": "How does it handle quote follow-ups?",
+      "answer": "AI calls 24-48 hours after proposals, answers common objections, addresses price concerns, explains financing options, and escalates warm leads to your sales team.",
       "category": "implementation",
-      "tags": ["seasonal", "scaling", "peak volume"],
-      "priority": "medium",
+      "tags": ["quote follow-up", "objection handling", "sales"],
+      "priority": "high",
+      "industry": "hvac"
+    },
+    {
+      "id": "hvac-cost-vs-hiring",
+      "question": "How does the cost compare to hiring another CSR?",
+      "answer": "AI costs 70% less than a full-time CSR, works 24/7 without breaks, never makes scheduling errors, and handles unlimited simultaneous calls during peak seasons.",
+      "category": "pricing",
+      "tags": ["cost comparison", "CSR", "24/7 availability"],
+      "priority": "high",
+      "industry": "hvac"
+    },
+    {
+      "id": "hvac-emergency-surge",
+      "question": "Can it handle emergency calls and storm surges?",
+      "answer": "Yes - AI can triage by urgency, log emergency issues, notify on-call techs immediately, and manage waitlists during peak demand periods like storms or heat waves.",
+      "category": "implementation",
+      "tags": ["emergencies", "storm surge", "triage", "peak demand"],
+      "priority": "high",
       "industry": "hvac"
     }
   ],
   "general": [
     {
-      "id": "general-setup-time",
-      "question": "How long does setup take?",
-      "answer": "Most implementations are completed within 2-4 weeks. We handle all the technical setup while you focus on running your business.",
+      "id": "general-ai-reliability",
+      "question": "How reliable is AI for business-critical conversations?",
+      "answer": "Our AI maintains 99.7% uptime with built-in failsafes. If issues arise, calls automatically route to your team with full context. Most clients find AI more reliable than human staff.",
       "category": "implementation",
-      "tags": ["setup", "timeline", "implementation"],
+      "tags": ["reliability", "uptime", "failsafes"],
       "priority": "high",
       "industry": "general"
     },
     {
-      "id": "general-pricing-model",
-      "question": "What's the pricing structure?",
-      "answer": "We offer transparent monthly plans starting at $199/month per Voice Agent. No hidden fees, no per-call charges. ROI typically covers costs within 30-60 days.",
-      "category": "pricing",
-      "tags": ["pricing", "cost", "ROI"],
+      "id": "general-customization",
+      "question": "Can the AI be customized to our specific business?",
+      "answer": "Yes - completely customizable to your brand voice, industry terminology, pricing, services, and workflows. It sounds like a trained employee who knows your business inside and out.",
+      "category": "implementation",
+      "tags": ["customization", "brand voice", "industry-specific"],
       "priority": "high",
       "industry": "general"
     }

@@ -1,50 +1,66 @@
 [
   {
     "name": "Reception 24/7 Agent",
+    "target": "Both",
+    "problem": "Missed calls leading to lost revenue and poor customer experience",
+    "how": "AI-powered call handling that answers every call, schedules appointments, and qualifies leads automatically",
+    "roiRangeMonthly": [800, 2400],
+    "tags": ["call handling", "scheduling", "lead qualification"]
+  },
+  {
+    "name": "Appointment Reminder System", 
     "target": "Dental",
-    "problem": "Missed calls during lunch breaks, after hours, and busy periods",
-    "how": "AI agent answers all calls with natural conversation, books appointments, and handles basic inquiries",
-    "roiRangeMonthly": "$3000-8000",
-    "tags": ["call-handling", "24-7", "appointment-booking"]
+    "problem": "High no-show rates reducing practice efficiency and revenue",
+    "how": "Intelligent reminder sequence via calls, texts, and emails with confirmation tracking",
+    "roiRangeMonthly": [600, 1800],
+    "tags": ["reminders", "confirmations", "no-shows"]
   },
   {
-    "name": "Appointment Reminder System",
+    "name": "Treatment Plan Presenter",
     "target": "Dental", 
-    "problem": "High no-show rates reducing daily revenue",
-    "how": "Automated voice calls 24-48 hours before appointments with personalized confirmations",
-    "roiRangeMonthly": "$2000-5000",
-    "tags": ["no-shows", "reminders", "confirmations"]
+    "problem": "Low treatment plan acceptance rates and poor follow-up",
+    "how": "AI-powered treatment plan explanations and automated follow-up sequences",
+    "roiRangeMonthly": [1200, 3600],
+    "tags": ["treatment plans", "case acceptance", "follow-up"]
   },
   {
-    "name": "Emergency Management Agent",
+    "name": "Emergency Response System",
     "target": "HVAC",
-    "problem": "Delayed emergency response losing premium service opportunities",
-    "how": "Immediate triage of emergency calls, dispatch coordination, and customer updates",
-    "roiRangeMonthly": "$5000-12000",
-    "tags": ["emergency", "triage", "dispatch"]
+    "problem": "Missed emergency calls and slow response times",
+    "how": "Priority call routing with immediate dispatch and customer communication",
+    "roiRangeMonthly": [1000, 3000], 
+    "tags": ["emergency", "dispatch", "routing"]
   },
   {
-    "name": "Quote Follow-Up Agent",
+    "name": "Lead Follow-up Assistant",
+    "target": "Both",
+    "problem": "Poor lead nurturing and conversion rates",
+    "how": "Automated multi-touch follow-up campaigns with personalized messaging", 
+    "roiRangeMonthly": [500, 1500],
+    "tags": ["lead nurturing", "conversion", "automation"]
+  },
+  {
+    "name": "Quote Follow-up System",
     "target": "HVAC",
-    "problem": "Poor follow-up on estimates resulting in lost sales",
-    "how": "Automated follow-up calls within 24-48 hours of estimate delivery with objection handling",
-    "roiRangeMonthly": "$4000-10000",
-    "tags": ["quotes", "follow-up", "sales"]
+    "problem": "Pending quotes going cold and lost sales opportunities",
+    "how": "Systematic quote follow-up with decision-making assistance and urgency building",
+    "roiRangeMonthly": [900, 2700],
+    "tags": ["quotes", "sales", "follow-up"]
   },
   {
-    "name": "Review Booster Agent",
-    "target": "Both",
-    "problem": "Lack of online reviews affecting new customer acquisition",
-    "how": "Post-service calls requesting reviews with personalized approach based on satisfaction",
-    "roiRangeMonthly": "$1500-4000",
-    "tags": ["reviews", "reputation", "marketing"]
+    "name": "Customer Retention Assistant",
+    "target": "Both", 
+    "problem": "Low customer lifetime value and poor retention rates",
+    "how": "Proactive outreach for maintenance, recalls, and service reminders",
+    "roiRangeMonthly": [700, 2100],
+    "tags": ["retention", "maintenance", "recalls"]
   },
   {
-    "name": "Lead Reactivation System",
+    "name": "Quality Assurance Monitor",
     "target": "Both",
-    "problem": "Cold leads not being followed up systematically", 
-    "how": "Automated nurture sequences with personalized outreach based on lead source and interest",
-    "roiRangeMonthly": "$2500-6000",
-    "tags": ["leads", "reactivation", "nurture"]
+    "problem": "Inconsistent service quality and missed feedback opportunities", 
+    "how": "Automated post-service surveys and issue resolution workflows",
+    "roiRangeMonthly": [300, 900],
+    "tags": ["quality", "surveys", "feedback"]
   }
 ]

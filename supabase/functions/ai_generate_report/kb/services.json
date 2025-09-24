@@ -1,0 +1,44 @@
+[
+  {
+    "name": "Reception 24/7 Agent",
+    "vertical": ["dental", "hvac"],
+    "description": "AI-powered call handling with appointment scheduling and patient triage",
+    "features": ["24/7 availability", "Appointment booking", "Insurance verification", "Emergency triage"],
+    "roi_range": [5000, 15000]
+  },
+  {
+    "name": "Smart Scheduling Agent", 
+    "vertical": ["dental", "hvac"],
+    "description": "Automated appointment optimization and no-show prevention",
+    "features": ["Smart reminders", "Optimal scheduling", "Cancellation management", "Waitlist automation"],
+    "roi_range": [3000, 9000]
+  },
+  {
+    "name": "Emergency Management Agent",
+    "vertical": ["hvac"],
+    "description": "Priority handling for emergency service calls with intelligent routing",
+    "features": ["24/7 emergency response", "Technician dispatch", "Priority escalation", "Service tracking"],
+    "roi_range": [8000, 20000]
+  },
+  {
+    "name": "Quote Follow-Up Agent",
+    "vertical": ["hvac"],
+    "description": "Automated quote tracking and conversion optimization",
+    "features": ["Automated follow-up", "Price negotiation", "Competitor analysis", "Conversion tracking"],
+    "roi_range": [4000, 12000]
+  },
+  {
+    "name": "Treatment Plan Presenter",
+    "vertical": ["dental"],
+    "description": "AI-assisted treatment plan presentation and case acceptance",
+    "features": ["Visual presentations", "Financing options", "Insurance coordination", "Follow-up sequences"],
+    "roi_range": [6000, 18000]
+  },
+  {
+    "name": "Review Booster Agent",
+    "vertical": ["dental", "hvac"],
+    "description": "Automated review generation and reputation management",
+    "features": ["Review requests", "Response automation", "Reputation monitoring", "Review optimization"],
+    "roi_range": [2000, 6000]
+  }
+]

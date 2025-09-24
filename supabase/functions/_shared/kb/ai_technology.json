@@ -1,95 +1,71 @@
 {
-  "purpose": "Outlines the three core AI systems powering the NeedAgent.AI audit experience: NeedAgentIQ™, VoiceFit Report™, and SkillScope™, plus an overview of how they integrate and work together.",
-  "coreSystemsOverview": {
-    "title": "Core AI Systems", 
-    "description": "Three integrated AI systems that power the complete audit experience",
-    "systems": ["NeedAgentIQ™", "VoiceFit Report™", "SkillScope™"]
-  },
-  "systems": {
+  "purpose": "Defines the AI technology specifications and capabilities for NeedAgent.AI",
+  "coreAISystems": {
     "needAgentIQ": {
       "name": "NeedAgentIQ™",
-      "tagline": "Real-time intelligence while the audit is in progress",
-      "shortDescription": "Your on-the-fly revenue strategist.",
-      "extendedDescription": "Analyzes responses in real time during the audit. Detects business leaks and revenue loss patterns before the audit is finished. Acts like a live consultant (Fabio Sarcona, Founder and strategic mind behind NeedAgent.AI), reacting only when there's enough data. Highlights urgent issues (e.g., missed calls, unconfirmed quotes). Suggests Voice Skills with ROI projections and immediate action steps.",
-      "positioning": "Not a report — a live business advisor built into the audit.",
+      "purpose": "Real-time business intelligence and revenue leak detection",
       "capabilities": [
-        "Real-time analysis",
-        "Revenue leak detection", 
-        "Data-driven insights",
-        "Voice Skill recommendations + ROI"
+        "Analyzes audit responses in real-time",
+        "Identifies specific revenue leaks and opportunities", 
+        "Recommends targeted Voice Skills based on business data",
+        "Provides immediate, actionable insights during audit process",
+        "Calculates potential monthly recovery amounts"
       ],
-      "benefits": [
-        "Immediate loss detection",
-        "ROI-based advice",
-        "In-the-moment optimization"
+      "technology": [
+        "Advanced natural language processing",
+        "Business intelligence algorithms",
+        "Pattern recognition for common industry problems",
+        "Real-time data analysis and scoring"
       ]
     },
     "voiceFitReport": {
-      "name": "VoiceFit Report™",
-      "tagline": "Final audit summary with tailored Voice AI recommendations",
-      "shortDescription": "A personalized, AI-powered scorecard with visuals.",
-      "extendedDescription": "Summarizes 30+ audit responses into a clear diagnosis of time and revenue leaks. Provides a snapshot of the current state and opportunities for improvement.",
-      "positioning": "The bridge between current status and AI-powered potential.",
-      "components": [
-        "AI Readiness Score",
-        "ROI performance quadrant",
-        "Recommended Voice Skills",
-        "Estimated recoverable monthly revenue",
-        "Actionable next steps (plans, setup, deposit automation, etc.)"
+      "name": "VoiceFit Report™", 
+      "purpose": "Comprehensive business assessment and AI readiness scoring",
+      "capabilities": [
+        "Generates detailed audit summary with scoring",
+        "Creates personalized ROI projections",
+        "Provides implementation roadmap",
+        "Delivers actionable next steps",
+        "Includes industry benchmarking and competitive analysis"
       ],
-      "benefits": [
-        "Clear diagnosis",
-        "Tailored recommendations", 
-        "Visual roadmap for profit recovery",
-        "Action-ready guidance"
+      "technology": [
+        "Multi-factor scoring algorithms", 
+        "Industry-specific benchmarking",
+        "ROI calculation engines",
+        "Personalization based on business context"
       ]
     },
     "skillScope": {
       "name": "SkillScope™",
-      "tagline": "Detailed breakdown of each Voice Skill",
-      "shortDescription": "An interactive knowledge panel for Voice Skills.",
-      "extendedDescription": "Opens when the user clicks 'Learn More' on a Voice Skill. Provides a guided walkthrough: what it does, how it works, expected ROI, and activation requirements. Uses business-friendly language, avoiding technical jargon. Focused on real impact and how it integrates into daily workflows.",
-      "positioning": "Clear, human-friendly insights — because good decisions need good explanations.",
+      "purpose": "Detailed Voice Skill exploration and business fit analysis", 
       "capabilities": [
-        "Voice Skill walkthroughs",
-        "ROI transparency",
-        "Workflow integration"
+        "Provides detailed Voice Skill breakdowns",
+        "Shows implementation requirements and timelines",
+        "Calculates specific ROI for business context",
+        "Explains integration with existing systems",
+        "Offers customized implementation planning"
       ],
-      "benefits": [
-        "Easy to understand",
-        "Informed decision-making",
-        "ROI clarity and trust"
+      "technology": [
+        "Contextual business analysis",
+        "Integration compatibility checking",
+        "Custom ROI modeling",
+        "Implementation complexity assessment"
       ]
     }
   },
   "integration": {
-    "title": "AI System Integration Overview",
-    "description": "How the three AI systems connect and work together during the audit.",
+    "description": "How the three AI systems work together throughout the audit process",
     "workflow": [
-      {
-        "step": 1,
-        "phase": "During Audit",
-        "system": "NeedAgentIQ™",
-        "action": "delivers real-time insights"
-      },
-      {
-        "step": 2, 
-        "phase": "Skill Exploration",
-        "system": "SkillScope™",
-        "action": "provides detailed breakdowns when a Voice Skill is explored"
-      },
-      {
-        "step": 3,
-        "phase": "Audit Completion", 
-        "system": "VoiceFit Report™",
-        "action": "generates the final report with AI Readiness Score and recommendations"
-      }
+      "NeedAgentIQ provides real-time insights during audit sections",
+      "Data flows seamlessly between systems for comprehensive analysis", 
+      "VoiceFit Report synthesizes all insights into final assessment",
+      "SkillScope provides detailed follow-up for recommended solutions"
     ],
     "benefits": [
-      "Seamless user experience",
-      "Progressive delivery of intelligence", 
-      "Contextual information at every step",
-      "Actionable insights throughout the process"
+      "Seamless user experience with progressive intelligence delivery",
+      "Comprehensive business analysis from multiple AI perspectives",
+      "Personalized recommendations based on real business data",
+      "Immediate actionability with detailed implementation guidance"
     ]
   }
 }

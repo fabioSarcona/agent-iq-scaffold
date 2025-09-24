@@ -568,8 +568,8 @@ async function enhanceWithAI(
     console.log('🔧 Loading KB data for enhanced fallback...');
     
     const [approvedClaimsText, servicesText] = await Promise.all([
-      Deno.readTextFile(new URL('../_shared/kb/approved_claims.json', import.meta.url)),
-      Deno.readTextFile(new URL('../_shared/kb/services.json', import.meta.url))
+      Deno.readTextFile('../_shared/kb/approved_claims.json'),
+      Deno.readTextFile('../_shared/kb/services.json')
     ]);
     
     // Validate KB slice using shared helper
@@ -805,8 +805,8 @@ Generate insights using ONLY the provided services and claims:`;
     // KB-aware emergency fallback - use top ranked service if available
     try {
       const [approvedClaimsText, servicesText] = await Promise.all([
-        Deno.readTextFile(new URL('../_shared/kb/approved_claims.json', import.meta.url)),
-        Deno.readTextFile(new URL('../_shared/kb/services.json', import.meta.url))
+        Deno.readTextFile('../_shared/kb/approved_claims.json'),
+        Deno.readTextFile('../_shared/kb/services.json')
       ]);
       
       const allServices: ExtendedKBService[] = JSON.parse(servicesText);

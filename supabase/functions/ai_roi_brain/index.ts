@@ -309,7 +309,6 @@ Deno.serve(async (req) => {
         // Generate contextual prompt
         const contextualPrompt = generateContextualPrompt(normalizedContext, intelligence);
         
-
         // Make Claude API call
         const claudeStart = Date.now();
         const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {

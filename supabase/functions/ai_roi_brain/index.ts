@@ -309,6 +309,15 @@ Deno.serve(async (req) => {
         // Generate contextual prompt
         const contextualPrompt = generateContextualPrompt(normalizedContext, intelligence);
         
+        // Debug logging - RIMUOVI DOPO IL TEST
+        const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
+        console.log('API CHECK:', {
+          hasKey: !!apiKey,
+          keyPrefix: apiKey?.substring(0, 7),
+          keyLength: apiKey?.length,
+          expectedFormat: 'Should start with "sk-ant-"'
+        });
+
         // Make Claude API call
         const claudeStart = Date.now();
         const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
@@ -337,7 +346,15 @@ Deno.serve(async (req) => {
         const claudeTime = Date.now() - claudeStart;
 
         if (!claudeResponse.ok) {
-          throw new Error(`Claude API error: ${claudeResponse.statusText}`);
+          const errorBody = await claudeResponse.text();
+          console.error('ANTHROPIC API ERROR DETAILS:', {
+            status: claudeResponse.status,
+            statusText: claudeResponse.statusText,
+            body: errorBody,
+            apiKeyPresent: !!Deno.env.get('ANTHROPIC_API_KEY'),
+            apiKeyLength: Deno.env.get('ANTHROPIC_API_KEY')?.length
+          });
+          throw new Error(`Claude API error ${claudeResponse.status}: ${errorBody}`);
         }
 
         const claudeData = await claudeResponse.json();

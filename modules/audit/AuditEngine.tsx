@@ -84,6 +84,8 @@ export function AuditEngine({ industry }: AuditEngineProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [showCurrentQuestion, setShowCurrentQuestion] = useState(false);
   const { t } = useTranslation('audit');
+  const DIAG_MODE = import.meta.env.MODE !== 'production';
+  const [kbTrace, setKbTrace] = useState<any|null>(null);
   
   const {
     setVertical,
@@ -299,6 +301,8 @@ export function AuditEngine({ industry }: AuditEngineProps) {
       const { data, error } = await supabase.functions.invoke('ai_needagentiq', {
         body: requestBody
       });
+      
+      if (DIAG_MODE && data?._debug) setKbTrace(data._debug);
       
       console.log('🐛 DEBUG: Supabase function response:', {
         hasData: !!data,
@@ -563,6 +567,19 @@ export function AuditEngine({ industry }: AuditEngineProps) {
 
       {/* Logs Toggle */}
       <LogsToggle />
+      
+      {DIAG_MODE && (
+        <div className="mt-2">
+          <button 
+            className="text-xs px-2 py-1 rounded bg-neutral-800 text-white" 
+            onClick={() => {
+              alert(kbTrace ? JSON.stringify(kbTrace, null, 2) : 'No KB Trace available yet.');
+            }}
+          >
+            KB Trace
+          </button>
+        </div>
+      )}
     </div>
   );
 }

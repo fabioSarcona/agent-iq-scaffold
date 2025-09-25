@@ -3,7 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { validateAIEnv, corsHeaders } from '../_shared/env.ts';
 import { logger } from '../_shared/logger.ts';
 import { SkillScopeInputSchema, SkillScopeOutputSchema } from '../_shared/validation.ts';
-import { validateKBSlice } from '../_shared/kb.ts';
+import { validateKBSlice } from '../_shared/kbValidation.ts';
 import type { SkillScopeInput, SkillScopeOutput, ErrorResponse } from '../_shared/types.ts';
 
 // Environment variables validation and system prompt loading

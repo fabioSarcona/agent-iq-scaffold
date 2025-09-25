@@ -5,7 +5,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { checkAIEnv, corsHeaders } from '../_shared/env.ts';
 import { logger } from '../_shared/logger.ts';
 import { VoiceFitInputSchema, VoiceFitOutputSchema } from '../_shared/validation.ts';
-import { validateKBSlice } from '../_shared/kb.ts';
+import { validateKBSlice } from '../_shared/kbValidation.ts';
 import type { VoiceFitInput, VoiceFitOutput, ErrorResponse } from '../_shared/types.ts';
 
 // Robust JSON parsing utilities

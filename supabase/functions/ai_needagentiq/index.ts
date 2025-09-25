@@ -5,7 +5,7 @@ import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { corsHeaders } from '../_shared/env.ts';
 import { logger } from '../_shared/logger.ts';
 import { NeedAgentIQSimpleInputSchema, NeedAgentIQSimpleOutputSchema } from '../_shared/validation.ts';
-import { filterServicesByVertical, filterServicesByTags, validateKBSlice, type KBService, type KBSlice } from '../_shared/kb.ts';
+import { filterServicesByVertical, filterServicesByTags, validateKBSlice, type KBService, type KBSlice } from '../_shared/kbValidation.ts';
 
 // FASE 2: Section Policy per differenziare comportamento tra sezioni - FIXED with correct dental section IDs
 const ALLOWED_BY_SECTION: Record<string, {

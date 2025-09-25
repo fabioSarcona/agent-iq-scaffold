@@ -121,7 +121,8 @@ export function AuditEngine({ industry }: AuditEngineProps) {
           setShowCurrentQuestion(true);
         }, 500);
       } catch (error) {
-        logger.error('Failed to load audit config', { error: error.message });
+        const msg = error instanceof Error ? error.message : String(error);
+        logger.error('Failed to load audit config', { error: msg });
         setIsLoading(false);
       }
     };
@@ -170,7 +171,7 @@ export function AuditEngine({ industry }: AuditEngineProps) {
 
   const triggerNeedAgentIQIfReady = async () => {
     const state = useAuditProgressStore.getState();
-    const { vertical, answers, appendInsights, setIqError } = state;
+    const { vertical, answers, appendInsights, setIqError, config } = state;
     
     // FASE 7: Start debug session
     const startTime = Date.now();
@@ -348,7 +349,6 @@ export function AuditEngine({ industry }: AuditEngineProps) {
         }
         
         // FASE 6: Client-side security filter before appending insights
-        const fallbackSectionId = config?.sections?.[0]?.id || 'practice_profile';
         const policy = CLIENT_SECTION_POLICY[currentSection.id] || CLIENT_SECTION_POLICY[fallbackSectionId];
         const preFilterCount = enrichedInsights.length;
         

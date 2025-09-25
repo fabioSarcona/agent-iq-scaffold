@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from 'https://esm.sh/stripe@14.21.0';
 import { corsHeaders, getStripeClient, getSupabaseServiceClient, upsertBillingCustomer } from '../_shared/stripe.ts';
+import { normalizeError } from '../_shared/errorUtils.ts';
 
 const logStep = (step: string, details?: any) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
@@ -36,7 +37,7 @@ serve(async (req) => {
         event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
         logStep("Webhook signature verified");
       } catch (err) {
-        logStep("Webhook signature verification failed", { error: err.message });
+        logStep("Webhook signature verification failed", { error: normalizeError(err).message });
         return new Response('Webhook signature verification failed', { status: 400 });
       }
     } else {

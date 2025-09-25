@@ -1,6 +1,9 @@
 // Cache System Module - L1 (In-Memory LRU) + L2 (Supabase) with SHA-256 keys
 // Implements stampede protection, negative caching, and deterministic key generation
 
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { normalizeError } from '../_shared/errorUtils.ts';
+
 interface CacheEntry<T = any> {
   data: T;
   timestamp: number;
@@ -74,7 +77,9 @@ class L1Cache<T = any> {
     // LRU eviction - remove oldest if over limit
     if (this.cache.size > MAX_SIZE) {
       const firstKey = this.cache.keys().next().value;
-      this.cache.delete(firstKey);
+      if (firstKey !== undefined) {
+        this.cache.delete(firstKey);
+      }
     }
   }
   
@@ -204,7 +209,7 @@ export async function getOrCompute<T>(
       return result;
     } catch (error) {
       // Negative cache for errors (short TTL)
-      const errorResult = { error: error.message, timestamp: Date.now() };
+      const errorResult = { error: normalizeError(error).message, timestamp: Date.now() };
       L1.set(key, errorResult, true);
       throw error;
     } finally {

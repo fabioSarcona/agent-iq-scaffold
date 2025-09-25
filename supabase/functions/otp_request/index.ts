@@ -5,6 +5,8 @@ import { crypto } from "https://deno.land/std@0.224.0/crypto/mod.ts";
 // Shared modules
 import { getEnv, corsHeaders } from '../_shared/env.ts';
 import { logger } from '../_shared/logger.ts';
+import { normalizeError } from '../_shared/errorUtils.ts';
+import { z } from '../_shared/zod.ts';
 import { OTPRequestInputSchema, OTPRequestOutputSchema } from '../_shared/validation.ts';
 import type { OTPRequestInput, OTPRequestOutput, ErrorResponse } from '../_shared/types.ts';
 
@@ -73,7 +75,7 @@ async function sendEmail(email: string, code: string): Promise<void> {
       logger.info('Email sent successfully', { email });
     }
   } catch (error) {
-    logger.error('Email sending error', { error: error.message });
+    logger.error('Email sending error', error);
   }
 }
 
@@ -220,18 +222,19 @@ serve(async (req) => {
     });
     
   } catch (error) {
-    logger.error('Error in otp_request', { error: error.message });
+    logger.error('Error in otp_request', error);
     
     const processingTime = Date.now() - startTime;
     let errorResponse: ErrorResponse;
 
-    if (error.name === 'ZodError') {
+    if (error instanceof z.ZodError) {
+      const err = normalizeError(error);
       errorResponse = {
         success: false,
         error: { 
           message: 'Invalid input format', 
           code: 'VALIDATION_ERROR',
-          details: error.errors 
+          details: err.zodIssues 
         },
         metadata: { processing_time_ms: processingTime }
       };

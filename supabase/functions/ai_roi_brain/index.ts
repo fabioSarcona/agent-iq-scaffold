@@ -1,5 +1,16 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/env.ts'
+import { logger as sharedLogger } from '../_shared/logger.ts';
+import { normalizeError } from '../_shared/errorUtils.ts';
+import type { 
+  BusinessContext,
+  VoiceFitOutput,
+  SkillScopeOutput,
+  MoneyLostOutput,
+  NeedAgentIQInsight,
+  ErrorResponse,
+  SuccessMetadata
+} from '../_shared/types.ts';
 
 // ============= MINIMAL STANDALONE IMPLEMENTATION =============
 
@@ -365,7 +376,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({
       success: false,
       error: 'Internal server error', 
-      message: error.message
+      message: normalizeError(error).message
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }

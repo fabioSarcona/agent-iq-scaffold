@@ -2,6 +2,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { validateAIEnv, corsHeaders } from '../_shared/env.ts';
 import { logger } from '../_shared/logger.ts';
+import { normalizeError } from '../_shared/errorUtils.ts';
 import { SkillScopeInputSchema, SkillScopeOutputSchema } from '../_shared/validation.ts';
 import { validateKBSlice } from '../_shared/kbValidation.ts';
 import type { SkillScopeInput, SkillScopeOutput, ErrorResponse } from '../_shared/types.ts';
@@ -47,7 +48,7 @@ async function getCachedKB() {
     
     return kbCache;
   } catch (error) {
-    logger.error('Failed to load SkillScope KB data', { error: error.message });
+    logger.error('Failed to load SkillScope KB data', error);
     throw new Error('KB_LOAD_FAILED');
   }
 }
@@ -132,7 +133,7 @@ Services: ${JSON.stringify(kb.services, null, 2)}`;
       
     } catch (parseError) {
       logger.error('Failed to parse Claude response', { 
-        error: parseError.message, 
+        error: normalizeError(parseError).message, 
         content: content.substring(0, 500) 
       });
       
@@ -150,7 +151,7 @@ Services: ${JSON.stringify(kb.services, null, 2)}`;
     return result;
 
   } catch (error) {
-    logger.error('Claude call failed', { error: error.message });
+    logger.error('Claude call failed', error);
     return {
       success: false,
       error: { message: 'AI processing failed' }
@@ -180,7 +181,7 @@ serve(async (req) => {
       const body = await req.json();
       input = SkillScopeInputSchema.parse(body);
     } catch (error) {
-      logger.error('Input validation failed', { error: error.message });
+      logger.error('Input validation failed', error);
       const errorResponse: ErrorResponse = {
         success: false,
         error: { message: 'Invalid input data' }
@@ -195,7 +196,7 @@ serve(async (req) => {
     try {
       validateKBSlice(input.kb);
     } catch (error) {
-      logger.error('KB validation failed', { error: error.message });
+      logger.error('KB validation failed', error);
       const errorResponse: ErrorResponse = {
         success: false,
         error: { message: 'Invalid knowledge base data' }
@@ -245,7 +246,7 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    logger.error('SkillScope request failed', { error: error.message });
+    logger.error('SkillScope request failed', error);
     const errorResponse: ErrorResponse = {
       success: false,
       error: { message: 'Internal server error' }

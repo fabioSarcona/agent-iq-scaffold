@@ -5,6 +5,7 @@ import { crypto } from "https://deno.land/std@0.224.0/crypto/mod.ts";
 // Shared modules
 import { getEnv, corsHeaders } from '../_shared/env.ts';
 import { logger } from '../_shared/logger.ts';
+import { z } from '../_shared/zod.ts';
 import { OTPVerifyInputSchema, OTPVerifyOutputSchema } from '../_shared/validation.ts';
 import type { OTPVerifyInput, OTPVerifyOutput, ErrorResponse } from '../_shared/types.ts';
 
@@ -128,12 +129,12 @@ serve(async (req) => {
     });
     
   } catch (error) {
-    logger.error('Error in otp_verify', { error: error.message });
+    logger.error('Error in otp_verify', error);
     
     const processingTime = Date.now() - startTime;
     let errorResponse: ErrorResponse;
 
-    if (error.name === 'ZodError') {
+    if (error instanceof z.ZodError) {
       const response: OTPVerifyOutput = {
         verified: false, 
         error: 'Invalid input format'

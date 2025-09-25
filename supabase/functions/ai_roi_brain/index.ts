@@ -306,10 +306,9 @@ Deno.serve(async (req) => {
         // AI Processing Pipeline
         logger.info('Cache miss - computing new result');
         
-        // Load KB data for prompt  
-        const { getPainPointsByVertical, getSkillsByTarget } = await import('../_shared/kb/index.ts');
-        const painPoints = await getPainPointsByVertical(normalizedContext.vertical);
-        const skills = await getSkillsByTarget(normalizedContext.vertical === 'dental' ? 'Dental' : 'HVAC');
+        // Extract KB data from already loaded filteredKB
+        const painPoints = kbResult.filteredKB.painPoints;
+        const skills = kbResult.filteredKB.voiceSkills;
         
         // Generate contextual prompt
         const contextualPrompt = generateContextualPrompt(normalizedContext, intelligence, painPoints, skills);

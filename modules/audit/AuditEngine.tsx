@@ -177,8 +177,9 @@ export function AuditEngine({ industry }: AuditEngineProps) {
     
     // FASE 7: Start debug session
     const startTime = Date.now();
-    const fallbackSectionId = config?.sections?.[0]?.id || 'practice_profile';
-    const policy = CLIENT_SECTION_POLICY[currentSection?.id || fallbackSectionId] || CLIENT_SECTION_POLICY[fallbackSectionId];
+    const defaultSectionId = 'practice_profile' as keyof typeof CLIENT_SECTION_POLICY;
+    const policy = CLIENT_SECTION_POLICY[(currentSection?.id as keyof typeof CLIENT_SECTION_POLICY) ?? defaultSectionId]
+      ?? CLIENT_SECTION_POLICY[defaultSectionId];
     const mode = policy.allowSkills ? 'skills' : 'foundational';
     
     if (currentSection?.id) {
@@ -353,7 +354,9 @@ export function AuditEngine({ industry }: AuditEngineProps) {
         }
         
         // FASE 6: Client-side security filter before appending insights
-        const policy = CLIENT_SECTION_POLICY[currentSection.id] || CLIENT_SECTION_POLICY[fallbackSectionId];
+        const defaultSectionId = 'practice_profile' as keyof typeof CLIENT_SECTION_POLICY;
+        const policy = CLIENT_SECTION_POLICY[(currentSection?.id as keyof typeof CLIENT_SECTION_POLICY) ?? defaultSectionId]
+          ?? CLIENT_SECTION_POLICY[defaultSectionId];
         const preFilterCount = enrichedInsights.length;
         
         const filteredInsights = enrichedInsights.filter(insight => {

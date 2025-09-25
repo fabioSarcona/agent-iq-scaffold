@@ -2,8 +2,7 @@
 // Constructs Claude AI prompts with business context and KB data
 
 import type { BusinessContextNormalized, BusinessIntelligence } from './businessExtractor.ts';
-import type { KBPayload } from '../_shared/kb/types.ts';
-import { getPainPointsByVertical, getSkillsByTarget } from '../_shared/kb/index.ts';
+import type { KBPayload, PainPoint, VoiceSkill } from '../_shared/kb/types.ts';
 
 // Prompt Version for cache invalidation
 export const PROMPT_VERSION = '2024-01-ROI-v2.0';
@@ -12,18 +11,18 @@ export const PROMPT_VERSION = '2024-01-ROI-v2.0';
  * Generates contextual business analysis prompt
  * @param context - Normalized business context
  * @param intelligence - Extracted business intelligence
+ * @param painPoints - Pre-loaded pain points for the vertical
+ * @param skills - Pre-loaded skills for the vertical
  * @returns Formatted business context string for AI prompt
  */
-export async function generateContextualPrompt(
+export function generateContextualPrompt(
   context: BusinessContextNormalized, 
-  intelligence: BusinessIntelligence
-): Promise<string> {
+  intelligence: BusinessIntelligence,
+  painPoints: PainPoint[],
+  skills: VoiceSkill[]
+): string {
   const { vertical, moneyLostSummary } = context;
   const { businessSize, urgencyLevel, primaryPainPoints, technicalReadiness, implementationComplexity } = intelligence;
-
-  // Load KB data asynchronously
-  const painPoints = await getPainPointsByVertical(vertical);
-  const skills = await getSkillsByTarget(vertical === 'dental' ? 'Dental' : 'HVAC');
 
   // Null-safe access to moneyLostSummary
   const totalLoss = moneyLostSummary?.total?.monthlyUsd ?? 30000;

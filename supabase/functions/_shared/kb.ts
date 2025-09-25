@@ -1,4 +1,4 @@
-// Knowledge Base validation and access helpers
+// Knowledge Base validation and access helpers - Centralized KB System
 import { z } from "https://esm.sh/zod@3.22.4";
 import { KBServiceSchema, KBCaseStudySchema } from './validation.ts';
 

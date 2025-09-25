@@ -83,7 +83,9 @@ export async function getKBData() {
 // Helper functions matching frontend KB interface
 export async function getAllVoiceSkills(): Promise<VoiceSkill[]> {
   const kb = await getKBData();
-  return [...kb.voiceSkills.dental, ...kb.voiceSkills.hvac];
+  const dental = kb.voiceSkills.dental || [];
+  const hvac = kb.voiceSkills.hvac || [];
+  return [...dental, ...hvac];
 }
 
 export async function getSkillsByTarget(target: 'Dental' | 'HVAC'): Promise<VoiceSkill[]> {
@@ -98,7 +100,9 @@ export async function getPainPointsByVertical(vertical: 'dental' | 'hvac'): Prom
 
 export async function getAllPainPoints(): Promise<PainPoint[]> {
   const kb = await getKBData();
-  return [...(kb.painPoints.dental || []), ...(kb.painPoints.hvac || [])];
+  const dental = kb.painPoints.dental || [];
+  const hvac = kb.painPoints.hvac || [];
+  return [...dental, ...hvac];
 }
 
 export async function getServicesByTarget(target: 'Dental' | 'HVAC'): Promise<Service[]> {

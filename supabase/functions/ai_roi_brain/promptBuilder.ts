@@ -3,7 +3,7 @@
 
 import type { BusinessContextNormalized, BusinessIntelligence } from './businessExtractor.ts';
 import type { KBPayload } from '../_shared/kb/types.ts';
-import { getPainPointsByVertical, getSkillsByTarget } from '../_shared/kb/index.ts';
+// import { getPainPointsByVertical, getSkillsByTarget } from '../_shared/kb/index.ts';
 
 // Prompt Version for cache invalidation
 export const PROMPT_VERSION = '2024-01-ROI-v2.0';

@@ -1,5 +1,5 @@
-// Knowledge Base Helper Functions
-// Provides access to all KB data for Edge Functions
+// Knowledge Base Helper Functions with Lazy Loading
+// Provides access to KB data for Edge Functions with minimal memory usage
 
 export interface VoiceSkill {
   name: string;
@@ -30,87 +30,201 @@ export interface Service {
   tags: string[];
 }
 
-// Load KB data from JSON files
-async function loadKBData() {
-  const [
-    approvedClaimsText,
-    servicesText,
-    voiceSkillsText,
-    painPointsText,
-    brandText,
-    externalSourcesText,
-    responseModelsText,
-    faqText,
-    pricingText,
-    aiTechnologyText
-  ] = await Promise.all([
-    // Risolve i file JSON relativi a questo modulo usando import.meta.url
-    Deno.readTextFile(new URL('./approved_claims.json', import.meta.url)),
-    Deno.readTextFile(new URL('./services.json', import.meta.url)),
-    Deno.readTextFile(new URL('./voice_skills.json', import.meta.url)),
-    Deno.readTextFile(new URL('./pain_points.json', import.meta.url)),
-    Deno.readTextFile(new URL('./brand.json', import.meta.url)),
-    Deno.readTextFile(new URL('./external_sources.json', import.meta.url)),
-    Deno.readTextFile(new URL('./response_models.json', import.meta.url)),
-    Deno.readTextFile(new URL('./faq.json', import.meta.url)),
-    Deno.readTextFile(new URL('./pricing.json', import.meta.url)),
-    Deno.readTextFile(new URL('./ai_technology.json', import.meta.url))
-  ]);
+// Individual caches for each KB section with TTL
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+  ttl: number;
+}
 
+// Individual caches for each data type
+const caches = {
+  approvedClaims: null as CacheEntry<string[]> | null,
+  services: null as CacheEntry<Service[]> | null,
+  voiceSkills: null as CacheEntry<any> | null,
+  painPoints: null as CacheEntry<any> | null,
+  brand: null as CacheEntry<any> | null,
+  externalSources: null as CacheEntry<any> | null,
+  responseModels: null as CacheEntry<any> | null,
+  faq: null as CacheEntry<any> | null,
+  pricing: null as CacheEntry<any> | null,
+  aiTechnology: null as CacheEntry<any> | null
+};
+
+const DEFAULT_TTL = 5 * 60 * 1000; // 5 minutes
+
+// Helper to check if cache entry is valid
+function isCacheValid<T>(entry: CacheEntry<T> | null): boolean {
+  if (!entry) return false;
+  return Date.now() - entry.timestamp < entry.ttl;
+}
+
+// Lazy loaders for individual KB sections
+async function loadApprovedClaims(): Promise<string[]> {
+  if (isCacheValid(caches.approvedClaims)) {
+    return caches.approvedClaims!.data;
+  }
+  
+  const text = await Deno.readTextFile(new URL('./approved_claims.json', import.meta.url));
+  const data = JSON.parse(text);
+  
+  caches.approvedClaims = {
+    data,
+    timestamp: Date.now(),
+    ttl: DEFAULT_TTL
+  };
+  
+  return data;
+}
+
+async function loadServices(): Promise<Service[]> {
+  if (isCacheValid(caches.services)) {
+    return caches.services!.data;
+  }
+  
+  const text = await Deno.readTextFile(new URL('./services.json', import.meta.url));
+  const data = JSON.parse(text);
+  
+  caches.services = {
+    data,
+    timestamp: Date.now(),
+    ttl: DEFAULT_TTL
+  };
+  
+  return data;
+}
+
+async function loadVoiceSkills(): Promise<any> {
+  if (isCacheValid(caches.voiceSkills)) {
+    return caches.voiceSkills!.data;
+  }
+  
+  const text = await Deno.readTextFile(new URL('./voice_skills.json', import.meta.url));
+  const data = JSON.parse(text);
+  
+  caches.voiceSkills = {
+    data,
+    timestamp: Date.now(),
+    ttl: DEFAULT_TTL
+  };
+  
+  return data;
+}
+
+async function loadPainPoints(): Promise<any> {
+  if (isCacheValid(caches.painPoints)) {
+    return caches.painPoints!.data;
+  }
+  
+  const text = await Deno.readTextFile(new URL('./pain_points.json', import.meta.url));
+  const data = JSON.parse(text);
+  
+  caches.painPoints = {
+    data,
+    timestamp: Date.now(),
+    ttl: DEFAULT_TTL
+  };
+  
+  return data;
+}
+
+async function loadBrand(): Promise<any> {
+  if (isCacheValid(caches.brand)) {
+    return caches.brand!.data;
+  }
+  
+  const text = await Deno.readTextFile(new URL('./brand.json', import.meta.url));
+  const data = JSON.parse(text);
+  
+  caches.brand = {
+    data,
+    timestamp: Date.now(),
+    ttl: DEFAULT_TTL
+  };
+  
+  return data;
+}
+
+async function loadFAQ(): Promise<any> {
+  if (isCacheValid(caches.faq)) {
+    return caches.faq!.data;
+  }
+  
+  const text = await Deno.readTextFile(new URL('./faq.json', import.meta.url));
+  const data = JSON.parse(text);
+  
+  caches.faq = {
+    data,
+    timestamp: Date.now(),
+    ttl: DEFAULT_TTL
+  };
+  
+  return data;
+}
+
+async function loadPricing(): Promise<any> {
+  if (isCacheValid(caches.pricing)) {
+    return caches.pricing!.data;
+  }
+  
+  const text = await Deno.readTextFile(new URL('./pricing.json', import.meta.url));
+  const data = JSON.parse(text);
+  
+  caches.pricing = {
+    data,
+    timestamp: Date.now(),
+    ttl: DEFAULT_TTL
+  };
+  
+  return data;
+}
+
+// Legacy function for backward compatibility - now loads incrementally
+export async function getKBData() {
+  // Load only basic structure, not all data
   return {
-    approved_claims: JSON.parse(approvedClaimsText),
-    services: JSON.parse(servicesText),
-    voiceSkills: JSON.parse(voiceSkillsText),
-    painPoints: JSON.parse(painPointsText),
-    brand: JSON.parse(brandText),
-    externalSources: JSON.parse(externalSourcesText),
-    responseModels: JSON.parse(responseModelsText),
-    faq: JSON.parse(faqText),
-    pricing: JSON.parse(pricingText),
-    aiTechnology: JSON.parse(aiTechnologyText)
+    approved_claims: [], // Load on demand
+    services: [], // Load on demand
+    voiceSkills: { dental: [], hvac: [] }, // Load on demand
+    painPoints: { dental: [], hvac: [] }, // Load on demand
+    brand: {}, // Load on demand
+    externalSources: {}, // Load on demand
+    responseModels: {}, // Load on demand
+    faq: [], // Load on demand
+    pricing: [], // Load on demand
+    aiTechnology: {} // Load on demand
   };
 }
 
-// Cache KB data to avoid repeated file reads - TEMPORARILY DISABLED TO AVOID BUILD ISSUES
-let kbCache: any = null;
-
-export async function getKBData() {
-  // Temporarily disable caching to avoid TypeScript compilation issues
-  // if (!kbCache) {
-    kbCache = await loadKBData();
-  // }
-  return kbCache;
-}
-
-// Helper functions matching frontend KB interface
+// Helper functions using lazy loaders - only load needed data
 export async function getAllVoiceSkills(): Promise<VoiceSkill[]> {
-  const kb = await getKBData();
-  return [...kb.voiceSkills.dental, ...kb.voiceSkills.hvac];
+  const voiceSkills = await loadVoiceSkills();
+  return [...voiceSkills.dental, ...voiceSkills.hvac];
 }
 
 export async function getSkillsByTarget(target: 'Dental' | 'HVAC'): Promise<VoiceSkill[]> {
-  const allSkills = await getAllVoiceSkills();
-  return allSkills.filter(skill => skill.target === target || skill.target === 'Both');
+  const voiceSkills = await loadVoiceSkills();
+  const skills = target === 'Dental' ? voiceSkills.dental : voiceSkills.hvac;
+  return skills.filter((skill: VoiceSkill) => skill.target === target || skill.target === 'Both');
 }
 
 export async function getPainPointsByVertical(vertical: 'dental' | 'hvac'): Promise<PainPoint[]> {
-  const kb = await getKBData();
-  return kb.painPoints[vertical] || [];
+  const painPoints = await loadPainPoints();
+  return painPoints[vertical] || [];
 }
 
 export async function getAllPainPoints(): Promise<PainPoint[]> {
-  const kb = await getKBData();
-  return [...(kb.painPoints.dental || []), ...(kb.painPoints.hvac || [])];
+  const painPoints = await loadPainPoints();
+  return [...(painPoints.dental || []), ...(painPoints.hvac || [])];
 }
 
 export async function getServicesByTarget(target: 'Dental' | 'HVAC'): Promise<Service[]> {
-  const kb = await getKBData();
-  return kb.services.filter((service: Service) => service.target === target || service.target === 'Both');
+  const services = await loadServices();
+  return services.filter((service: Service) => service.target === target || service.target === 'Both');
 }
 
 export async function getApprovedClaims(): Promise<string[]> {
-  const kb = await getKBData();
-  return kb.approved_claims;
+  return await loadApprovedClaims();
 }
 
 // Export for compatibility with existing code

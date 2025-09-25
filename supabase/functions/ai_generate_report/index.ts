@@ -68,7 +68,7 @@ async function getCachedKB(): Promise<{ approved_claims: string[], services: any
     
     return kbCache;
   } catch (error) {
-    logger.error('Failed to load VoiceFit KB data', { error: error.message });
+    logger.error('Failed to load VoiceFit KB data', { error: (error as Error).message });
     return { approved_claims: [], services: [] };
   }
 }
@@ -217,11 +217,11 @@ LANGUAGE INSTRUCTIONS:
     return VoiceFitOutputSchema.parse(parsed);
   } catch (parseError) {
     logger.error('LLM Output validation failed', { 
-      error: parseError.message, 
+      error: (parseError as Error).message, 
       content: content.substring(0, 500),
       cleanedContent: stripCodeFence(content).substring(0, 500)
     });
-    throw new Error(`LLM validation failed: ${parseError.message}`);
+    throw new Error(`LLM validation failed: ${(parseError as Error).message}`);
   }
 }
 
@@ -244,11 +244,9 @@ serve(async (req) => {
       metadata: {
         processing_time_ms: Date.now() - startTime,
         warnings: ['AI service configuration required'],
-        diagnostic: {
-          errorType: 'ConfigurationError',
-          timeoutOccurred: false,
-          apiKeyConfigured: false
-        }
+        errorType: 'ConfigurationError',
+        timeoutOccurred: false,
+        apiKeyConfigured: false
       }
     };
 
@@ -308,9 +306,9 @@ serve(async (req) => {
     });
   } catch (error) {
     logger.error('Error generating VoiceFit report', { 
-      error: error.message,
-      stack: error.stack,
-      timeoutOccurred: error.message?.includes('timeout')
+      error: (error as Error).message,
+      stack: (error as Error).stack,
+      timeoutOccurred: (error as Error).message?.includes('timeout')
     });
     
     const processingTime = Date.now() - startTime;
@@ -325,13 +323,13 @@ serve(async (req) => {
       if (errorCode === 'MISSING_API_KEY') {
         httpStatus = 503; // Service Unavailable
       }
-    } else if (error.name === 'ZodError') {
+    } else if ((error as Error).name === 'ZodError') {
       errorCode = 'VALIDATION_ERROR';
       httpStatus = 422;
-    } else if (error.message?.includes('validation')) {
+    } else if ((error as Error).message?.includes('validation')) {
       errorCode = 'VALIDATION_ERROR';
       httpStatus = 422;
-    } else if (error.message?.includes('timeout')) {
+    } else if ((error as Error).message?.includes('timeout')) {
       errorCode = 'TIMEOUT_ERROR';  
       httpStatus = 408; // Request Timeout
     }
@@ -339,18 +337,15 @@ serve(async (req) => {
     const errorResponse: ErrorResponse = {
       success: false,
       error: {
-        message: error.message || 'Unknown error occurred',
+        message: (error as Error).message || 'Unknown error occurred',
         code: errorCode
       },
       metadata: {
         processing_time_ms: processingTime,
-        warnings: [`Processing failed: ${error.message}`],
-        // PLAN D: Add diagnostic information for frontend
-        diagnostic: {
-          errorType: error.name,
-          timeoutOccurred: error.message?.includes('timeout'),
-          apiKeyConfigured: !!Deno.env.get('ANTHROPIC_API_KEY')
-        }
+        warnings: [`Processing failed: ${(error as Error).message}`],
+        errorType: (error as Error).name,
+        timeoutOccurred: (error as Error).message?.includes('timeout'),
+        apiKeyConfigured: !!Deno.env.get('ANTHROPIC_API_KEY')
       }
     };
 

@@ -55,25 +55,18 @@ function getBrandKB(vertical: 'dental' | 'hvac') {
   };
 }
 
-function getResponseModels(vertical: 'dental' | 'hvac') {
-  const base = {
-    professionalTone: "Confident, knowledgeable, solution-focused",
-    structure: "Problem → Solution → ROI → Next Steps"
-  };
-  
-  if (vertical === 'dental') {
-    return {
-      ...base,
-      terminology: ["patients", "appointments", "treatment plans", "practice"],
-      painPointFraming: "patient experience and practice efficiency"
-    };
-  }
-  
-  return {
-    ...base, 
-    terminology: ["customers", "service calls", "quotes", "technicians"],
-    painPointFraming: "customer service and operational efficiency"
-  };
+function getResponseModels(vertical: 'dental' | 'hvac'): any[] {
+  return [{
+    name: `${vertical}_professional_response`,
+    description: `Professional response model for ${vertical} businesses`,
+    template: "Problem → Solution → ROI → Next Steps",
+    variables: vertical === 'dental' ? 
+      ["patients", "appointments", "treatment plans", "practice"] :
+      ["customers", "service calls", "quotes", "technicians"],
+    context: vertical === 'dental' ? 
+      "patient experience and practice efficiency" :
+      "customer service and operational efficiency"
+  }];
 }
 
 function filterVoiceSkills(

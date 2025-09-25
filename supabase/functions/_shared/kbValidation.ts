@@ -3,12 +3,14 @@ import { z } from "https://esm.sh/zod@3.22.4";
 
 // Simplified KB types to avoid deep type instantiation
 export interface KBService {
+  id?: string;
   name: string;
   target: "Dental" | "HVAC" | "Both";
   problem: string;
   how: string;
-  roiRangeMonthly?: [number, number] | string;
+  roiRangeMonthly?: [number, number];
   tags?: string[];
+  areaId?: string;
 }
 
 export interface KBCaseStudy {

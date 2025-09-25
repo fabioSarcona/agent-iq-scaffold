@@ -431,9 +431,8 @@ serve(async (req) => {
       // Step 2: Map signal tags to skills with ROI calculations  
       baseInsights = mapSignalTagsToSkills(
         signalTags,
-        moneyLostData, // Pass money lost data for accurate ROI calculations
-        vertical as 'dental' | 'hvac',
-        'medium' // Default business size
+        moneyLostData as Record<string, number> | undefined, // Pass money lost data for accurate ROI calculations
+        vertical as 'dental' | 'hvac'
       );
       
       console.log('💡 Base insights from deterministic mapping:', {
@@ -533,14 +532,16 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('❌ Error in NeedAgentIQ:', error);
+    const errorObj = error as Error;
+    
     logError('needagentiq_error', { 
-      msg: error?.message?.slice(0, 160),
-      code: error?.code,
-      name: error?.name
+      msg: errorObj?.message?.slice(0, 160),
+      code: (errorObj as any)?.code,
+      name: errorObj?.name
     });
 
-    if (error.name === 'ZodError') {
-      console.log('🔍 Zod validation error:', error.issues);
+    if (errorObj?.name === 'ZodError') {
+      console.log('🔍 Zod validation error:', (errorObj as any).issues);
       return jsonError('Invalid input format', 400);
     }
 
@@ -757,8 +758,9 @@ Generate insights using ONLY the provided services and claims:`;
       console.log('🔄 AI validation failed, using deterministic fallback...');
       const topService = rankedServices[0];
       const areaUsd = getAreaMonthlyUsd(moneyLost, topService.areaId || '');
-      const roiEstimate = areaUsd > 0 ? Math.min(areaUsd, (topService.roiRangeMonthly?.[1] || 5000)) 
-                         : Math.round(((topService.roiRangeMonthly?.[0] || 2000) + (topService.roiRangeMonthly?.[1] || 5000)) / 2);
+      const roiRange = topService.roiRangeMonthly || [2000, 5000];
+      const roiEstimate = areaUsd > 0 ? Math.min(areaUsd, roiRange[1])
+                         : Math.round((roiRange[0] + roiRange[1]) / 2);
       
       parsedInsights.push({
         title: topService.name,
@@ -947,8 +949,9 @@ function parseAIResponseEnhanced(content: string, servicesForPrompt: any[], mone
     return sanitized;
     
   } catch (parseError) {
+    const errorObj = parseError as Error;
     console.log('🔍 Enhanced parse error:', {
-      error: parseError.message,
+      error: errorObj.message,
       content: content?.slice(0, 200)
     });
     return [];
@@ -968,7 +971,7 @@ function parseAIResponse(content: string, vertical: string, sectionId: string): 
     endsWithBackticks: content?.endsWith('```')
   });
 
-  let insights = [];
+  let insights: any[] = [];
   
   try {
     // 🐛 DEBUG: Content cleaning process
@@ -1084,10 +1087,11 @@ function parseAIResponse(content: string, vertical: string, sectionId: string): 
     });
     
   } catch (parseError) {
+    const errorObj = parseError as Error;
     console.log('🐛 DEBUG: Parse error details:', {
-      errorName: parseError.name,
-      errorMessage: parseError.message,
-      stack: parseError.stack?.slice(0, 300),
+      errorName: errorObj.name,
+      errorMessage: errorObj.message,
+      stack: errorObj.stack?.slice(0, 300),
       contentBeingParsed: content?.slice(0, 500) + (content?.length > 500 ? '...' : '')
     });
     

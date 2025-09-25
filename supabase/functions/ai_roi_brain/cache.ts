@@ -200,7 +200,7 @@ export async function getOrCompute<T>(
       
       // Store in L2 (fire-and-forget to avoid blocking)
       saveL2(key, result).catch((error) => {
-        console.warn(`L2 cache store failed for key ${key.substring(0, 8)}:`, error.message);
+        console.warn(`L2 cache store failed for key ${key.substring(0, 8)}:`, normalizeError(error).message);
       });
       
       // Store in L1

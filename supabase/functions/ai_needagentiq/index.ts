@@ -6,6 +6,7 @@ import { corsHeaders } from '../_shared/env.ts';
 import { logger } from '../_shared/logger.ts';
 import { NeedAgentIQSimpleInputSchema, NeedAgentIQSimpleOutputSchema } from '../_shared/validation.ts';
 import { filterServicesByVertical, filterServicesByTags, validateKBSlice, type KBService, type KBSlice } from '../_shared/kbValidation.ts';
+import { isDiagMode, diagWrap } from "../_shared/diag.ts";
 
 // FASE 2: Section Policy per differenziare comportamento tra sezioni - FIXED with correct dental section IDs
 const ALLOWED_BY_SECTION: Record<string, {
@@ -378,6 +379,22 @@ serve(async (req) => {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
 
+  // --- Health check (GET ?health=1) ---
+  const url = new URL(req.url);
+  if (url.searchParams.get('health') === '1') {
+    const kbProbe = {
+      approved_claims: await fileExists('./kb/approved_claims.json'),
+      services: await fileExists('./kb/services.json'),
+    };
+    return jsonOk({
+      ok: true,
+      health: {
+        kb: kbProbe,
+        sections_edge: Object.keys(ALLOWED_BY_SECTION || {}),
+      },
+    });
+  }
+
   // No authentication required for public access
 
   if (req.method !== 'POST') {
@@ -399,8 +416,8 @@ serve(async (req) => {
     });
 
     // FASE 3: Determine section mode and policy
-    const fallbackSectionId = Object.keys(ALLOWED_BY_SECTION)[0] || 'practice_profile';
-    const policy = ALLOWED_BY_SECTION[sectionId] || ALLOWED_BY_SECTION[fallbackSectionId] || { mode: 'foundational', allowSkills: false, allowROI: false }; // Null-safe fallback
+    const defaultSection = 'practice_profile';
+    const policy = ALLOWED_BY_SECTION[sectionId ?? defaultSection] ?? ALLOWED_BY_SECTION[defaultSection];
     const mode = policy.mode || (policy.allowSkills ? 'skills' : 'foundational');
     
     console.log('🎯 Section policy determined:', {
@@ -528,7 +545,14 @@ serve(async (req) => {
       source: baseInsights.length > 0 ? 'deterministic' : (mode === 'foundational' ? 'foundational' : 'ai_enhanced')
     });
 
-    return jsonOk(finalInsights);
+    const resp = { ok: true, insights: finalInsights };
+    return jsonOk(
+      diagWrap(resp, isDiagMode() ? {
+        sectionId,
+        effectiveSectionId: (sectionId && ALLOWED_BY_SECTION[sectionId]) ? sectionId : defaultSection,
+        policyUsed: policy
+      } : undefined)
+    );
 
   } catch (error) {
     console.error('❌ Error in NeedAgentIQ:', error);
@@ -1100,4 +1124,8 @@ function parseAIResponse(content: string, vertical: string, sectionId: string): 
   }
 
   return insights;
+}
+
+async function fileExists(p: string) {
+  try { const s = await Deno.stat(p); return s.isFile; } catch { return false; }
 }

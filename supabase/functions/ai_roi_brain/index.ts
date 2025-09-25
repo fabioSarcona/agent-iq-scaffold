@@ -2,6 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from '../_shared/env.ts'
 import { logger as sharedLogger } from '../_shared/logger.ts';
 import { normalizeError } from '../_shared/errorUtils.ts';
+import { diagWrap } from "../_shared/diag.ts";
 import type { 
   BusinessContext,
   VoiceFitOutput,
@@ -290,11 +291,13 @@ Deno.serve(async (req) => {
     const cacheKey = await generateCacheKey(normalizedContext);
     let result = await readL2Cache(cacheKey);
     
+    // Build prompt for potential AI call or debug info
+    const prompt = buildPrompt(normalizedContext, intelligence);
+    
     if (!result) {
       logger.info('Cache miss - calling AI');
       
       // Call Claude API
-      const prompt = buildPrompt(normalizedContext, intelligence);
       const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
@@ -366,9 +369,11 @@ Deno.serve(async (req) => {
       cacheHit: !!result.processingMetrics?.cacheHit
     });
 
-    return new Response(JSON.stringify(result), {
+    const jsonOk = (data: any) => new Response(JSON.stringify(data), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
+    
+    return jsonOk(diagWrap({ ok: true, result }, { promptSent: prompt?.slice?.(0, 4000) || prompt }));
 
   } catch (error) {
     logger.error('ROI Brain function error', error);

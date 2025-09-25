@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "strict": true,
+    "skipLibCheck": true
+  },
+  "exclude": [
+    "supabase/functions/ai_roi_brain/_legacy/**",
+    "supabase/functions/**/__tests__/**", 
+    "modules/_legacy/**"
+  ]
+}

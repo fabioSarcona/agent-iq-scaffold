@@ -44,16 +44,16 @@ async function loadKBData() {
     pricingText,
     aiTechnologyText
   ] = await Promise.all([
-    Deno.readTextFile(new URL('./approved_claims.json', import.meta.url)),
-    Deno.readTextFile(new URL('./services.json', import.meta.url)),
-    Deno.readTextFile(new URL('./voice_skills.json', import.meta.url)),
-    Deno.readTextFile(new URL('./pain_points.json', import.meta.url)),
-    Deno.readTextFile(new URL('./brand.json', import.meta.url)),
-    Deno.readTextFile(new URL('./external_sources.json', import.meta.url)),
-    Deno.readTextFile(new URL('./response_models.json', import.meta.url)),
-    Deno.readTextFile(new URL('./faq.json', import.meta.url)),
-    Deno.readTextFile(new URL('./pricing.json', import.meta.url)),
-    Deno.readTextFile(new URL('./ai_technology.json', import.meta.url))
+    Deno.readTextFile('./kb/approved_claims.json'),
+    Deno.readTextFile('./kb/services.json'),
+    Deno.readTextFile('./kb/voice_skills.json'),
+    Deno.readTextFile('./kb/pain_points.json'),
+    Deno.readTextFile('./kb/brand.json'),
+    Deno.readTextFile('./kb/external_sources.json'),
+    Deno.readTextFile('./kb/response_models.json'),
+    Deno.readTextFile('./kb/faq.json'),
+    Deno.readTextFile('./kb/pricing.json'),
+    Deno.readTextFile('./kb/ai_technology.json')
   ]);
 
   return {
@@ -83,9 +83,7 @@ export async function getKBData() {
 // Helper functions matching frontend KB interface
 export async function getAllVoiceSkills(): Promise<VoiceSkill[]> {
   const kb = await getKBData();
-  const dental = kb.voiceSkills.dental || [];
-  const hvac = kb.voiceSkills.hvac || [];
-  return [...dental, ...hvac];
+  return [...kb.voiceSkills.dental, ...kb.voiceSkills.hvac];
 }
 
 export async function getSkillsByTarget(target: 'Dental' | 'HVAC'): Promise<VoiceSkill[]> {
@@ -100,9 +98,7 @@ export async function getPainPointsByVertical(vertical: 'dental' | 'hvac'): Prom
 
 export async function getAllPainPoints(): Promise<PainPoint[]> {
   const kb = await getKBData();
-  const dental = kb.painPoints.dental || [];
-  const hvac = kb.painPoints.hvac || [];
-  return [...dental, ...hvac];
+  return [...(kb.painPoints.dental || []), ...(kb.painPoints.hvac || [])];
 }
 
 export async function getServicesByTarget(target: 'Dental' | 'HVAC'): Promise<Service[]> {

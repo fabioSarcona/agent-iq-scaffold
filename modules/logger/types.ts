@@ -11,7 +11,7 @@ export interface EventFilter {
   search?: string;
 }
 
-export type EventCategory = 'insights' | 'moneylost' | 'errors' | 'system' | 'all' | 'needagentiq';
+export type EventCategory = 'insights' | 'moneylost' | 'errors' | 'system' | 'all';
 
 export interface TabConfig {
   id: EventCategory;

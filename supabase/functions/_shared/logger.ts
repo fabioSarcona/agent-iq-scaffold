@@ -58,8 +58,6 @@ function formatLog(level: string, message: string, data?: any): string {
   });
 }
 
-import { normalizeError } from "./errorUtils.ts";
-
 export const logger = {
   debug: (message: string, data?: any) => {
     console.log(formatLog('DEBUG', message, data));
@@ -73,8 +71,7 @@ export const logger = {
     console.warn(formatLog('WARN', message, data));
   },
   
-  error: (message: string, err?: unknown, meta?: Record<string, unknown>) => {
-    const e = err ? normalizeError(err) : undefined;
-    console.error(formatLog('ERROR', message, { error: e, ...meta }));
+  error: (message: string, data?: any) => {
+    console.error(formatLog('ERROR', message, data));
   }
 };

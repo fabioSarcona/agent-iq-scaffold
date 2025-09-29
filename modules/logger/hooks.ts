@@ -74,7 +74,7 @@ export const useEventFilter = (events: LogEntry[], category: EventCategory, sear
   }, [events, category, searchQuery, tabConfigs]);
 
   const eventCounts = useMemo(() => {
-    const counts: Record<EventCategory, number> = { insights: 0, moneylost: 0, errors: 0, system: 0, needagentiq: 0, all: events.length };
+    const counts: Record<EventCategory, number> = { insights: 0, moneylost: 0, errors: 0, system: 0, all: events.length };
     
     tabConfigs.forEach(config => {
       counts[config.id] = events.filter(config.filter).length;

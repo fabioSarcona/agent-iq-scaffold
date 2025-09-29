@@ -111,40 +111,33 @@ export function NeedAgentIQPanel() {
     insightsBySection,
     iqError,
     clearIqError,
-    config,
-    currentSectionIndex
+    config
   } = useAuditProgressStore();
 
   const [showHistorical, setShowHistorical] = useState(false);
 
-  // Get current section ID
-  const currentSectionId = config?.sections[currentSectionIndex]?.id;
+  // Get recent insights (ROI Brain insights are always recent, then last 2 from legacy)
+  const roiBrainInsights = insights.filter(i => i.sectionId === 'roi_brain_generated');
+  const legacyInsights = insights.filter(i => i.sectionId !== 'roi_brain_generated');
+  const recentInsights = [
+    ...roiBrainInsights, // All ROI Brain insights are "new"
+    ...legacyInsights.slice(0, Math.max(0, 2 - roiBrainInsights.length)) // Fill remaining with legacy
+  ];
+  const historicalInsights = legacyInsights.slice(Math.max(0, 2 - roiBrainInsights.length));
 
-  // Apply render cap only - store keeps full history
-  const cap = featureFlags.maxRenderInsights;
+  // Create a Set of recent insight keys for efficient deduplication
+  const recentInsightKeys = new Set(recentInsights.map(insight => insight.key));
 
-  // Get recent insights from current section only
-  const recentSorted = currentSectionId 
-    ? (insightsBySection[currentSectionId] ?? [])
-        .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
-    : [];
-  const recentInsights = Number.isFinite(cap) ? recentSorted.slice(0, cap) : recentSorted;
-
-  // Get historical insights from previous sections with insights > 0
-  const previousSectionIds = Object
-    .keys(insightsBySection || {})
-    .filter(id => id !== currentSectionId && (insightsBySection[id]?.length ?? 0) > 0);
-
-  const historicalSorted = previousSectionIds
-    .flatMap(id => 
-      (insightsBySection[id] ?? []).map(insight => ({
+  // Get all historical insights from all sections
+  const allSectionInsights = Object.entries(insightsBySection)
+    .filter(([sectionId]) => sectionId !== 'current')
+    .flatMap(([sectionId, sectionInsights]) => 
+      (Array.isArray(sectionInsights) ? sectionInsights : []).map(insight => ({
         ...insight,
-        sectionId: id,
-        sectionName: config?.sections.find(s => s.id === id)?.headline || id
+        sectionId,
+        sectionName: config?.sections.find(s => s.id === sectionId)?.title || sectionId
       }))
-    )
-    .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
-  const historicalInsights = Number.isFinite(cap) ? historicalSorted.slice(0, cap) : historicalSorted;
+    );
 
   // Show error state if there's an error
   if (iqError) {
@@ -165,7 +158,7 @@ export function NeedAgentIQPanel() {
   }
 
   // Show placeholder if no insights yet
-  if (recentInsights.length === 0 && historicalInsights.length === 0) {
+  if (insights.length === 0 && allSectionInsights.length === 0) {
     const isROIBrainActive = featureFlags.shouldUseRoiBrain();
     
     return <Card className="border-muted">
@@ -186,14 +179,13 @@ export function NeedAgentIQPanel() {
       </Card>;
   }
 
-  // Show historical when there are insights from previous sections and at least 2 sections completed
-  const completedSectionsCount = Object.keys(insightsBySection).filter(sectionId => 
-    insightsBySection[sectionId].length > 0
-  ).length;
-  const shouldShowHistorical = historicalInsights.length > 0 && completedSectionsCount >= 2;
-
-  // Calculate badge count based on ONLY rendered insights (not all stored)
-  const totalRendered = recentInsights.length + (shouldShowHistorical ? historicalInsights.length : 0);
+  const totalInsights = insights.length + allSectionInsights.length;
+  const hasHistoricalData = historicalInsights.length > 0 || allSectionInsights.length > 0;
+  const completedSections = config?.sections?.filter(s => 
+    Object.keys(insightsBySection).includes(s.id) || 
+    insights.some(i => i.sectionId === s.id)
+  ).length || 0;
+  const shouldShowHistorical = hasHistoricalData && completedSections >= 2;
 
   // Render insights
   return <Card>
@@ -202,7 +194,7 @@ export function NeedAgentIQPanel() {
           <Lightbulb className="h-4 w-4 text-primary" />
           <CardTitle className="text-sm">AI Insights</CardTitle>
           <Badge variant="secondary" className="text-xs">
-            {totalRendered}
+            {totalInsights}
           </Badge>
         </div>
       </CardHeader>
@@ -233,7 +225,7 @@ export function NeedAgentIQPanel() {
                   <History className="h-3 w-3" />
                   <span>Previous Insights</span>
                   <Badge variant="outline" className="text-xs">
-                    {historicalInsights.length}
+                    {historicalInsights.length + allSectionInsights.length}
                   </Badge>
                 </div>
                 {showHistorical ? (
@@ -245,8 +237,19 @@ export function NeedAgentIQPanel() {
             </CollapsibleTrigger>
             
             <CollapsibleContent className="space-y-2 mt-2">
-              {/* Historical insights from previous sections */}
-              {historicalInsights.map((insight) => (
+              {/* Legacy historical insights (deduplicated) */}
+              {historicalInsights
+                .filter(insight => !recentInsightKeys.has(insight.key))
+                .map((insight) => (
+                <div key={insight.key || insight.title} className="opacity-75 hover:opacity-100 transition-opacity">
+                  <InsightCard insight={insight} />
+                </div>
+              ))}
+              
+              {/* Section-based historical insights (deduplicated) */}
+              {allSectionInsights
+                .filter(insight => !recentInsightKeys.has(insight.key))
+                .map((insight) => (
                 <div key={`${insight.sectionId}-${insight.key}`} className="opacity-75 hover:opacity-100 transition-opacity">
                   <div className="relative">
                     <InsightCard insight={insight} />

@@ -2,7 +2,6 @@ import { supabase } from '@/integrations/supabase/client'
 import type { LLMOutput, VoiceFitReportData } from './report.types'  
 import type { MoneyLostOutput } from 'supabase/functions/_shared/types'
 import { logger } from '@/lib/logger'
-import { featureFlags } from '@/env'
 
 export async function requestVoiceFitReport(
   vertical: string, 
@@ -11,13 +10,9 @@ export async function requestVoiceFitReport(
   moneylost?: MoneyLostOutput,
   benchmarks?: string[]
 ): Promise<VoiceFitReportData> {
-  // PLAN D: Configurable timeout to prevent infinite loading
-  const timeoutMs = featureFlags.reportTimeoutMs
+  // Add timeout to prevent infinite loading
   const timeoutPromise = new Promise((_, reject) => {
-    setTimeout(() => 
-      reject(new Error(`Report generation timeout after ${timeoutMs / 1000} seconds`)), 
-      timeoutMs
-    )
+    setTimeout(() => reject(new Error('Report generation timeout after 30 seconds')), 30000)
   })
 
   const requestPromise = supabase.functions.invoke('ai_generate_report', {
@@ -28,29 +23,15 @@ export async function requestVoiceFitReport(
     const { data, error } = await Promise.race([requestPromise, timeoutPromise]) as any
 
     if (error) {
-      logger.error('Error generating VoiceFit report', { 
-        error: error.message,
-        code: error.code,
-        timeoutMs: timeoutMs
-      })
-      // PLAN D: Enhanced error messaging with specific codes
-      if (error.message?.includes('ANTHROPIC_API_KEY')) {
-        throw new Error('AI service configuration required. Please contact support.')
-      }
-      if (error.message?.includes('validation')) {
-        throw new Error('Invalid request data. Please try again.')
-      }
+      logger.error('Error generating VoiceFit report', { error: error.message })
       throw new Error(`Failed to generate report: ${error.message}`)
     }
 
     const llmOutput = data as LLMOutput
     return mapLLMToUI(llmOutput)
   } catch (timeoutError) {
-    logger.error('VoiceFit report timeout', { 
-      error: timeoutError.message,
-      timeoutMs: timeoutMs
-    })
-    throw new Error(`Report generation is taking longer than expected (${timeoutMs / 1000}s). Please try again.`)
+    logger.error('VoiceFit report timeout', { error: timeoutError.message })
+    throw new Error('Report generation is taking too long. Please try again.')
   }
 }
 

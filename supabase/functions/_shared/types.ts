@@ -67,9 +67,6 @@ export interface ErrorResponse {
   metadata?: {
     processing_time_ms: number;
     warnings?: string[];
-    errorType?: string;
-    timeoutOccurred?: boolean;
-    apiKeyConfigured?: boolean;
   };
 }
 
@@ -80,7 +77,4 @@ export interface SuccessMetadata {
   warnings?: string[];
   model_used?: string;
   cache?: 'HIT' | 'MISS';
-  errorType?: string;
-  timeoutOccurred?: boolean;
-  apiKeyConfigured?: boolean;
 }

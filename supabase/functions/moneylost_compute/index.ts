@@ -3,8 +3,6 @@ import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 // Shared modules
 import { corsHeaders } from '../_shared/env.ts';
 import { logger } from '../_shared/logger.ts';
-import { normalizeError } from '../_shared/errorUtils.ts';
-import { z } from '../_shared/zod.ts';
 import { MoneyLostInputSchema, MoneyLostOutputSchema } from '../_shared/validation.ts';
 import type { MoneyLostInput, MoneyLostOutput, ErrorResponse } from '../_shared/types.ts';
 
@@ -333,18 +331,22 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    logger.error('MoneyLost computation error', error);
+    logger.error('MoneyLost computation error', { 
+      msg: error.message?.slice(0, 160),
+      code: error.code,
+      name: error.name 
+    });
     
     const processingTime = Date.now() - startTime;
-    const err = normalizeError(error);
+    let errorResponse: ErrorResponse;
 
-    if (error instanceof z.ZodError) {
-      const errorResponse: ErrorResponse = {
+    if (error.name === 'ZodError') {
+      errorResponse = {
         success: false,
         error: { 
           message: 'Invalid input format', 
           code: 'VALIDATION_ERROR',
-          details: err.zodIssues 
+          details: error.errors 
         },
         metadata: { processing_time_ms: processingTime }
       };
@@ -355,10 +357,10 @@ serve(async (req) => {
       });
     }
 
-    const errorResponse: ErrorResponse = {
+    errorResponse = {
       success: false,
       error: { 
-        message: err.message || 'Internal server error', 
+        message: error.message || 'Internal server error', 
         code: 'INTERNAL_ERROR' 
       },
       metadata: { processing_time_ms: processingTime }

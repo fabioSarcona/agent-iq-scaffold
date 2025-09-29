@@ -32,10 +32,10 @@ import { VoiceFitInputSchema } from '../_shared/validation.ts';
 const validatedInput = VoiceFitInputSchema.parse(body);
 ```
 
-### `kbValidation.ts`
+### `kb.ts`
 Knowledge base validation and access helpers:
 ```typescript
-import { validateKBSlice } from '../_shared/kbValidation.ts';
+import { validateKBSlice } from '../_shared/kb.ts';
 const kb = validateKBSlice(inputKB);
 ```
 

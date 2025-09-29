@@ -3,7 +3,6 @@ import { FileText, AlertTriangle, TrendingDown, Loader2, Zap, TrendingUp } from 
 import { useQuery } from '@tanstack/react-query'
 import * as React from 'react'
 import { useTranslation } from '@/hooks/useTranslation'
-import { logger } from '@/lib/logger'
 
 // Import from audit and AI modules
 import { useAuditProgressStore } from '@modules/audit'
@@ -35,37 +34,6 @@ import { RevenueSimulator, mapSolutionToInsight, distributeSmartImpacts, extract
 import type { MoneyLostSummary } from '../../modules/moneylost/types'
 import { Badge } from '@/components/ui/badge'
 import { ConsultationSummaryCard } from '@/components/ConsultationSummaryCard'
-
-// PLAN D: Error message mapping function for structured error handling
-function getErrorMessage(errorCode?: string): { title: string; description: string } {
-  switch (errorCode) {
-    case 'MISSING_API_KEY':
-      return {
-        title: 'Configuration Required',
-        description: 'AI service needs to be configured. Please contact support for assistance.'
-      };
-    case 'TIMEOUT_ERROR':
-      return {
-        title: 'Processing Timeout',
-        description: 'Report generation is taking longer than expected. Please try again in a few minutes.'
-      };
-    case 'VALIDATION_ERROR':
-      return {
-        title: 'Data Validation Error',
-        description: 'There was an issue with your audit data. Please try completing the audit again.'
-      };
-    case 'INTERNAL_ERROR':
-      return {
-        title: 'System Error',
-        description: 'An internal error occurred. Please try again later.'
-      };
-    default:
-      return {
-        title: 'Connection Issue',
-        description: 'Unable to connect to our services. Please check your internet connection and try again.'
-      };
-  }
-}
 
 export default function Report() {
   const { vertical, answers } = useAuditProgressStore()
@@ -331,71 +299,15 @@ export default function Report() {
   }
   
   if (error) {
-    // PLAN D: Enhanced error handling and logging with structured error codes
-    const errorMessage = error instanceof Error ? error.message : t('error.message')
-    
-    // Extract error code from structured error responses
-    let errorCode: string | undefined;
-    try {
-      // Try to parse structured error from JSON response first
-      if (error && typeof error === 'object' && 'error' in error) {
-        const structuredError = (error as any).error;
-        if (structuredError?.code) {
-          errorCode = structuredError.code;
-        }
-      }
-      
-      // Fallback: try to parse from error message if no structured code found
-      if (!errorCode && errorMessage) {
-        if (errorMessage.includes('MISSING_API_KEY')) errorCode = 'MISSING_API_KEY';
-        else if (errorMessage.includes('TIMEOUT_ERROR')) errorCode = 'TIMEOUT_ERROR';
-        else if (errorMessage.includes('VALIDATION_ERROR')) errorCode = 'VALIDATION_ERROR';
-        else if (errorMessage.includes('INTERNAL_ERROR')) errorCode = 'INTERNAL_ERROR';
-        else if (errorMessage.includes('BOTH_SYSTEMS_FAILED')) errorCode = 'BOTH_SYSTEMS_FAILED';
-      }
-    } catch (e) {
-      // Fallback to legacy error message parsing
-    }
-    
-    // PLAN D: Use structured logging instead of console.error
-    logger.error('Report generation failed', {
-      error: errorMessage,
-      errorCode,
-      useROIBrain,
-      vertical: currentVertical,
-      timestamp: new Date().toISOString(),
-      answerKeys: Object.keys(answers || {})
-    });
-    
-    // PLAN D: Use structured error message mapping
-    const { title: errorTitle, description: errorDescription } = getErrorMessage(errorCode)
-    const ErrorIcon = AlertTriangle
-    
     return (
       <div className="max-w-[900px] mx-auto p-6">
         <Card className="border-destructive">
           <CardContent className="p-6 text-center">
-            <ErrorIcon className="h-12 w-12 text-destructive mx-auto mb-4" />
-            <h2 className="text-lg font-semibold text-foreground mb-2">{errorTitle}</h2>
-            <p className="text-muted-foreground mb-4">
-              {errorDescription}
+            <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
+            <h2 className="text-lg font-semibold text-foreground mb-2">{t('error.title')}</h2>
+            <p className="text-muted-foreground">
+              {error instanceof Error ? error.message : t('error.message')}
             </p>
-            {/* PLAN D: Add diagnostic information for development */}
-            {process.env.NODE_ENV === 'development' && (
-              <details className="mt-4 text-left">
-                <summary className="text-sm text-muted-foreground cursor-pointer">
-                  Debug Information
-                </summary>
-                <pre className="text-xs bg-muted p-2 mt-2 rounded overflow-auto">
-                  {JSON.stringify({
-                    error: errorMessage,
-                    useROIBrain,
-                    vertical: currentVertical,
-                    timestamp: new Date().toISOString()
-                  }, null, 2)}
-                </pre>
-              </details>
-            )}
           </CardContent>
         </Card>
       </div>

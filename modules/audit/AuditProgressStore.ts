@@ -306,21 +306,18 @@ export const useAuditProgressStore = create<AuditProgressState>()(
           
           // Also update legacy insights array for backward compatibility
           const existingKeys = new Set(state.insights.map(i => i.key));
-          const withMeta = newInsights.map(i => ({
-            ...i,
-            createdAt: i.createdAt ?? Date.now()
-          }));
-          const dedupedInsights = withMeta.filter(insight => !existingKeys.has(insight.key));
+          const dedupedInsights = newInsights.filter(insight => !existingKeys.has(insight.key));
           const allInsights = [...state.insights, ...dedupedInsights];
+          const limitedInsights = allInsights.slice(-4);
           
           console.log('🐛 DEBUG: Legacy insights updated:', {
-            totalInsights: allInsights.length,
+            totalInsights: limitedInsights.length,
             addedToLegacy: dedupedInsights.length
           });
           
           return {
             insightsBySection: { ...state.insightsBySection, [sectionId]: merged },
-            insights: allInsights,
+            insights: limitedInsights,
             lastEmittedKeys: [...state.lastEmittedKeys, ...dedupedInsights.map(i => i.key)]
           };
         });
@@ -371,17 +368,15 @@ export const useAuditProgressStore = create<AuditProgressState>()(
             }
           });
           
-          // Add timestamps and deduplicate ROI Brain insights  
-          const withMeta = roiBrainInsights.map(i => ({
-            ...i,
-            createdAt: i.createdAt ?? Date.now()
-          }));
-          // Remove cap - store keeps full history for consistent UI
-          const existingKeysGlobal = new Set(allInsights.map(i => i.key));
-          const merged = [...allInsights, ...withMeta.filter(i => !existingKeysGlobal.has(i.key))];
+          // Limit global insights to last 8 items (increased for ROI Brain)
+          // BUT: Put ROI Brain insights at the BEGINNING so they appear as "New"
+          const roiBrainNewInsights = allInsights.filter(i => i.sectionId === 'roi_brain_generated');
+          const otherInsights = allInsights.filter(i => i.sectionId !== 'roi_brain_generated');
+          const orderedInsights = [...roiBrainNewInsights, ...otherInsights.slice(-6)]; // Max 8 total
+          const limitedInsights = orderedInsights.slice(0, 8);
           
           console.log('🧠 DEBUG: ROI Brain insights processed:', {
-            totalInsights: merged.length,
+            totalInsights: limitedInsights.length,
             insightsBySection: Object.keys(newInsightsBySection).map(sectionId => ({
               sectionId,
               count: newInsightsBySection[sectionId].length
@@ -389,11 +384,8 @@ export const useAuditProgressStore = create<AuditProgressState>()(
           });
           
           return {
-            insightsBySection: {
-              ...state.insightsBySection,  // Preserva insights sezioni precedenti
-              ...newInsightsBySection      // Aggiunge nuovi insights
-            },
-            insights: merged, // No cap - store keeps full history
+            insightsBySection: newInsightsBySection,
+            insights: limitedInsights,
             lastEmittedKeys: [...state.lastEmittedKeys, ...roiBrainInsights.map(i => i.key)]
           };
         });

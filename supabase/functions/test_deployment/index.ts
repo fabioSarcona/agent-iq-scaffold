@@ -1,5 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { normalizeError } from '../_shared/errorUtils.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -46,7 +45,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: false,
-        error: { message: normalizeError(error).message || 'Internal server error' }
+        error: { message: error.message || 'Internal server error' }
       }),
       { 
         status: 500,

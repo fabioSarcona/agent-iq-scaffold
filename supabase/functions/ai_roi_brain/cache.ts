@@ -1,9 +1,6 @@
 // Cache System Module - L1 (In-Memory LRU) + L2 (Supabase) with SHA-256 keys
 // Implements stampede protection, negative caching, and deterministic key generation
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { normalizeError } from '../_shared/errorUtils.ts';
-
 interface CacheEntry<T = any> {
   data: T;
   timestamp: number;
@@ -77,9 +74,7 @@ class L1Cache<T = any> {
     // LRU eviction - remove oldest if over limit
     if (this.cache.size > MAX_SIZE) {
       const firstKey = this.cache.keys().next().value;
-      if (firstKey !== undefined) {
-        this.cache.delete(firstKey);
-      }
+      this.cache.delete(firstKey);
     }
   }
   
@@ -116,7 +111,7 @@ const inflight = new Map<string, Promise<any>>();
 /**
  * Deterministic object sorting for stable JSON stringification
  */
-export function stableSort(obj: any): any {
+function stableSort(obj: any): any {
   if (obj === null || typeof obj !== 'object') return obj;
   if (Array.isArray(obj)) return obj.map(stableSort);
   
@@ -200,7 +195,7 @@ export async function getOrCompute<T>(
       
       // Store in L2 (fire-and-forget to avoid blocking)
       saveL2(key, result).catch((error) => {
-        console.warn(`L2 cache store failed for key ${key.substring(0, 8)}:`, normalizeError(error).message);
+        console.warn(`L2 cache store failed for key ${key.substring(0, 8)}:`, error.message);
       });
       
       // Store in L1
@@ -209,7 +204,7 @@ export async function getOrCompute<T>(
       return result;
     } catch (error) {
       // Negative cache for errors (short TTL)
-      const errorResult = { error: normalizeError(error).message, timestamp: Date.now() };
+      const errorResult = { error: error.message, timestamp: Date.now() };
       L1.set(key, errorResult, true);
       throw error;
     } finally {

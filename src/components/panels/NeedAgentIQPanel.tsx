@@ -120,22 +120,18 @@ export function NeedAgentIQPanel() {
   // Get current section ID
   const currentSectionId = config?.sections[currentSectionIndex]?.id;
 
-  // Apply render cap only - store keeps full history
-  const cap = featureFlags.maxRenderInsights;
-
   // Get recent insights from current section only
-  const recentSorted = currentSectionId 
+  const recentInsights = currentSectionId 
     ? (insightsBySection[currentSectionId] ?? [])
         .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0))
     : [];
-  const recentInsights = Number.isFinite(cap) ? recentSorted.slice(0, cap) : recentSorted;
 
   // Get historical insights from previous sections with insights > 0
   const previousSectionIds = Object
     .keys(insightsBySection || {})
     .filter(id => id !== currentSectionId && (insightsBySection[id]?.length ?? 0) > 0);
 
-  const historicalSorted = previousSectionIds
+  const historicalInsights = previousSectionIds
     .flatMap(id => 
       (insightsBySection[id] ?? []).map(insight => ({
         ...insight,
@@ -144,7 +140,6 @@ export function NeedAgentIQPanel() {
       }))
     )
     .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
-  const historicalInsights = Number.isFinite(cap) ? historicalSorted.slice(0, cap) : historicalSorted;
 
   // Show error state if there's an error
   if (iqError) {
@@ -186,14 +181,14 @@ export function NeedAgentIQPanel() {
       </Card>;
   }
 
+  // Calculate badge count based on actually rendered insights
+  const totalRendered = recentInsights.length + (historicalInsights.length > 0 ? historicalInsights.length : 0);
+  
   // Show historical when there are insights from previous sections and at least 2 sections completed
   const completedSectionsCount = Object.keys(insightsBySection).filter(sectionId => 
     insightsBySection[sectionId].length > 0
   ).length;
   const shouldShowHistorical = historicalInsights.length > 0 && completedSectionsCount >= 2;
-
-  // Calculate badge count based on ONLY rendered insights (not all stored)
-  const totalRendered = recentInsights.length + (shouldShowHistorical ? historicalInsights.length : 0);
 
   // Render insights
   return <Card>

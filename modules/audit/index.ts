@@ -14,7 +14,3 @@ export { validateQuestion } from './validators'
 
 // Configuration utilities
 export { loadAuditConfig } from './config.loader'
-
-// FASE 7: Debug utilities for NeedAgentIQ
-export { NeedAgentIQDebugger, createDemoSession } from './NeedAgentIQDebugger'
-export { NeedAgentIQDebugPanel } from './NeedAgentIQDebugPanel'

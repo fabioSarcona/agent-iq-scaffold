@@ -299,62 +299,15 @@ export default function Report() {
   }
   
   if (error) {
-    // PLAN D: Enhanced error handling and logging
-    const errorMessage = error instanceof Error ? error.message : t('error.message')
-    
-    // Log detailed error information for debugging
-    console.error('🚨 Report generation failed:', {
-      error: errorMessage,
-      useROIBrain,
-      vertical: currentVertical,
-      timestamp: new Date().toISOString(),
-      answerKeys: Object.keys(answers || {})
-    });
-    
-    // PLAN D: Determine error type and provide specific messaging
-    let errorTitle = t('error.title')
-    let errorDescription = errorMessage
-    let ErrorIcon = AlertTriangle
-    
-    if (errorMessage.includes('AI service configuration required')) {
-      errorTitle = 'Configuration Required'
-      errorDescription = 'AI service needs to be configured. Please contact support for assistance.'
-    } else if (errorMessage.includes('timeout') || errorMessage.includes('taking longer than expected')) {
-      errorTitle = 'Processing Timeout'
-      errorDescription = 'Report generation is taking longer than expected. Please try again in a few minutes.'
-    } else if (errorMessage.includes('Invalid request data')) {
-      errorTitle = 'Data Validation Error'
-      errorDescription = 'There was an issue with your audit data. Please try completing the audit again.'
-    } else if (errorMessage.includes('Connection') || errorMessage.includes('network')) {
-      errorTitle = 'Connection Issue'
-      errorDescription = 'Unable to connect to our services. Please check your internet connection and try again.'
-    }
-    
     return (
       <div className="max-w-[900px] mx-auto p-6">
         <Card className="border-destructive">
           <CardContent className="p-6 text-center">
-            <ErrorIcon className="h-12 w-12 text-destructive mx-auto mb-4" />
-            <h2 className="text-lg font-semibold text-foreground mb-2">{errorTitle}</h2>
-            <p className="text-muted-foreground mb-4">
-              {errorDescription}
+            <AlertTriangle className="h-12 w-12 text-destructive mx-auto mb-4" />
+            <h2 className="text-lg font-semibold text-foreground mb-2">{t('error.title')}</h2>
+            <p className="text-muted-foreground">
+              {error instanceof Error ? error.message : t('error.message')}
             </p>
-            {/* PLAN D: Add diagnostic information for development */}
-            {process.env.NODE_ENV === 'development' && (
-              <details className="mt-4 text-left">
-                <summary className="text-sm text-muted-foreground cursor-pointer">
-                  Debug Information
-                </summary>
-                <pre className="text-xs bg-muted p-2 mt-2 rounded overflow-auto">
-                  {JSON.stringify({
-                    error: errorMessage,
-                    useROIBrain,
-                    vertical: currentVertical,
-                    timestamp: new Date().toISOString()
-                  }, null, 2)}
-                </pre>
-              </details>
-            )}
           </CardContent>
         </Card>
       </div>

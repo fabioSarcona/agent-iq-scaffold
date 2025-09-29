@@ -42,31 +42,6 @@ export function validateAIEnv(): { ANTHROPIC_API_KEY: string; AI_MODEL: string }
 }
 
 /**
- * PLAN D: Non-throwing AI environment validation for structured error responses
- */
-export function checkAIEnv(): { success: true; config: { ANTHROPIC_API_KEY: string; AI_MODEL: string } } | { success: false; error: { message: string; code: string } } {
-  const config = getEnv();
-  
-  if (!config.ANTHROPIC_API_KEY) {
-    return {
-      success: false,
-      error: {
-        message: 'AI service configuration required. ANTHROPIC_API_KEY not configured.',
-        code: 'MISSING_API_KEY'
-      }
-    };
-  }
-
-  return {
-    success: true,
-    config: {
-      ANTHROPIC_API_KEY: config.ANTHROPIC_API_KEY,
-      AI_MODEL: config.AI_MODEL || 'claude-sonnet-4-20250514'
-    }
-  };
-}
-
-/**
  * Common CORS headers
  */
 export const corsHeaders = {

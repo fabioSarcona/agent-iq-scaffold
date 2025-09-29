@@ -371,15 +371,17 @@ export const useAuditProgressStore = create<AuditProgressState>()(
             }
           });
           
-          // Add timestamps and deduplicate ROI Brain insights
+          // Add timestamps and deduplicate ROI Brain insights  
           const withMeta = roiBrainInsights.map(i => ({
             ...i,
             createdAt: i.createdAt ?? Date.now()
           }));
-          const orderedInsights = [...withMeta, ...otherInsights];
+          // Remove cap - store keeps full history for consistent UI
+          const existingKeysGlobal = new Set(allInsights.map(i => i.key));
+          const merged = [...allInsights, ...withMeta.filter(i => !existingKeysGlobal.has(i.key))];
           
           console.log('🧠 DEBUG: ROI Brain insights processed:', {
-            totalInsights: orderedInsights.length,
+            totalInsights: merged.length,
             insightsBySection: Object.keys(newInsightsBySection).map(sectionId => ({
               sectionId,
               count: newInsightsBySection[sectionId].length
@@ -387,8 +389,11 @@ export const useAuditProgressStore = create<AuditProgressState>()(
           });
           
           return {
-            insightsBySection: newInsightsBySection,
-            insights: orderedInsights,
+            insightsBySection: {
+              ...state.insightsBySection,  // Preserva insights sezioni precedenti
+              ...newInsightsBySection      // Aggiunge nuovi insights
+            },
+            insights: merged, // No cap - store keeps full history
             lastEmittedKeys: [...state.lastEmittedKeys, ...roiBrainInsights.map(i => i.key)]
           };
         });

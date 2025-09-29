@@ -12,6 +12,10 @@ const schema = z.object({
   VITE_ROIBRAIN_FULL_INTEGRATION_ENABLED: z.string().optional().default('false'),
   // FASE 4.3: Money Lost Data Strict Mode
   VITE_ROIBRAIN_MONEYLOST_STRICT: z.string().optional().default('false'),
+  // PLAN D: Timeout Configuration
+  VITE_REPORT_TIMEOUT_MS: z.string().optional().default('60000'),
+  // PLAN E: Render Cap for Performance
+  VITE_MAX_RENDER_INSIGHTS: z.string().optional(),
 });
 
 const parsed = schema.parse({
@@ -23,6 +27,8 @@ const parsed = schema.parse({
   VITE_ROIBRAIN_SKILLSCOPE_ENABLED: import.meta.env.VITE_ROIBRAIN_SKILLSCOPE_ENABLED,
   VITE_ROIBRAIN_FULL_INTEGRATION_ENABLED: import.meta.env.VITE_ROIBRAIN_FULL_INTEGRATION_ENABLED,
   VITE_ROIBRAIN_MONEYLOST_STRICT: import.meta.env.VITE_ROIBRAIN_MONEYLOST_STRICT,
+  VITE_REPORT_TIMEOUT_MS: import.meta.env.VITE_REPORT_TIMEOUT_MS,
+  VITE_MAX_RENDER_INSIGHTS: import.meta.env.VITE_MAX_RENDER_INSIGHTS,
 });
 
 export const env = parsed;
@@ -38,6 +44,15 @@ export const featureFlags = {
   roiBrainFullIntegrationEnabled: parsed.VITE_ROIBRAIN_FULL_INTEGRATION_ENABLED === 'true',
   // FASE 4.3: Money Lost Strict Mode Flag
   roiBrainMoneyLostStrict: parsed.VITE_ROIBRAIN_MONEYLOST_STRICT === 'true',
+  
+  // PLAN D: Report Timeout Configuration
+  reportTimeoutMs: parseInt(parsed.VITE_REPORT_TIMEOUT_MS || '60000'),
+  
+  // PLAN E: Max Render Insights (Infinity = no cap)
+  maxRenderInsights: (() => {
+    const maxRenderRaw = parsed.VITE_MAX_RENDER_INSIGHTS;
+    return maxRenderRaw && !Number.isNaN(Number(maxRenderRaw)) ? Number(maxRenderRaw) : Infinity;
+  })(),
   
   // Determine if user should use ROI Brain (canary rollout)
   shouldUseRoiBrain(): boolean {

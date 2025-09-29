@@ -290,7 +290,8 @@ export const NeedAgentIQInsightSchema = z.object({
 export const NeedAgentIQSimpleInputSchema = z.object({
   vertical: z.enum(['dental', 'hvac']),
   sectionId: z.string(),
-  answersSection: z.record(z.string(), z.unknown()),
+  answers: z.record(z.string(), z.unknown()), // Fixed: was "answersSection"
+  moneyLostData: z.unknown().optional(), // Added: frontend sends this
   language: z.string().default('en') // Prepare for multilingual support
 });
 

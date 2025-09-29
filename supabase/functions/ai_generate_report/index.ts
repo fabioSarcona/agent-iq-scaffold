@@ -2,7 +2,7 @@ import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 // Shared modules
-import { validateAIEnv, corsHeaders } from '../_shared/env.ts';
+import { checkAIEnv, corsHeaders } from '../_shared/env.ts';
 import { logger } from '../_shared/logger.ts';
 import { VoiceFitInputSchema, VoiceFitOutputSchema } from '../_shared/validation.ts';
 import { validateKBSlice } from '../_shared/kb.ts';
@@ -147,7 +147,7 @@ function buildLLMInput({
     },
     moneyLost: {
       items: moneyLostItems,
-      totalMonthly: moneylost?.monthlyUsd || 0
+      totalMonthly: moneylost?.monthlyUsd ?? moneylost?.total?.monthlyUsd ?? 0
     },
     insights,
     kb,
@@ -159,7 +159,15 @@ function buildLLMInput({
 }
 
 async function callClaude(systemPrompt: string, llmInput: VoiceFitInput, language: string = 'en'): Promise<VoiceFitOutput> {
-  const env = validateAIEnv();
+  // PLAN D: Use non-throwing validation for structured error handling
+  const envCheck = checkAIEnv();
+  if (!envCheck.success) {
+    // Create error with specific code for structured handling
+    const error = new Error(envCheck.error.message);
+    (error as any).code = envCheck.error.code;
+    throw error;
+  }
+  const env = envCheck.config;
   const startTime = Date.now();
   
   // Add language instructions to system prompt
@@ -224,6 +232,32 @@ serve(async (req) => {
 
   const startTime = Date.now();
   
+  // PLAN D: Check AI environment at the start with structured error handling
+  const envCheck = checkAIEnv();
+  if (!envCheck.success) {
+    const errorResponse: ErrorResponse = {
+      success: false,
+      error: {
+        message: envCheck.error.message,
+        code: envCheck.error.code
+      },
+      metadata: {
+        processing_time_ms: Date.now() - startTime,
+        warnings: ['AI service configuration required'],
+        diagnostic: {
+          errorType: 'ConfigurationError',
+          timeoutOccurred: false,
+          apiKeyConfigured: false
+        }
+      }
+    };
+
+    return new Response(JSON.stringify(errorResponse), {
+      status: 503, // Service Unavailable
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+  
   try {
     const request = await req.json();
     logger.info('Processing VoiceFit report request', { vertical: request.vertical });
@@ -273,23 +307,55 @@ serve(async (req) => {
       }
     });
   } catch (error) {
-    logger.error('Error generating VoiceFit report', { error: error.message });
+    logger.error('Error generating VoiceFit report', { 
+      error: error.message,
+      stack: error.stack,
+      timeoutOccurred: error.message?.includes('timeout')
+    });
     
     const processingTime = Date.now() - startTime;
+    
+    // PLAN D: Enhanced error response structure with specific codes
+    let errorCode = 'INTERNAL_ERROR';
+    let httpStatus = 500;
+    
+    // Use error code from checkAIEnv if available
+    if ((error as any).code) {
+      errorCode = (error as any).code;
+      if (errorCode === 'MISSING_API_KEY') {
+        httpStatus = 503; // Service Unavailable
+      }
+    } else if (error.name === 'ZodError') {
+      errorCode = 'VALIDATION_ERROR';
+      httpStatus = 422;
+    } else if (error.message?.includes('validation')) {
+      errorCode = 'VALIDATION_ERROR';
+      httpStatus = 422;
+    } else if (error.message?.includes('timeout')) {
+      errorCode = 'TIMEOUT_ERROR';  
+      httpStatus = 408; // Request Timeout
+    }
+    
     const errorResponse: ErrorResponse = {
       success: false,
       error: {
         message: error.message || 'Unknown error occurred',
-        code: error.name === 'ZodError' ? 'VALIDATION_ERROR' : 'INTERNAL_ERROR'
+        code: errorCode
       },
       metadata: {
         processing_time_ms: processingTime,
-        warnings: [`Processing failed: ${error.message}`]
+        warnings: [`Processing failed: ${error.message}`],
+        // PLAN D: Add diagnostic information for frontend
+        diagnostic: {
+          errorType: error.name,
+          timeoutOccurred: error.message?.includes('timeout'),
+          apiKeyConfigured: !!Deno.env.get('ANTHROPIC_API_KEY')
+        }
       }
     };
 
     return new Response(JSON.stringify(errorResponse), {
-      status: error.message.includes('validation') ? 422 : 500,
+      status: httpStatus,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
   }

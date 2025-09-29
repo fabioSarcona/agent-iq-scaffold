@@ -294,12 +294,51 @@ async function fallbackToLegacyVoiceFit(context: ROIBrainBusinessContext, proces
     };
     
   } catch (fallbackError) {
-    logger.error('Legacy fallback also failed', { error: fallbackError.message });
+    logger.error('Legacy fallback also failed', { 
+      error: fallbackError.message,
+      fallbackErrorCode: (fallbackError as any).code,
+      processingTime
+    });
+    
+    // Extract structured error code from fallback error if available
+    let fallbackErrorCode: string = 'BOTH_SYSTEMS_FAILED';
+    
+    // Check if fallback error contains structured error info
+    try {
+      if (fallbackError && typeof fallbackError === 'object' && 'error' in fallbackError) {
+        const structuredError = (fallbackError as any).error;
+        if (structuredError?.code) {
+          fallbackErrorCode = structuredError.code;
+        }
+      }
+    } catch (e) {
+      // Use default code
+    }
+    
+    // PLAN D: Enhanced error messaging with specific diagnostic information
+    let finalErrorMessage = "Both ROI Brain and legacy systems failed. Please try again later.";
+    
+    if (fallbackError.message?.includes('AI service configuration required') || fallbackErrorCode === 'MISSING_API_KEY') {
+      finalErrorMessage = "AI service configuration required. Please contact support.";
+      fallbackErrorCode = 'MISSING_API_KEY';
+    } else if (fallbackError.message?.includes('timeout') || fallbackErrorCode === 'TIMEOUT_ERROR') {
+      finalErrorMessage = "Report generation is taking longer than expected. Please try again.";
+      fallbackErrorCode = 'TIMEOUT_ERROR';
+    } else if (fallbackError.message?.includes('Invalid request data') || fallbackErrorCode === 'VALIDATION_ERROR') {
+      finalErrorMessage = "Invalid request data. Please try again with different inputs.";
+      fallbackErrorCode = 'VALIDATION_ERROR';
+    } else if (fallbackError.message?.includes('Connection')) {
+      finalErrorMessage = "Connection issue detected. Please check your internet connection and try again.";
+      fallbackErrorCode = 'INTERNAL_ERROR';
+    }
     
     return {
       success: false,
       sessionId: context.sessionId || 'unknown',
-      error: { message: "Both ROI Brain and legacy systems failed. Please try again later." },
+      error: { 
+        message: finalErrorMessage,
+        code: fallbackErrorCode
+      },
       processingTime,
       cacheHit: false,
       voiceFitReport: getEmptyVoiceFitReport(),

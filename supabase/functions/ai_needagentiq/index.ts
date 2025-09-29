@@ -5,7 +5,59 @@ import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { corsHeaders } from '../_shared/env.ts';
 import { logger } from '../_shared/logger.ts';
 import { NeedAgentIQSimpleInputSchema, NeedAgentIQSimpleOutputSchema } from '../_shared/validation.ts';
-import { filterServicesByVertical, filterServicesByTags, type KBService, type KBSlice } from '../_shared/kb.ts';
+import { filterServicesByVertical, filterServicesByTags, validateKBSlice, type KBService, type KBSlice } from '../_shared/kb.ts';
+
+// FASE 2: Section Policy per differenziare comportamento tra sezioni - FIXED with correct dental section IDs
+const ALLOWED_BY_SECTION: Record<string, {
+  allowSkills: boolean;
+  allowROI: boolean;
+  allowedServiceIds: string[];
+  mode: 'skills' | 'foundational';
+}> = {
+  // Dental sections with correct IDs from config.dental.json
+  practice_profile: {
+    allowSkills: false,
+    allowROI: false,
+    allowedServiceIds: ['appointment_booking'],
+    mode: 'foundational'
+  },
+  financial_overview: {
+    allowSkills: false,
+    allowROI: false,
+    allowedServiceIds: ['appointment_booking', 'lead_qualification'],
+    mode: 'foundational'
+  },
+  call_handling_conversion: {
+    allowSkills: true,
+    allowROI: true,
+    allowedServiceIds: ['appointment_booking', 'lead_qualification', 'emergency_routing', 'payment_processing'],
+    mode: 'skills'
+  },
+  scheduling_no_shows: {
+    allowSkills: true,
+    allowROI: true,
+    allowedServiceIds: ['appointment_booking', 'lead_qualification', 'emergency_routing', 'payment_processing'],
+    mode: 'skills'
+  },
+  treatment_plan_conversion: {
+    allowSkills: true,
+    allowROI: true,
+    allowedServiceIds: ['appointment_booking', 'lead_qualification', 'emergency_routing', 'payment_processing'],
+    mode: 'skills'
+  },
+  patient_retention_recall: {
+    allowSkills: true,
+    allowROI: true,
+    allowedServiceIds: ['appointment_booking', 'lead_qualification', 'emergency_routing', 'payment_processing'],
+    mode: 'skills'
+  },
+  reviews_reputation: {
+    allowSkills: false,
+    allowROI: false,
+    allowedServiceIds: ['appointment_booking'],
+    mode: 'foundational'
+  }
+};
 
 // Extended KB types for this function (includes additional fields from actual KB)
 interface ExtendedKBService extends KBService {
@@ -337,77 +389,135 @@ serve(async (req) => {
     // Parse and validate input
     const body = await req.json();
     console.log('📋 Body received:', JSON.stringify(body).slice(0, 200));
-    const { vertical, sectionId, answersSection, language = 'en', moneyLostData = {} } = NeedAgentIQSimpleInputSchema.parse(body);
+    const { vertical, sectionId, answers, language = 'en', moneyLostData = {} } = NeedAgentIQSimpleInputSchema.parse(body);
     console.log('✅ Input validated successfully');
 
     logger.info('Processing NeedAgentIQ request', { 
       sectionId, 
       vertical,
-      answersCount: Object.keys(answersSection).length
+      answersCount: Object.keys(answers).length
     });
 
-    // FASE 3: Deterministic Pipeline - Use voice skill mapping first
-    console.log('🔄 FASE 3: Starting deterministic signal extraction...');
+    // FASE 3: Determine section mode and policy
+    const fallbackSectionId = Object.keys(ALLOWED_BY_SECTION)[0] || 'practice_profile';
+    const policy = ALLOWED_BY_SECTION[sectionId] || ALLOWED_BY_SECTION[fallbackSectionId] || { mode: 'foundational', allowSkills: false, allowROI: false }; // Null-safe fallback
+    const mode = policy.mode || (policy.allowSkills ? 'skills' : 'foundational');
     
-    // Step 1: Extract signal tags from audit answers
-    const signalTags = extractSignalTags(answersSection, vertical as 'dental' | 'hvac');
-    console.log('📊 Signal tags extracted:', {
-      count: signalTags.length,
-      tags: signalTags
+    console.log('🎯 Section policy determined:', {
+      sectionId,
+      mode,
+      allowSkills: policy.allowSkills,
+      allowROI: policy.allowROI,
+      allowedServiceIds: policy.allowedServiceIds
     });
 
-    // Step 2: Map signal tags to skills with ROI calculations  
-    const baseInsights = mapSignalTagsToSkills(
-      signalTags,
-      moneyLostData, // Pass money lost data for accurate ROI calculations
-      vertical as 'dental' | 'hvac',
-      'medium' // Default business size
-    );
+    // FASE 3: Conditional Pipeline - Skip deterministic mapping for foundational mode
+    console.log('🔄 FASE 3: Starting conditional pipeline...');
     
-    console.log('💡 Base insights from deterministic mapping:', {
-      count: baseInsights.length,
-      insights: baseInsights.map(i => ({ key: i.key, title: i.title, monthlyImpact: i.monthlyImpactUsd }))
-    });
-
     let finalInsights: any[] = [];
+    let baseInsights: any[] = []; // Declare baseInsights for both modes
 
-    if (baseInsights.length > 0) {
-      // Use deterministic insights - convert to NeedAgentIQ format
-      finalInsights = baseInsights.map(insight => ({
-        title: insight.title,
-        description: insight.description,
-        impact: insight.priority, // Map priority to impact
-        priority: insight.priority,
-        rationale: [insight.impact, `Category: ${insight.category}`],
-        category: insight.category,
-        key: insight.key,
-        monthlyImpactUsd: insight.monthlyImpactUsd,
-        source: 'mapping',
-        skill: {
-          name: insight.title,
-          id: insight.skill?.id || ''
-        }
-      }));
+    if (mode === 'skills') {
+      // SKILLS MODE: Use deterministic voice skill mapping
+      console.log('💪 SKILLS MODE: Running deterministic signal extraction...');
       
-      console.log('[ai_needagentiq] mapped_insights', finalInsights.length);
-      console.log('✅ Using deterministic insights:', {
-        source: 'voice_skill_mapping',
-        count: finalInsights.length,
-        totalMonthlyImpact: finalInsights.reduce((sum, i) => sum + i.monthlyImpactUsd, 0)
+      // Step 1: Extract signal tags from audit answers
+      const signalTags = extractSignalTags(answers, vertical as 'dental' | 'hvac');
+      console.log('📊 Signal tags extracted:', {
+        count: signalTags.length,
+        tags: signalTags
       });
+
+      // Step 2: Map signal tags to skills with ROI calculations  
+      baseInsights = mapSignalTagsToSkills(
+        signalTags,
+        moneyLostData, // Pass money lost data for accurate ROI calculations
+        vertical as 'dental' | 'hvac',
+        'medium' // Default business size
+      );
       
+      console.log('💡 Base insights from deterministic mapping:', {
+        count: baseInsights.length,
+        insights: baseInsights.map(i => ({ key: i.key, title: i.title, monthlyImpact: i.monthlyImpactUsd }))
+      });
+
+      if (baseInsights.length > 0) {
+        // Use deterministic insights - convert to NeedAgentIQ format
+        finalInsights = baseInsights.map(insight => ({
+          title: insight.title,
+          description: insight.description,
+          impact: insight.impact,
+          priority: insight.priority,
+          rationale: Array.isArray(insight.rationale) 
+            ? insight.rationale.slice(0, 5) 
+            : [],
+          category: insight.category,
+          key: insight.key,
+          monthlyImpactUsd: insight.monthlyImpactUsd,
+          skill: {
+            name: insight.title,
+            id: insight.skill?.id || ''
+          },
+          source: 'mapping'
+        }));
+        
+        console.log('[ai_needagentiq] mapped_insights', finalInsights.length);
+      }
     } else {
-      // Fallback to AI enhancement when no deterministic mapping available
-      console.log('⚠️ No deterministic insights found, falling back to AI enhancement...');
+      // FOUNDATIONAL MODE: Skip deterministic mapping
+      console.log('🏗️ FOUNDATIONAL MODE: Skipping deterministic mapping, going direct to AI...');
+    }
+
+    // Fallback to AI enhancement when no insights are available or in foundational mode
+    if (finalInsights.length === 0 || mode === 'foundational') {
+      console.log('⚠️ Using AI enhancement fallback...');
       
-      const enhancedInsights = await enhanceWithAI(answersSection, vertical, sectionId, language, signalTags, moneyLostData);
+      const enhancedInsights = await enhanceWithAI(answers, vertical, sectionId, language, [], moneyLostData, mode, policy);
       finalInsights = enhancedInsights;
       
       console.log('🤖 AI enhanced insights:', {
         source: 'ai_enhanced',
         count: finalInsights.length
       });
+    } else {
+      console.log('✅ Using deterministic insights:', {
+        source: 'voice_skill_mapping',
+        count: finalInsights.length,
+        totalMonthlyImpact: finalInsights.reduce((sum, i) => sum + (i.monthlyImpactUsd || 0), 0)
+      });
     }
+
+    // FASE 4: Filter insights based on section policy
+    console.log('🔍 FASE 4: Applying section policy filter...');
+    const preFilterCount = finalInsights.length;
+    
+    finalInsights = finalInsights.filter(insight => {
+      const okSkill = policy.allowSkills ? true : !insight.skill?.id;
+      const okService = insight.skill?.id ? policy.allowedServiceIds.includes(insight.skill.id) : true;
+      const okROI = policy.allowROI ? true : (insight.monthlyImpactUsd || 0) === 0;
+      
+      const passed = okSkill && okService && okROI;
+      if (!passed) {
+        console.log('🚫 Filtered out insight:', {
+          title: insight.title,
+          skillId: insight.skill?.id,
+          monthlyImpact: insight.monthlyImpactUsd,
+          reasons: {
+            skill: !okSkill ? 'skills not allowed in this section' : 'ok',
+            service: !okService ? 'service not allowed in this section' : 'ok',
+            roi: !okROI ? 'ROI not allowed in this section' : 'ok'
+          }
+        });
+      }
+      
+      return passed;
+    });
+    
+    console.log('✅ Policy filter applied:', {
+      preFilter: preFilterCount,
+      postFilter: finalInsights.length,
+      filtered: preFilterCount - finalInsights.length
+    });
 
     const processingTime = Date.now() - startTime;
 
@@ -416,7 +526,7 @@ serve(async (req) => {
       vertical,
       insights: finalInsights.length,
       processingTime,
-      source: baseInsights.length > 0 ? 'deterministic' : 'ai_enhanced'
+      source: baseInsights.length > 0 ? 'deterministic' : (mode === 'foundational' ? 'foundational' : 'ai_enhanced')
     });
 
     return jsonOk(finalInsights);
@@ -442,38 +552,41 @@ serve(async (req) => {
  * AI Enhancement fallback with KB-aware scoring (PLAN C ENHANCED)
  */
 async function enhanceWithAI(
-  answersSection: Record<string, unknown>,
+  answers: Record<string, unknown>,
   vertical: string, 
   sectionId: string,
   language: string,
   signalTags: string[] = [],
-  moneyLost: any = {}
+  moneyLost: any = {},
+  mode: string = 'skills',
+  policy: any = null
 ): Promise<any[]> {
   const startTime = Date.now();
   
   try {
-    // Step 1: Load and validate KB data
+    // Step 1: Load and validate KB data with shared helpers
     console.log('🔧 Loading KB data for enhanced fallback...');
     
     const [approvedClaimsText, servicesText] = await Promise.all([
-      Deno.readTextFile('./kb/approved_claims.json'),
-      Deno.readTextFile('./kb/services.json')
+      Deno.readTextFile('../_shared/kb/approved_claims.json'),
+      Deno.readTextFile('../_shared/kb/services.json')
     ]);
     
-    const approvedClaims: string[] = JSON.parse(approvedClaimsText);
-    const allServices: ExtendedKBService[] = JSON.parse(servicesText);
-    
-    console.log('📚 KB loaded:', {
-      claims: approvedClaims.length,
-      services: allServices.length
+    // Validate KB slice using shared helper
+    const kbSlice: KBSlice = validateKBSlice({
+      approved_claims: JSON.parse(approvedClaimsText),
+      services: JSON.parse(servicesText)
     });
     
-    // Step 2: Filter and score services by vertical and signal relevance
-    const targetMap = { dental: 'Dental', hvac: 'HVAC' } as const;
-    const target = targetMap[vertical as keyof typeof targetMap] || 'Both';
+    console.log('📚 KB loaded and validated:', {
+      claims: kbSlice.approved_claims.length,
+      services: kbSlice.services.length
+    });
     
-    const servicesForVertical = allServices.filter(service => 
-      service.target === target || service.target === 'Both'
+    // Step 2: Filter services by vertical using shared helper
+    const servicesForVertical = filterServicesByVertical(
+      kbSlice.services as ExtendedKBService[], 
+      vertical as 'dental' | 'hvac'
     );
     
     // Enhance services with inferred data if missing
@@ -501,7 +614,7 @@ async function enhanceWithAI(
     });
     
     // Step 3: Build grounded prompt with KB context
-    const claimsTop = approvedClaims.slice(0, 5);
+    const claimsTop = kbSlice.approved_claims.slice(0, 5);
     const servicesForPrompt = rankedServices.map(s => ({
       id: s.id || 'unknown',
       name: s.name,
@@ -525,16 +638,37 @@ async function enhanceWithAI(
       approvedClaims: claimsTop
     };
     
-    // Enhanced system prompt with KB grounding
+    // Enhanced system prompt with KB grounding and mode-specific instructions
     const basePrompt = Deno.env.get('NEEDAGENT_IQ_SYSTEM_PROMPT') ?? '';
+    const modeInstructions = mode === 'foundational' 
+      ? `
+FOUNDATIONAL MODE (Sections 1-2):
+- DO NOT assign specific voice skills or operational ROI estimates
+- Focus on foundational business insights like web presence, basic CRM, contact methods
+- Set monthlyImpactUsd to 0 for all insights
+- Use only basic services from allowedServiceIds: ${policy?.allowedServiceIds?.join(', ') || 'none'}
+- source must be "foundational"`
+      : `
+SKILLS MODE (Sections 3-7):
+- Generate operational insights with specific voice skills and ROI calculations
+- Limit to maximum 2 skills per section
+- Use only services from allowedServiceIds: ${policy?.allowedServiceIds?.join(', ') || 'all'}
+- Calculate realistic monthlyImpactUsd based on money lost data
+- source must be "kb-fallback"`;
+
     const systemPrompt = `${basePrompt}
 
 LANGUAGE INSTRUCTIONS:
+${language === 'it' ? 'Respond in Italian' : 'Respond in English'}
+
+${modeInstructions}
+
+KB-GROUNDED CONTEXT:
 - Respond in ${language === 'it' ? 'Italian' : 'English'}
 - Use professional terminology appropriate for ${vertical} business contexts
 
 KB-GROUNDED CONTEXT:
-Available AI Services for ${target}:
+Available AI Services for ${vertical}:
 ${servicesForPrompt.map(s => `- ${s.id}: ${s.name} (Area: ${s.areaId}, Problem: ${s.problem})`).join('\n')}
 
 Approved Claims to Reference:
@@ -580,7 +714,7 @@ CONTEXT:
 ${JSON.stringify(grounding, null, 2)}
 
 AUDIT ANSWERS:
-${JSON.stringify({ sectionId, answersSection }, null, 2)}
+${JSON.stringify({ sectionId, answers }, null, 2)}
 
 Generate insights using ONLY the provided services and claims:`;
 
@@ -638,14 +772,24 @@ Generate insights using ONLY the provided services and claims:`;
       });
     }
 
-    // Step 7: Final telemetry
+    // Step 7: Final telemetry and enhanced rationale
     const processingTime = Date.now() - startTime;
+    
+    // Enhance rationale with approved claims for better consultancy feel
+    const enhancedInsights = parsedInsights.map(insight => ({
+      ...insight,
+      rationale: [
+        ...insight.rationale.slice(0, 3),
+        ...kbSlice.approved_claims.slice(0, 2).map(claim => `Proven benefit: ${claim}`)
+      ].slice(0, 5)
+    }));
+    
     console.log('[IQ kb-fallback]', {
       vertical, 
       sectionId, 
       signalTags,
       candidates: servicesForPrompt.map(s => s.id),
-      picked: parsedInsights.map(i => i.skill?.id),
+      picked: enhancedInsights.map(i => i.skill?.id),
       money: {
         total: moneyLost?.monthlyUsd || 0,
         areas: (moneyLost?.areas || []).map((a: any) => ({ id: a.id || a.key, usd: a.monthlyUsd }))
@@ -653,7 +797,7 @@ Generate insights using ONLY the provided services and claims:`;
       processingTimeMs: processingTime
     });
 
-    return parsedInsights;
+    return enhancedInsights;
     
   } catch (error) {
     console.error('❌ Enhanced AI fallback error:', error);
@@ -661,8 +805,8 @@ Generate insights using ONLY the provided services and claims:`;
     // KB-aware emergency fallback - use top ranked service if available
     try {
       const [approvedClaimsText, servicesText] = await Promise.all([
-        Deno.readTextFile('./kb/approved_claims.json'),
-        Deno.readTextFile('./kb/services.json')
+        Deno.readTextFile('../_shared/kb/approved_claims.json'),
+        Deno.readTextFile('../_shared/kb/services.json')
       ]);
       
       const allServices: ExtendedKBService[] = JSON.parse(servicesText);
@@ -710,8 +854,7 @@ Generate insights using ONLY the provided services and claims:`;
       source: 'last-resort'
     }];
   }
-}
-}
+  }
 
 /**
  * Enhanced AI response parsing with KB validation (PLAN C)

@@ -8,10 +8,11 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { RefreshCw, Trash2, Search, Activity, DollarSign, AlertTriangle, Settings, RotateCcw } from 'lucide-react';
+import { RefreshCw, Trash2, Search, Activity, DollarSign, AlertTriangle, Settings, RotateCcw, Brain } from 'lucide-react';
 import { useLogEvents, useEventFilter, useAutoRefresh, useIQErrors } from './hooks';
 import { EventCategory, LogEntry } from './types';
 import { cn } from '@/lib/utils';
+import { NeedAgentIQDebugPanel } from '../audit/NeedAgentIQDebugPanel';
 
 const EventCard = ({ event, index }: { event: LogEntry; index: number }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -62,7 +63,8 @@ const TabIcon = ({ category }: { category: EventCategory }) => {
     insights: Activity,
     moneylost: DollarSign,
     errors: AlertTriangle,
-    system: Settings
+    system: Settings,
+    needagentiq: Brain
   };
   const Icon = icons[category as keyof typeof icons];
   return Icon ? <Icon className="h-4 w-4" /> : null;
@@ -76,6 +78,16 @@ export function DevConsolePanel() {
   const { events, refreshEvents, clearEvents } = useLogEvents(autoRefresh);
   const { filteredEvents, eventCounts, tabConfigs } = useEventFilter(events, selectedTab, searchQuery);
   const { sectionsWithErrors, retrySection, hasErrors } = useIQErrors();
+
+  // Add NeedAgentIQ Debug tab
+  const allTabs = [
+    ...tabConfigs,
+    {
+      id: 'needagentiq' as EventCategory,
+      label: 'NeedAgentIQ Debug',
+      description: 'Advanced debugging for NeedAgentIQ insights generation'
+    }
+  ];
 
   return (
     <div className="space-y-6">
@@ -172,8 +184,8 @@ export function DevConsolePanel() {
       )}
 
       <Tabs value={selectedTab} onValueChange={(v) => setSelectedTab(v as EventCategory)}>
-        <TabsList className="grid w-full grid-cols-4 glass-card border border-border/30">
-          {tabConfigs.map((tab) => (
+        <TabsList className="grid w-full grid-cols-5 glass-card border border-border/30">
+          {allTabs.map((tab) => (
             <TabsTrigger 
               key={tab.id} 
               value={tab.id}
@@ -181,7 +193,7 @@ export function DevConsolePanel() {
             >
               <TabIcon category={tab.id} />
               {tab.label}
-              {eventCounts[tab.id] > 0 && (
+              {tab.id !== 'needagentiq' && eventCounts[tab.id as keyof typeof eventCounts] > 0 && (
                 <Badge 
                   variant="secondary" 
                   className={cn(
@@ -196,8 +208,11 @@ export function DevConsolePanel() {
           ))}
         </TabsList>
 
-        {tabConfigs.map((tab) => (
+        {allTabs.map((tab) => (
           <TabsContent key={tab.id} value={tab.id} className="mt-6">
+            {tab.id === 'needagentiq' ? (
+              <NeedAgentIQDebugPanel />
+            ) : (
             <Card className="glass-card border border-border/30">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -227,6 +242,7 @@ export function DevConsolePanel() {
                 </ScrollArea>
               </CardContent>
             </Card>
+            )}
           </TabsContent>
         ))}
       </Tabs>

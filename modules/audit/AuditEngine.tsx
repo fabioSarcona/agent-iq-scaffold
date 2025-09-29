@@ -265,11 +265,23 @@ export function AuditEngine({ industry }: AuditEngineProps) {
         });
         
         // Add sectionId to insights for better deduplication
-        const enrichedInsights = data.map(insight => ({
+        const enrichedInsights = data.map((insight, index) => ({
           ...insight,
           sectionId: currentSection.id,
-          key: insight.key || `section_${currentSection.id}`
+          key: insight.key || `section_${currentSection.id}_${index}`
         }));
+        
+        // Log seed verification for debugging
+        const seedInsights = enrichedInsights.filter(i => i.source === 'seed');
+        const realInsights = enrichedInsights.filter(i => i.source !== 'seed');
+        console.log('🐛 DEBUG: Insight source verification:', {
+          sectionId: currentSection.id,
+          totalInsights: enrichedInsights.length,
+          seedCount: seedInsights.length,
+          realCount: realInsights.length,
+          seedInsights: seedInsights.map(i => ({ key: i.key, source: i.source, title: i.title?.slice(0, 30) })),
+          realInsights: realInsights.map(i => ({ key: i.key, source: i.source, title: i.title?.slice(0, 30) }))
+        });
         
         console.log('🐛 DEBUG: Enriched insights:', enrichedInsights);
         

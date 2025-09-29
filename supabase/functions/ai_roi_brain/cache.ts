@@ -111,7 +111,7 @@ const inflight = new Map<string, Promise<any>>();
 /**
  * Deterministic object sorting for stable JSON stringification
  */
-function stableSort(obj: any): any {
+export function stableSort(obj: any): any {
   if (obj === null || typeof obj !== 'object') return obj;
   if (Array.isArray(obj)) return obj.map(stableSort);
   

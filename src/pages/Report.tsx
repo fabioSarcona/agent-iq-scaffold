@@ -337,22 +337,11 @@ export default function Report() {
     // Extract error code from structured error responses
     let errorCode: string | undefined;
     try {
-      // Try to parse structured error from JSON response first
-      if (error && typeof error === 'object' && 'error' in error) {
-        const structuredError = (error as any).error;
-        if (structuredError?.code) {
-          errorCode = structuredError.code;
-        }
-      }
-      
-      // Fallback: try to parse from error message if no structured code found
-      if (!errorCode && errorMessage) {
-        if (errorMessage.includes('MISSING_API_KEY')) errorCode = 'MISSING_API_KEY';
-        else if (errorMessage.includes('TIMEOUT_ERROR')) errorCode = 'TIMEOUT_ERROR';
-        else if (errorMessage.includes('VALIDATION_ERROR')) errorCode = 'VALIDATION_ERROR';
-        else if (errorMessage.includes('INTERNAL_ERROR')) errorCode = 'INTERNAL_ERROR';
-        else if (errorMessage.includes('BOTH_SYSTEMS_FAILED')) errorCode = 'BOTH_SYSTEMS_FAILED';
-      }
+      // Try to parse error code from structured backend responses
+      if (errorMessage.includes('MISSING_API_KEY')) errorCode = 'MISSING_API_KEY';
+      else if (errorMessage.includes('TIMEOUT_ERROR')) errorCode = 'TIMEOUT_ERROR';
+      else if (errorMessage.includes('VALIDATION_ERROR')) errorCode = 'VALIDATION_ERROR';
+      else if (errorMessage.includes('INTERNAL_ERROR')) errorCode = 'INTERNAL_ERROR';
     } catch (e) {
       // Fallback to legacy error message parsing
     }

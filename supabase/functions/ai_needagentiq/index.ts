@@ -5,7 +5,7 @@ import { serve } from 'https://deno.land/std@0.224.0/http/server.ts';
 import { corsHeaders } from '../_shared/env.ts';
 import { logger } from '../_shared/logger.ts';
 import { NeedAgentIQSimpleInputSchema, NeedAgentIQSimpleOutputSchema } from '../_shared/validation.ts';
-import { filterServicesByVertical, filterServicesByTags, validateKBSlice, type KBService, type KBSlice } from '../_shared/kb.ts';
+import { filterServicesByVertical, filterServicesByTags, type KBService, type KBSlice } from '../_shared/kb.ts';
 
 // Extended KB types for this function (includes additional fields from actual KB)
 interface ExtendedKBService extends KBService {
@@ -376,19 +376,17 @@ serve(async (req) => {
       finalInsights = baseInsights.map(insight => ({
         title: insight.title,
         description: insight.description,
-        impact: insight.impact,
+        impact: insight.priority, // Map priority to impact
         priority: insight.priority,
-        rationale: Array.isArray(insight.rationale) 
-          ? insight.rationale.slice(0, 5) 
-          : [],
+        rationale: [insight.impact, `Category: ${insight.category}`],
         category: insight.category,
         key: insight.key,
         monthlyImpactUsd: insight.monthlyImpactUsd,
+        source: 'mapping',
         skill: {
           name: insight.title,
           id: insight.skill?.id || ''
-        },
-        source: 'mapping'
+        }
       }));
       
       console.log('[ai_needagentiq] mapped_insights', finalInsights.length);
@@ -454,7 +452,7 @@ async function enhanceWithAI(
   const startTime = Date.now();
   
   try {
-    // Step 1: Load and validate KB data with shared helpers
+    // Step 1: Load and validate KB data
     console.log('🔧 Loading KB data for enhanced fallback...');
     
     const [approvedClaimsText, servicesText] = await Promise.all([
@@ -462,21 +460,20 @@ async function enhanceWithAI(
       Deno.readTextFile('./kb/services.json')
     ]);
     
-    // Validate KB slice using shared helper
-    const kbSlice: KBSlice = validateKBSlice({
-      approved_claims: JSON.parse(approvedClaimsText),
-      services: JSON.parse(servicesText)
+    const approvedClaims: string[] = JSON.parse(approvedClaimsText);
+    const allServices: ExtendedKBService[] = JSON.parse(servicesText);
+    
+    console.log('📚 KB loaded:', {
+      claims: approvedClaims.length,
+      services: allServices.length
     });
     
-    console.log('📚 KB loaded and validated:', {
-      claims: kbSlice.approved_claims.length,
-      services: kbSlice.services.length
-    });
+    // Step 2: Filter and score services by vertical and signal relevance
+    const targetMap = { dental: 'Dental', hvac: 'HVAC' } as const;
+    const target = targetMap[vertical as keyof typeof targetMap] || 'Both';
     
-    // Step 2: Filter services by vertical using shared helper
-    const servicesForVertical = filterServicesByVertical(
-      kbSlice.services as ExtendedKBService[], 
-      vertical as 'dental' | 'hvac'
+    const servicesForVertical = allServices.filter(service => 
+      service.target === target || service.target === 'Both'
     );
     
     // Enhance services with inferred data if missing
@@ -504,7 +501,7 @@ async function enhanceWithAI(
     });
     
     // Step 3: Build grounded prompt with KB context
-    const claimsTop = kbSlice.approved_claims.slice(0, 5);
+    const claimsTop = approvedClaims.slice(0, 5);
     const servicesForPrompt = rankedServices.map(s => ({
       id: s.id || 'unknown',
       name: s.name,
@@ -641,24 +638,14 @@ Generate insights using ONLY the provided services and claims:`;
       });
     }
 
-    // Step 7: Final telemetry and enhanced rationale
+    // Step 7: Final telemetry
     const processingTime = Date.now() - startTime;
-    
-    // Enhance rationale with approved claims for better consultancy feel
-    const enhancedInsights = parsedInsights.map(insight => ({
-      ...insight,
-      rationale: [
-        ...insight.rationale.slice(0, 3),
-        ...kbSlice.approved_claims.slice(0, 2).map(claim => `Proven benefit: ${claim}`)
-      ].slice(0, 5)
-    }));
-    
     console.log('[IQ kb-fallback]', {
       vertical, 
       sectionId, 
       signalTags,
       candidates: servicesForPrompt.map(s => s.id),
-      picked: enhancedInsights.map(i => i.skill?.id),
+      picked: parsedInsights.map(i => i.skill?.id),
       money: {
         total: moneyLost?.monthlyUsd || 0,
         areas: (moneyLost?.areas || []).map((a: any) => ({ id: a.id || a.key, usd: a.monthlyUsd }))
@@ -666,7 +653,7 @@ Generate insights using ONLY the provided services and claims:`;
       processingTimeMs: processingTime
     });
 
-    return enhancedInsights;
+    return parsedInsights;
     
   } catch (error) {
     console.error('❌ Enhanced AI fallback error:', error);

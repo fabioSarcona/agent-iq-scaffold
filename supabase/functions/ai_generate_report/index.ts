@@ -147,7 +147,7 @@ function buildLLMInput({
     },
     moneyLost: {
       items: moneyLostItems,
-      totalMonthly: moneylost?.monthlyUsd ?? moneylost?.total?.monthlyUsd ?? 0
+      totalMonthly: moneylost?.monthlyUsd || 0
     },
     insights,
     kb,
